@@ -1,194 +1,180 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 
 export default function HomePage() {
   const router = useRouter();
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showPlayButton, setShowPlayButton] = useState(false);
-  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [activeNav, setActiveNav] = useState('home');
 
-  const handleNavigation = (path: string) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      router.push(path);
-    }, 800);
+  const circularMenuItems = [
+    { id: 1, label: 'ENGAGE', color: '#22c55e', icon: '👥' },
+    { id: 2, label: 'FOOD', color: '#eab308', icon: '🍽️' },
+    { id: 3, label: 'TRADE', color: '#f97316', icon: '📊' },
+    { id: 4, label: 'LEARN', color: '#3b82f6', icon: '📚' },
+    { id: 5, label: 'PROFIT', color: '#a855f7', icon: '💰' },
+    { id: 6, label: 'TECH', color: '#ec4899', icon: '💻' },
+  ];
+
+  const videos = [
+    {
+      id: 1,
+      title: 'Natural Pest Control',
+      duration: '3 mins',
+      instructor: 'Hari Jas',
+      bgColor: '#fbbf24',
+    },
+    {
+      id: 2,
+      title: 'Packaging Produce',
+      duration: '4 mins',
+      instructor: 'Sri Karan',
+      bgColor: '#fb923c',
+    },
+    {
+      id: 3,
+      title: 'Vegetable Growing',
+      duration: '5 mins',
+      instructor: 'Maya',
+      bgColor: '#a78bfa',
+    },
+  ];
+
+  const calculatePosition = (index: number, total: number) => {
+    const angle = (index * 360) / total - 90; // Start from top
+    const radius = 120;
+    const x = radius * Math.cos((angle * Math.PI) / 180);
+    const y = radius * Math.sin((angle * Math.PI) / 180);
+    return { x, y };
   };
 
-  // Override any parent styles
-  useEffect(() => {
-    // Force the body and html to not have any background
-    document.body.style.background = 'transparent';
-    document.documentElement.style.background = 'transparent';
-    
-    // Find and override any parent elements
-    const main = document.querySelector('main');
-    if (main) {
-      (main as HTMLElement).style.background = 'transparent';
-    }
-  }, []);
-
   return (
-    <div 
-      className="relative min-h-screen overflow-hidden"
-      style={{
-        background: 'linear-gradient(to bottom right, #60a5fa, #a855f7, #ec4899) !important',
-        backgroundColor: '#60a5fa !important',
-        width: '100vw',
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0
-      }}
-    >
+    <div className="h-screen bg-gray-50 flex flex-col max-w-md mx-auto relative overflow-hidden">
       
-      {/* Video Background for all devices */}
-      <video
-        ref={(ref) => setVideoRef(ref)}
-        key="background-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        webkit-playsinline="true"
-        preload="auto"
-        className="absolute top-0 left-0 w-full h-full object-cover"
-        style={{ 
-          minWidth: '100%', 
-          minHeight: '100%',
-          zIndex: 1,
-          WebkitTransform: 'translateZ(0)',
-          transform: 'translateZ(0)'
-        }}
-        onLoadedMetadata={(e) => {
-          const video = e.target as HTMLVideoElement;
-          video.play().catch(err => {
-            console.log('Autoplay failed, showing play button:', err);
-            setShowPlayButton(true);
-          });
-        }}
-        onLoadedData={() => {
-          console.log('Video loaded successfully');
-        }}
-        onError={(e) => {
-          console.error('Video failed to load:', e);
+      <header className="text-white p-4 flex items-center justify-between relative overflow-hidden flex-shrink-0"
+        style={{
+          background: 'linear-gradient(to bottom, #008C45 50%, #00B68A 100%)'
         }}
       >
-        <source
-          src="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          type="video/mp4"
-        />
-        Your browser does not support the video tag.
-      </video>
       
-      {/* Play button for mobile if autoplay fails */}
-      {showPlayButton && (
-        <button
-          onClick={() => {
-            if (videoRef) {
-              videoRef.play();
-              setShowPlayButton(false);
-            }
-          }}
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white/80 rounded-full p-4 shadow-lg"
+        <Image 
+          src="/images/logo.png" 
+          alt="AgriSkills Logo" 
+          width={55}
+          height={55}
+          className="object-contain [filter:drop-shadow(0_10px_8px_rgba(0,0,0,0.4))]"
+        />
+        
+        <h1 className="text-[17px] font-bold tracking-wider">LOGIN/ SIGN UP</h1>
+        
+                <div className="bg-yellow-200 rounded-md p-1 flex items-center border border-transparent">
+                    <button 
+            className="bg-transparent text-black p-1 rounded-l hover:bg-black/10 transition-colors"
+            title="Language Translator"
+            onClick={() => alert('Language translator feature coming soon!')}
+          >
+            <LanguageIcon className="h-5 w-5" />
+          </button>
+                    <div className="w-px h-5 bg-gray-500/50"></div>
+          <button 
+            className="bg-transparent text-black p-1 rounded-r hover:bg-black/10 transition-colors"
+            title="Help & Support"
+            onClick={() => alert('Help & Support section coming soon!')}
+          >
+            <QuestionMarkCircleIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-y-auto">
+         
+
+        <motion.div 
+          className="relative group cursor-pointer mx-4 mt-6 h-60 rounded-xl overflow-hidden shadow-lg bg-gray-900"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push('/learn-more')}
         >
-          <svg className="w-12 h-12 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-          </svg>
-        </button>
-      )}
-
-      {/* Main Content */}
-      <AnimatePresence>
-        {!isTransitioning && (
-          <motion.div
-            className="relative z-20 min-h-screen flex flex-col justify-end pb-20"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -100 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="text-center">
-              <motion.h1
-                className="text-3xl font-bold text-white drop-shadow-lg"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Welcome to AgriSkills
-              </motion.h1>
-              <motion.p
-                className="text-l text-white mb-12 drop-shadow-lg"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                Connecting farmers with technology
-              </motion.p>
-
-              <motion.div
-                className="space-y-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-              <div>
-                <Button
-                  onClick={() => handleNavigation('/login')}
-                  className="w-64 h-14 text-lg font-semibold bg-green-600 hover:bg-green-700 transform transition-all duration-300 hover:scale-105 shadow-lg"
-                >
-                  Sign In
-                </Button>
-              </div>
-              <div>
-                <Button
-                  onClick={() => handleNavigation('/register')}
-                  variant="outline"
-                  className="w-64 h-14 text-lg font-semibold border-2 border-green-600 text-green-600 hover:bg-green-50 transform transition-all duration-300 hover:scale-105 shadow-lg"
-                >
-                  Create Account
-                </Button>
-              </div>
-              </motion.div>
+          <Image
+            src="/images/image1.png"
+            alt="Sustainable Farming Techniques"
+            layout="fill"
+            objectFit="cover"
+            className="group-hover:scale-110 transition-transform duration-500 ease-in-out"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
+          <div className="absolute inset-0 p-6 flex flex-col justify-end">
+            <h3 className="text-white text-2xl font-bold">Master Sustainable Farming</h3>
+            <p className="text-gray-300 mt-1">Unlock the secrets to a greener, more profitable harvest.</p>
+            <div className="flex items-center mt-4 text-green-400 font-semibold text-sm">
+              <span>Learn More</span>
+              <ArrowRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </motion.div>
 
-      {/* Page Transition Overlay */}
-      <AnimatePresence>
-        {isTransitioning && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-white"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '-100%' }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-          >
-            <div className="min-h-screen flex items-center justify-center">
+        <div className="px-4 pb-24">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Videos</h2>
+            <button className="text-green-600 text-sm font-medium">View More</button>
+          </div>
+
+          <div className="space-y-3">
+            {videos.map((video) => (
               <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 180, 360],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                }}
+                key={video.id}
+                className="relative rounded-lg overflow-hidden shadow-md cursor-pointer"
+                style={{ backgroundColor: video.bgColor }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                  <circle cx="30" cy="30" r="25" stroke="#16a34a" strokeWidth="4" strokeDasharray="70 30" />
-                </svg>
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white mb-1">{video.title}</h3>
+                    <p className="text-white/80 text-sm">
+                      {video.instructor} · {video.duration}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white fill-white" />
+                  </div>
+                </div>
               </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex-shrink-0">
+        <div className="flex justify-around items-center py-3">
+          <button
+            onClick={() => setActiveNav('home')}
+            className={`flex flex-col items-center p-2 transition-colors ${activeNav === 'home' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Home className="w-6 h-6" />
+            <span className="text-xs mt-1 font-medium">Home</span>
+          </button>
+          <button
+            onClick={() => setActiveNav('search')}
+            className={`flex flex-col items-center p-2 transition-colors ${activeNav === 'search' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Search className="w-6 h-6" />
+            <span className="text-xs mt-1 font-medium">Search</span>
+          </button>
+          <button
+            onClick={() => setActiveNav('learn')}
+            className={`flex flex-col items-center p-2 transition-colors ${activeNav === 'learn' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <BookOpen className="w-6 h-6" />
+            <span className="text-xs mt-1 font-medium">Learn</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
