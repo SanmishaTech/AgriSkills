@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical } from 'lucide-react';
+import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 
@@ -21,6 +21,123 @@ export default function HomePage() {
   ];
 
   const [selectedShort, setSelectedShort] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const iframeRef = useRef(null);
+  
+  // Video player state management
+  const VideoPlayer = ({ video }) => {
+    const [playerState, setPlayerState] = useState('paused');
+    const playerRef = useRef(null);
+    const iframeId = `youtube-player-${video.id}`;
+    
+    useEffect(() => {
+      // Load YouTube IFrame API
+      if (!window.YT) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        document.body.appendChild(script);
+        
+        window.onYouTubeIframeAPIReady = () => {
+          initializePlayer();
+        };
+      } else {
+        initializePlayer();
+      }
+      
+      return () => {
+        if (playerRef.current) {
+          playerRef.current.destroy();
+        }
+      };
+    }, []);
+    
+    const initializePlayer = () => {
+      if (window.YT && window.YT.Player) {
+        playerRef.current = new window.YT.Player(iframeId, {
+          height: '100%',
+          width: '100%',
+          videoId: video.youtubeId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            fs: 1,
+            playsinline: 1
+          },
+          events: {
+            onReady: (event) => {
+              setPlayerState('playing');
+              event.target.playVideo();
+            },
+            onStateChange: (event) => {
+              switch (event.data) {
+                case window.YT.PlayerState.PLAYING:
+                  setPlayerState('playing');
+                  break;
+                case window.YT.PlayerState.PAUSED:
+                  setPlayerState('paused');
+                  break;
+                case window.YT.PlayerState.ENDED:
+                  setPlayerState('ended');
+                  break;
+                default:
+                  break;
+              }
+            }
+          }
+        });
+      }
+    };
+    
+    const togglePlayPause = () => {
+      if (playerRef.current) {
+        if (playerState === 'playing') {
+          playerRef.current.pauseVideo();
+        } else {
+          playerRef.current.playVideo();
+        }
+      }
+    };
+    
+    const restartVideo = () => {
+      if (playerRef.current) {
+        playerRef.current.seekTo(0);
+        playerRef.current.playVideo();
+      }
+    };
+    
+    return (
+      <div className="relative w-full h-full">
+        <div id={iframeId} className="w-full h-full"></div>
+        
+        {/* Custom Controls Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="flex space-x-4 pointer-events-auto">
+            {/* Restart Button */}
+            <button
+              onClick={restartVideo}
+              className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-200 transform hover:scale-110"
+            >
+              <RotateCcw className="w-6 h-6" />
+            </button>
+            
+            {/* Play/Pause Button */}
+            <button
+              onClick={togglePlayPause}
+              className="bg-black/50 hover:bg-black/70 text-white p-4 rounded-full transition-all duration-200 transform hover:scale-110"
+            >
+              {playerState === 'playing' ? (
+                <Pause className="w-8 h-8" />
+              ) : (
+                <Play className="w-8 h-8" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const videos = [
     {
@@ -341,35 +458,6 @@ export default function HomePage() {
                 allowFullScreen
               ></iframe>
 
-              {/* Side action buttons */}
-              <div className="absolute right-3 bottom-20 flex flex-col items-center space-y-6">
-                <button className="flex flex-col items-center text-white hover:scale-110 transition-transform">
-                  <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                    <Heart className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs mt-1">2.3K</span>
-                </button>
-                
-                <button className="flex flex-col items-center text-white hover:scale-110 transition-transform">
-                  <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                    <MessageCircle className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs mt-1">89</span>
-                </button>
-                
-                <button className="flex flex-col items-center text-white hover:scale-110 transition-transform">
-                  <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                    <Share className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs mt-1">Share</span>
-                </button>
-                
-                <button className="flex flex-col items-center text-white hover:scale-110 transition-transform">
-                  <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                    <MoreVertical className="w-6 h-6" />
-                  </div>
-                </button>
-              </div>
 
               {/* Bottom info overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
@@ -381,13 +469,11 @@ export default function HomePage() {
                     <p className="text-white font-semibold text-sm">{selectedShort.instructor}</p>
                     <p className="text-gray-300 text-xs">{selectedShort.views} views · {selectedShort.timeAgo}</p>
                   </div>
-                  <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
-                    Follow
-                  </button>
+                  
                 </div>
-                <h3 className="text-white font-semibold text-sm mb-2 leading-tight">
+                {/* <h3 className="text-white font-semibold text-sm mb-2 leading-tight">
                   {selectedShort.title}
-                </h3>
+                </h3> */}
               </div>
             </div>
           </div>
