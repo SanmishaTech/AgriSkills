@@ -121,39 +121,53 @@
   }
 }
 
-/* Force mobile-only layout */
+/* Responsive layout utilities */
 @layer utilities {
-  /* Override all responsive breakpoints to force mobile layout */
-  .mobile-only {
-    max-width: 428px !important;
-    margin: 0 auto !important;
+  /* Mobile-first responsive design */
+  @media (max-width: 767px) {
+    .mobile-container {
+      max-width: 100%;
+      padding: 0 1rem;
+    }
   }
   
-  /* Force mobile viewport on all screen sizes */
-  html {
-    max-width: 428px;
-    margin: 0 auto;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  /* Desktop styles */
+  @media (min-width: 768px) {
+    .desktop-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
   }
   
-  /* Override Tailwind responsive classes to always use mobile version */
-  .lg\:hidden {
-    display: none !important;
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
   
-  .lg\:translate-x-0 {
-    transform: translateX(-100%) !important;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
   
-  .lg\:static {
-    position: fixed !important;
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
-  .lg\:z-auto {
-    z-index: 50 !important;
+  /* Snap scroll utilities */
+  .snap-x {
+    scroll-snap-type: x mandatory;
   }
   
-  .lg\:ml-0 {
-    margin-left: 0 !important;
+  .snap-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
   }
 }
