@@ -7,11 +7,46 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
-  content: string;
-  youtubeUrl: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  subtopicId: string;
+  demoVideos?: DemoVideo[];
+  chapters?: Chapter[];
+}
+
+interface DemoVideo {
+  id: string;
+  title: string;
+  description: string | null;
+  videoUrl: string;
+  duration: number | null;
+  thumbnailUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Subtopic {
+  id: string;
+  title: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  topicId: string;
+  courses: Course[];
+  _count?: {
+    courses: number;
+  };
 }
 
 interface Topic {
@@ -21,7 +56,10 @@ interface Topic {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  courses: Course[];
+  subtopics?: Subtopic[];
+  _count?: {
+    subtopics: number;
+  };
 }
 
 interface User {
@@ -44,6 +82,15 @@ export default function AdminTopicDetail() {
     description: '',
     isActive: true
   });
+  const [showAddSubtopicModal, setShowAddSubtopicModal] = useState(false);
+  const [showEditSubtopicModal, setShowEditSubtopicModal] = useState(false);
+  const [showDeleteSubtopicModal, setShowDeleteSubtopicModal] = useState(false);
+  const [selectedSubtopic, setSelectedSubtopic] = useState<Subtopic | null>(null);
+  const [subtopicForm, setSubtopicForm] = useState({
+    title: '',
+    description: '',
+    isActive: true
+  });
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   const [showEditCourseModal, setShowEditCourseModal] = useState(false);
   const [showDeleteCourseModal, setShowDeleteCourseModal] = useState(false);
@@ -51,9 +98,8 @@ export default function AdminTopicDetail() {
   const [courseForm, setCourseForm] = useState({
     title: '',
     description: '',
-    content: '',
-    youtubeUrl: '',
-    isActive: true
+    isActive: true,
+    subtopicId: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -137,8 +183,45 @@ export default function AdminTopicDetail() {
     }
   };
 
+  const handleAddSubtopic = async () => {
+    if (!subtopicForm.title.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/subtopics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ...subtopicForm, topicId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create subtopic');
+      }
+
+      const data = await response.json();
+      setTopic(prev => prev ? {
+        ...prev,
+        subtopics: [data.subtopic, ...(prev.subtopics || [])]
+      } : null);
+      setShowAddSubtopicModal(false);
+      setSubtopicForm({
+        title: '',
+        description: '',
+        isActive: true
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAddCourse = async () => {
-    if (!courseForm.title.trim() || !courseForm.content.trim()) return;
+    if (!courseForm.title.trim() || !courseForm.subtopicId) return;
 
     setIsSubmitting(true);
     try {
@@ -149,7 +232,7 @@ export default function AdminTopicDetail() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...courseForm, topicId }),
+        body: JSON.stringify(courseForm),
       });
 
       if (!response.ok) {
@@ -157,17 +240,21 @@ export default function AdminTopicDetail() {
       }
 
       const data = await response.json();
+      // Update the subtopic's courses array
       setTopic(prev => prev ? {
         ...prev,
-        courses: [data.course, ...prev.courses]
+        subtopics: (prev.subtopics || []).map(subtopic => 
+          subtopic.id === courseForm.subtopicId
+            ? { ...subtopic, courses: [data.course, ...(subtopic.courses || [])] }
+            : subtopic
+        )
       } : null);
       setShowAddCourseModal(false);
       setCourseForm({
         title: '',
         description: '',
-        content: '',
-        youtubeUrl: '',
-        isActive: true
+        isActive: true,
+        subtopicId: ''
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -198,7 +285,7 @@ export default function AdminTopicDetail() {
       const data = await response.json();
       setTopic(prev => prev ? {
         ...prev,
-        courses: prev.courses.map(course => 
+        courses: (prev.courses || []).map(course => 
           course.id === selectedCourse.id ? data.course : course
         )
       } : null);
@@ -243,7 +330,7 @@ export default function AdminTopicDetail() {
 
       setTopic(prev => prev ? {
         ...prev,
-        courses: prev.courses.filter(course => course.id !== selectedCourse.id)
+        courses: (prev.courses || []).filter(course => course.id !== selectedCourse.id)
       } : null);
       setShowDeleteCourseModal(false);
       setSelectedCourse(null);
@@ -464,42 +551,42 @@ export default function AdminTopicDetail() {
           </div>
         </div>
 
-        {/* Courses Management */}
+        {/* Subtopics Management */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-5 border-b border-gray-200">
             <div className="flex items-center space-x-4">
               <div className="bg-purple-100 rounded-xl p-3 shadow-sm">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center space-x-3">
-                  <h2 className="text-xl font-bold text-gray-900">Courses</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Subtopics</h2>
                   <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold border border-purple-200 shadow-sm">
-                    {topic.courses.length} {topic.courses.length === 1 ? 'course' : 'courses'}
+                    {(topic.subtopics || []).length} {(topic.subtopics || []).length === 1 ? 'subtopic' : 'subtopics'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">Manage courses under this topic</p>
+                <p className="text-sm text-gray-600 mt-1">Manage subtopics and their courses</p>
               </div>
             </div>
             
-            {/* Add Course Button - moved below title */}
+            {/* Add Subtopic Button */}
             <div className="mt-4">
               <button
-                onClick={() => setShowAddCourseModal(true)}
+                onClick={() => setShowAddSubtopicModal(true)}
                 className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                <span>Add Course</span>
+                <span>Add Subtopic</span>
               </button>
             </div>
           </div>
 
           <div className="p-6">
-            {topic.courses.length === 0 ? (
+{(topic.courses || []).length === 0 ? (
               <div className="text-center py-12">
                 <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -509,7 +596,7 @@ export default function AdminTopicDetail() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {topic.courses.map((course) => (
+                {(topic.courses || []).map((course) => (
                   <div key={course.id} className="bg-gray-50 border border-gray-200 rounded-xl p-6">
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h3>

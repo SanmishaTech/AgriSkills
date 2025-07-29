@@ -29,17 +29,27 @@ export async function GET(
 
     const { id } = await params;
 
-    // Get topic with courses
+    // Get topic with subtopics and courses
     const topic = await prisma.topic.findUnique({
       where: { id },
       include: {
-        courses: {
+        subtopics: {
+          include: {
+            courses: {
+              orderBy: {
+                createdAt: 'desc'
+              }
+            },
+            _count: {
+              select: { courses: true }
+            }
+          },
           orderBy: {
             createdAt: 'desc'
           }
         },
         _count: {
-          select: { courses: true }
+          select: { subtopics: true }
         }
       }
     });
@@ -118,7 +128,7 @@ export async function PUT(
       },
       include: {
         _count: {
-          select: { courses: true }
+          select: { subtopics: true }
         }
       }
     });
@@ -165,7 +175,7 @@ export async function DELETE(
       where: { id },
       include: {
         _count: {
-          select: { courses: true }
+          select: { subtopics: true }
         }
       }
     });
@@ -177,10 +187,10 @@ export async function DELETE(
       );
     }
 
-    // Check if topic has courses
-    if (existingTopic._count.courses > 0) {
+    // Check if topic has subtopics
+    if (existingTopic._count.subtopics > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete topic with courses. Please delete all courses first.' },
+        { error: 'Cannot delete topic with subtopics. Please delete all subtopics first.' },
         { status: 400 }
       );
     }

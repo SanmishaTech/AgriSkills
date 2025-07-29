@@ -27,11 +27,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all topics with course count
+    // Get all topics with subtopics and course count
     const topics = await prisma.topic.findMany({
       include: {
+        subtopics: {
+          include: {
+            _count: {
+              select: { courses: true }
+            }
+          }
+        },
         _count: {
-          select: { courses: true }
+          select: { subtopics: true }
         }
       },
       orderBy: {
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         _count: {
-          select: { courses: true }
+          select: { subtopics: true }
         }
       }
     });

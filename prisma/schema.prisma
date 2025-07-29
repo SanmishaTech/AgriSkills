@@ -25,23 +25,61 @@ model User {
 }
 
 model Topic {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
   description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  subtopics   Subtopic[]
+}
+
+model Subtopic {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  topicId     String
+  topic       Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
   courses     Course[]
 }
 
 model Course {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
   description String?
-  content     String    // Rich text content from editor
-  isActive    Boolean   @default(true)
-  topicId     String
-  topic       Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  subtopicId  String
+  subtopic    Subtopic    @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  demoVideos  DemoVideo[]
+  chapters    Chapter[]
 }
+
+model DemoVideo {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  videoUrl    String
+  duration    Int?     // Duration in seconds
+  thumbnailUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   // Rich text content
+  orderIndex  Int      // To maintain chapter order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
