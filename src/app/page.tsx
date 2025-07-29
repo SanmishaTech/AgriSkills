@@ -111,28 +111,53 @@ export default function HomePage() {
       <div className="relative w-full h-full">
         <div id={iframeId} className="w-full h-full"></div>
         
-        {/* Custom Controls Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex space-x-4 pointer-events-auto">
-            {/* Restart Button */}
-            <button
-              onClick={restartVideo}
-              className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-200 transform hover:scale-110"
-            >
-              <RotateCcw className="w-6 h-6" />
-            </button>
-            
-            {/* Play/Pause Button */}
-            <button
-              onClick={togglePlayPause}
-              className="bg-black/50 hover:bg-black/70 text-white p-4 rounded-full transition-all duration-200 transform hover:scale-110"
-            >
-              {playerState === 'playing' ? (
-                <Pause className="w-8 h-8" />
-              ) : (
-                <Play className="w-8 h-8" />
-              )}
-            </button>
+        {/* Transparent overlay to prevent iframe from capturing events */}
+        <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+          {/* Controls container with pointer events enabled */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex gap-8" style={{ pointerEvents: 'auto' }}>
+              {/* Restart Button */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  restartVideo();
+                }}
+                className="relative bg-black/60 active:bg-black/80 text-white rounded-full transition-all duration-200 transform active:scale-95"
+                style={{ 
+                  padding: '18px',
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  zIndex: 10
+                }}
+              >
+                <RotateCcw className="w-8 h-8 pointer-events-none" />
+              </button>
+              
+              {/* Play/Pause Button */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  togglePlayPause();
+                }}
+                className="relative bg-black/60 active:bg-black/80 text-white rounded-full transition-all duration-200 transform active:scale-95"
+                style={{ 
+                  padding: '24px',
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  zIndex: 10
+                }}
+              >
+                {playerState === 'playing' ? (
+                  <Pause className="w-10 h-10 pointer-events-none" />
+                ) : (
+                  <Play className="w-10 h-10 pointer-events-none" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -439,12 +464,23 @@ export default function HomePage() {
           onClick={closeShort}
         >
           <div className="relative w-full h-full max-w-sm mx-auto bg-black" onClick={(e) => e.stopPropagation()}>
-            {/* Close button */}
+            {/* Close button - Fixed touch target */}
             <button
-              onClick={closeShort}
-              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeShort();
+              }}
+              className="absolute top-4 left-4 bg-black/60 active:bg-black/80 text-white rounded-full transition-colors"
+              style={{ 
+                padding: '0px',
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
+                userSelect: 'none',
+                zIndex: 30
+              }}
             >
-              <X className="w-6 h-6" />
+              <X className="w-8 h-8 pointer-events-none" />
             </button>
 
             {/* Video player */}
