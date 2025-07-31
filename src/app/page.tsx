@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic } from 'lucide-react';
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
+import { getProcessedVideos } from '@/config/youtube-videos';
 
 export default function HomePage() {
   const router = useRouter();
@@ -44,6 +45,16 @@ export default function HomePage() {
 
     fetchCourses();
   }, []);
+
+  // Helper function for next video functionality
+  const playNextVideo = (currentVideoId) => {
+    const currentIndex = videos.findIndex(v => v.id === currentVideoId);
+    const nextIndex = (currentIndex + 1) % videos.length; // Loop back to first video if at end
+    const nextVideo = videos[nextIndex];
+    if (nextVideo) {
+      setSelectedShort(nextVideo);
+    }
+  };
 
   // Video player state management
   const VideoPlayer = ({ video }) => {
@@ -185,38 +196,7 @@ export default function HomePage() {
     );
   };
 
-  const videos = [
-    {
-      id: 1,
-      title: 'Natural Pest Control Methods for Organic Farming',
-      duration: '0:45',
-      instructor: 'Organic Farming Hub',
-      youtubeId: 'bYIhwrHHo3w', // YouTube Shorts ID
-      shortsUrl: 'https://www.youtube.com/shorts/bYIhwrHHo3w',
-      views: '2.3K',
-      timeAgo: '3 days ago'
-    },
-    {
-      id: 2,
-      title: 'Complete Guide to Vegetable Packaging',
-      duration: '0:58',
-      instructor: 'Farm Business Tips',
-      youtubeId: 'L0_B0VLzqeI', // YouTube Shorts ID
-      shortsUrl: 'https://www.youtube.com/shorts/L0_B0VLzqeI',
-      views: '1.8K',
-      timeAgo: '1 week ago'
-    },
-    {
-      id: 3,
-      title: 'Urban Vegetable Growing Techniques',
-      duration: '0:32',
-      instructor: 'Urban Gardener',
-      youtubeId: 'mbOdXk6to_o', // YouTube Shorts ID
-      shortsUrl: 'https://www.youtube.com/shorts/mbOdXk6to_o',
-      views: '4.1K',
-      timeAgo: '5 days ago'
-    },
-  ];
+  const videos = getProcessedVideos();
 
   const openShort = (video) => {
     setSelectedShort(video);
@@ -330,7 +310,12 @@ export default function HomePage() {
             </div>
           </div>
           
-          <h1 className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap">LOGIN/ SIGN UP</h1>
+          <button 
+            onClick={() => router.push('/login')}
+            className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
+          >
+            LOGIN/ SIGN UP
+          </button>
         
           <div className="bg-yellow-200 rounded-md p-0.5 flex items-center border border-transparent">
             <button 
@@ -382,63 +367,15 @@ export default function HomePage() {
         <div className="px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-24">
           <div className="flex justify-between items-center mt-3 mb-4 md:mb-5 lg:mb-6 xl:mb-8">
             <h2 className="text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-semibold">Videos</h2>
-            <button className="text-green-600 text-xs md:text-sm lg:text-base xl:text-lg font-medium hover:text-green-700 transition-colors">View More</button>
+            {/* <button className="text-green-600 text-xs md:text-sm lg:text-base xl:text-lg font-medium hover:text-green-700 transition-colors">View More</button> */}
           </div>
 
-          {/* Mobile: Horizontal scroll, Desktop: Grid */}
-          <div className="sm:hidden">
-            <div className="flex overflow-x-auto gap-3 px-1 pb-2 scrollbar-hide snap-x snap-mandatory">
-              {videos.map((video) => (
-                <motion.div
-                  key={video.id}
-                  className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex-shrink-0 w-36 h-52 snap-start"
-                  whileHover={{ y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => openShort(video)}
-                >
-                  {/* YouTube Thumbnail */}
-                  <div className="relative w-full aspect-video bg-black overflow-hidden">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${video.youtubeId}?controls=1&modestbranding=1&rel=0`}
-                      title={video.title}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                    
-                    {/* Duration badge */}
-                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded pointer-events-none">
-                      {video.duration}
-                    </div>
-                  </div>
-                  
-                  {/* Video info */}
-                  <div className="p-3">
-                    <h3 className="font-semibold text-gray-900 mb-2 text-sm line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
-                      {video.title}
-                    </h3>
-                    <div className="flex items-center text-gray-600 text-xs mb-1">
-                      <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
-                        <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
-                      </div>
-                      <span className="truncate">{video.instructor}</span>
-                    </div>
-                    <div className="text-gray-500 text-xs leading-tight">
-                      <span>{video.views} views</span> · <span>{video.timeAgo}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop: Grid layout */}
-          <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
+          {/* Horizontal scroll for all screen sizes */}
+          <div className="flex overflow-x-auto gap-3 sm:gap-4 lg:gap-6 px-1 pb-2 scrollbar-hide snap-x snap-mandatory">
             {videos.map((video) => (
               <motion.div
                 key={video.id}
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group w-full"
+                className="bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex-shrink-0 w-36 sm:w-48 md:w-52 lg:w-56 xl:w-60 h-52 sm:h-64 md:h-68 lg:h-72 snap-start"
                 whileHover={{ y: -4 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => openShort(video)}
@@ -455,23 +392,23 @@ export default function HomePage() {
                   ></iframe>
                   
                   {/* Duration badge */}
-                  <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs pointer-events-none">
+                  <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded pointer-events-none">
                     {video.duration}
                   </div>
                 </div>
                 
                 {/* Video info */}
-                <div className="p-2.5 sm:p-3">
-                  <h3 className="font-semibold text-gray-900 mb-1.5 sm:mb-2 text-xs sm:text-sm lg:text-base line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
+                <div className="p-3 sm:p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
                     {video.title}
                   </h3>
-                  <div className="flex items-center text-gray-600 text-[10px] sm:text-xs lg:text-sm mb-1">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-300 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 flex-shrink-0">
-                      <span className="text-[8px] sm:text-xs font-medium">{video.instructor.charAt(0)}</span>
+                  <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-1">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-300 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                      <span className="text-xs sm:text-sm font-medium">{video.instructor.charAt(0)}</span>
                     </div>
                     <span className="truncate">{video.instructor}</span>
                   </div>
-                  <div className="text-gray-500 text-[10px] sm:text-xs leading-tight">
+                  <div className="text-gray-500 text-xs sm:text-sm leading-tight">
                     <span>{video.views} views</span> · <span>{video.timeAgo}</span>
                   </div>
                 </div>
@@ -616,7 +553,13 @@ export default function HomePage() {
                               </div>
                               
                               {/* View More Button */}
-                              <button className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/topic/${topic.id}`);
+                                }}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors"
+                              >
                                 View More
                               </button>
                             </div>
@@ -688,7 +631,13 @@ export default function HomePage() {
                             </div>
                             
                             {/* View More Button */}
-                            <button className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/topic/${topic.id}`);
+                              }}
+                              className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors"
+                            >
                               View More
                             </button>
                           </div>
@@ -895,7 +844,7 @@ export default function HomePage() {
                 alt="Certificate"
                 width={400}
                 height={300}
-                className="rounded-lg shadow-lg opacity-90 w-full max-w-md lg:max-w-none lg:w-full"
+                className="rounded-lg shadow-lg opacity-90 w-full max-w-md lg:max-w-none lg:w-3/5"
               />
             </div>
           </div>
@@ -979,6 +928,24 @@ export default function HomePage() {
                 allowFullScreen
               ></iframe>
 
+              {/* Next Video Button - Positioned on the right side */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  playNextVideo(selectedShort.id);
+                }}
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/60 active:bg-black/80 text-white rounded-full p-3 transition-all duration-200 transform active:scale-95 hover:bg-black/70"
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  zIndex: 20
+                }}
+                title="Next Video"
+              >
+                <ArrowRight className="w-6 h-6 pointer-events-none" />
+              </button>
 
               {/* Bottom info overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">

@@ -27,6 +27,9 @@ export default function Sidebar() {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
+        console.log('Sidebar - User data:', parsedUser);
+        console.log('Sidebar - User role:', parsedUser.role);
+        console.log('Sidebar - Is admin?:', parsedUser.role === 'admin');
         setUser(parsedUser);
       } catch (error) {
         console.error('Error parsing user data:', error);
