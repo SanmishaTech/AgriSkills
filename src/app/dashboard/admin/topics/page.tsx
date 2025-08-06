@@ -7,6 +7,7 @@ interface Topic {
   id: string;
   title: string;
   description: string | null;
+  thumbnail?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -40,8 +41,9 @@ export default function AdminTopics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newTopic, setNewTopic] = useState({ title: '', description: '' });
+  const [newTopic, setNewTopic] = useState({ title: '', description: '', thumbnail: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -106,11 +108,45 @@ export default function AdminTopics() {
       const newTopicWithSubtopics = { ...data.topic, subtopics: [] };
       setTopics([newTopicWithSubtopics, ...topics]);
       setShowAddModal(false);
-      setNewTopic({ title: '', description: '' });
+      setNewTopic({ title: '', description: '', thumbnail: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail');
+      }
+
+      const data = await response.json();
+      setNewTopic({ ...newTopic, thumbnail: data.url });
+    } catch (err) {
+      alert('Failed to upload thumbnail. Please try again.');
+      console.error(err);
+    } finally {
+      setUploadingThumbnail(false);
     }
   };
 
@@ -209,42 +245,53 @@ export default function AdminTopics() {
                   </div>
                 ) : (
                   topics.map((topic) => (
-                    <div 
-                      key={topic.id} 
-                      className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                    <div
+                      key={topic.id}
+                      className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                       onClick={() => router.push(`/dashboard/admin/topics/${topic.id}`)}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{topic.title}</h3>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          topic.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {topic.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      
-                      {topic.description && (
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">{topic.description}</p>
+                      {topic.thumbnail && (
+                        <div className="w-full h-48 bg-gray-100">
+                          <img 
+                            src={topic.thumbnail} 
+                            alt={topic.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       )}
-                      
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center space-x-4">
-                          <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            {topic._count.subtopics} subtopics
-                          </span>
-                          <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                            {(topic.subtopics || []).reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0)} courses
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{topic.title}</h3>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            topic.isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {topic.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </div>
-                        <span>{formatDate(topic.createdAt)}</span>
+                        
+                        {topic.description && (
+                          <p className="text-gray-600 text-sm mb-4 line-clamp-3">{topic.description}</p>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <div className="flex items-center space-x-4">
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                              {topic._count.subtopics} subtopics
+                            </span>
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                              {(topic.subtopics || []).reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0)} courses
+                            </span>
+                          </div>
+                          <span>{formatDate(topic.createdAt)}</span>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -282,6 +329,43 @@ export default function AdminTopics() {
                     placeholder="Enter topic description"
                     rows={3}
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+                  <div className="space-y-2">
+                    {newTopic.thumbnail && (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={newTopic.thumbnail} 
+                          alt="Topic thumbnail" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewTopic({ ...newTopic, thumbnail: '' })}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleThumbnailUpload}
+                      disabled={uploadingThumbnail}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {uploadingThumbnail && (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                        <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               

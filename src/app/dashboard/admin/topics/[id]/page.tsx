@@ -224,6 +224,42 @@ export default function AdminTopicDetail() {
     }
   };
 
+  const handleDeleteSubtopic = async () => {
+    if (!selectedSubtopic) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/subtopics/${selectedSubtopic.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete subtopic');
+      }
+
+      // Remove the subtopic from the topic's subtopics array
+      setTopic(prev => prev ? {
+        ...prev,
+        subtopics: (prev.subtopics || []).filter(subtopic => subtopic.id !== selectedSubtopic.id)
+      } : null);
+      setShowDeleteSubtopicModal(false);
+      setSelectedSubtopic(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteSubtopicModal = (subtopic: Subtopic) => {
+    setSelectedSubtopic(subtopic);
+    setShowDeleteSubtopicModal(true);
+  };
+
   const handleAddCourse = async () => {
     if (!courseForm.title.trim() || !courseForm.subtopicId) return;
 
@@ -384,7 +420,8 @@ export default function AdminTopicDetail() {
     });
   };
 
-  const truncateContent = (content: string, maxLength: number = 100) => {
+  const truncateContent = (content: string | null | undefined, maxLength: number = 100) => {
+    if (!content) return 'No content available';
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
   };
@@ -644,16 +681,22 @@ export default function AdminTopicDetail() {
                             {subtopic.courses.length} {subtopic.courses.length === 1 ? 'course' : 'courses'}
                           </span>
                           <button
-                            onClick={() => {
-                              setCourseForm({ ...courseForm, subtopicId: subtopic.id });
-                              setShowAddCourseModal(true);
-                            }}
+                            onClick={() => router.push(`/dashboard/admin/courses/add?subtopicId=${subtopic.id}`)}
                             className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center space-x-1"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             <span>Add Course</span>
+                          </button>
+                          <button
+                            onClick={() => openDeleteSubtopicModal(subtopic)}
+                            className="bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete</span>
                           </button>
                         </div>
                       </div>
@@ -758,7 +801,21 @@ export default function AdminTopicDetail() {
         {showAddCourseModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Course</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Add New Course</h3>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="courseActiveHeader"
+                    checked={courseForm.isActive}
+                    onChange={(e) => setCourseForm({ ...courseForm, isActive: e.target.checked })}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="courseActiveHeader" className="ml-2 block text-sm text-gray-700">
+                    Active course
+                  </label>
+                </div>
+              </div>
               
               <div className="space-y-4">
                 <div>
@@ -820,19 +877,6 @@ export default function AdminTopicDetail() {
                     rows={8}
                     required
                   />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="courseActive"
-                    checked={courseForm.isActive}
-                    onChange={(e) => setCourseForm({ ...courseForm, isActive: e.target.checked })}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="courseActive" className="ml-2 block text-sm text-gray-700">
-                    Active course
-                  </label>
                 </div>
               </div>
               
@@ -1059,6 +1103,46 @@ export default function AdminTopicDetail() {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   )}
                   <span>{isSubmitting ? 'Creating...' : 'Create Subtopic'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Subtopic Modal */}
+        {showDeleteSubtopicModal && selectedSubtopic && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Subtopic</h3>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to delete the subtopic &ldquo;{selectedSubtopic.title}&rdquo;? This action cannot be undone.
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-800 text-sm">
+                    <strong>Warning:</strong> All subtopic data and associated courses will be permanently removed.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={() => setShowDeleteSubtopicModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSubtopic}
+                  disabled={isSubmitting}
+                  className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isSubmitting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>{isSubmitting ? 'Deleting...' : 'Delete Subtopic'}</span>
                 </button>
               </div>
             </div>

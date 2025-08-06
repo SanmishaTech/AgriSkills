@@ -27,23 +27,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get topic ID from query params
+    // Get subtopic ID from query params
     const { searchParams } = new URL(request.url);
+    const subtopicId = searchParams.get('subtopicId');
     const topicId = searchParams.get('topicId');
 
     let whereClause = {};
-    if (topicId) {
-      whereClause = { topicId };
+    if (subtopicId) {
+      whereClause = { subtopicId };
+    } else if (topicId) {
+      // If topicId is provided, get all courses from subtopics under that topic
+      whereClause = {
+        subtopic: {
+          topicId: topicId
+        }
+      };
     }
 
-    // Get all courses with topic information
+    // Get all courses with subtopic and topic information
     const courses = await prisma.course.findMany({
       where: whereClause,
       include: {
-        topic: {
+        subtopic: {
           select: {
             id: true,
-            title: true
+            title: true,
+            topic: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
           }
         }
       },
@@ -84,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, content, topicId } = await request.json();
+    const { title, description, content, youtubeUrl, isActive, subtopicId } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -93,9 +107,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!topicId) {
+    if (!subtopicId) {
       return NextResponse.json(
-        { error: 'Topic is required' },
+        { error: 'Subtopic is required' },
         { status: 400 }
       );
     }
@@ -107,14 +121,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify topic exists
-    const topic = await prisma.topic.findUnique({
-      where: { id: topicId }
+    // Verify subtopic exists
+    const subtopic = await prisma.subtopic.findUnique({
+      where: { id: subtopicId },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            title: true
+          }
+        }
+      }
     });
 
-    if (!topic) {
+    if (!subtopic) {
       return NextResponse.json(
-        { error: 'Topic not found' },
+        { error: 'Subtopic not found' },
         { status: 404 }
       );
     }
@@ -125,13 +147,21 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         description: description?.trim() || null,
         content: content.trim(),
-        topicId,
+        youtubeUrl: youtubeUrl?.trim() || null,
+        isActive: isActive !== undefined ? isActive : true,
+        subtopicId,
       },
       include: {
-        topic: {
+        subtopic: {
           select: {
             id: true,
-            title: true
+            title: true,
+            topic: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
           }
         }
       }

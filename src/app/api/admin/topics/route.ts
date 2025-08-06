@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description } = await request.json();
+    const { title, description, thumbnail } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: title.trim(),
         description: description?.trim() || null,
+        thumbnail: thumbnail || null,
       },
       include: {
         _count: {

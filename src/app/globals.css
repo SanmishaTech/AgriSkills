@@ -1,4 +1,23 @@
 @import "tailwindcss";
+
+/* PrimeReact Styles */
+@import "primereact/resources/themes/lara-light-cyan/theme.css";
+@import "primereact/resources/primereact.min.css";
+@import "primeicons/primeicons.css";
+
+@layer base {
+  html,
+  body,
+  body > div:first-child,
+  div#__next,
+  div#__next > div {
+    @apply h-full;
+  }
+
+  body {
+    @apply overflow-auto;
+  }
+}
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
