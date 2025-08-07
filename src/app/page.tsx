@@ -456,11 +456,29 @@ export default function HomePage() {
                 topics.map((topic, index) => (
                   <div
                     key={topic.id}
-                    className={`${getTopicColor(index)} rounded-xl p-6 min-w-[140px] flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow`}
+                    className="bg-white rounded-xl overflow-hidden min-w-[140px] cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => router.push('/login')}
                   >
-                    <div className="text-3xl mb-2">{getTopicIcon(index)}</div>
-                    <h4 className="text-sm font-medium text-gray-700 text-center">{topic.title}</h4>
+                    {/* Topic Thumbnail */}
+                    {topic.thumbnail ? (
+                      <div className="relative h-24 w-full">
+                        <Image
+                          src={topic.thumbnail}
+                          alt={topic.title}
+                          layout="fill"
+                          objectFit="cover"
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className={`${getTopicColor(index)} h-24 w-full flex items-center justify-center`}>
+                        <div className="text-3xl">{getTopicIcon(index)}</div>
+                      </div>
+                    )}
+                    {/* Topic Title */}
+                    <div className="p-3">
+                      <h4 className="text-sm font-medium text-gray-700 text-center">{topic.title}</h4>
+                    </div>
                   </div>
                 ))
               )}
@@ -588,24 +606,51 @@ export default function HomePage() {
                           onClick={() => router.push('/login')}
                         >
                           {/* Topic Image */}
-                          <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                            <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                            {/* Topic ID Badge */}
-                            <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                              EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
+                          {topic.thumbnail ? (
+                            <div className="relative h-24 w-full">
+                              <Image
+                                src={topic.thumbnail}
+                                alt={topic.title}
+                                layout="fill"
+                                objectFit="cover"
+                                className="object-cover"
+                              />
+                              {/* Topic ID Badge */}
+                              <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
+                                EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
+                              </div>
+                              {/* Status Badge */}
+                              {index % 3 === 0 && (
+                                <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                  NEW
+                                </div>
+                              )}
+                              {index % 3 === 1 && (
+                                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                  BEST
+                                </div>
+                              )}
                             </div>
-                            {/* Status Badge */}
-                            {index % 3 === 0 && (
-                              <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                NEW
+                          ) : (
+                            <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                              <div className="text-white text-2xl">{getTopicIcon(index)}</div>
+                              {/* Topic ID Badge */}
+                              <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
+                                EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
                               </div>
-                            )}
-                            {index % 3 === 1 && (
-                              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                BEST
-                              </div>
-                            )}
-                          </div>
+                              {/* Status Badge */}
+                              {index % 3 === 0 && (
+                                <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                  NEW
+                                </div>
+                              )}
+                              {index % 3 === 1 && (
+                                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                  BEST
+                                </div>
+                              )}
+                            </div>
+                          )}
                           
                           {/* Topic Content */}
                           <div className="p-3">
