@@ -33,13 +33,13 @@ interface User {
   updatedAt: string;
 }
 
-export default function AddCoursePage() {
+export default function AddChapterPage() {
   const [user, setUser] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [courseForm, setCourseForm] = useState({
+  const [chapterForm, setChapterForm] = useState({
     title: '',
     description: '',
     content: '',
@@ -71,7 +71,7 @@ export default function AddCoursePage() {
 
   useEffect(() => {
     if (preSelectedSubtopicId) {
-      setCourseForm(prev => ({ ...prev, subtopicId: preSelectedSubtopicId }));
+      setChapterForm(prev => ({ ...prev, subtopicId: preSelectedSubtopicId }));
     }
   }, [preSelectedSubtopicId]);
 
@@ -96,8 +96,8 @@ export default function AddCoursePage() {
     }
   };
 
-  const handleAddCourse = async () => {
-    if (!courseForm.title.trim() || !courseForm.content.trim() || !courseForm.subtopicId) return;
+  const handleAddChapter = async () => {
+    if (!chapterForm.title.trim() || !chapterForm.content.trim() || !chapterForm.subtopicId) return;
 
     setIsSubmitting(true);
     try {
@@ -108,15 +108,15 @@ export default function AddCoursePage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(courseForm),
+        body: JSON.stringify(chapterForm),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create course');
+        throw new Error('Failed to create chapter');
       }
 
       // Navigate back to the topic detail page
-      const selectedSubtopic = getAllSubtopics().find(s => s.id === courseForm.subtopicId);
+      const selectedSubtopic = getAllSubtopics().find(s => s.id === chapterForm.subtopicId);
       if (selectedSubtopic) {
         router.push(`/dashboard/admin/topics/${selectedSubtopic.topicId}`);
       } else {
@@ -135,19 +135,19 @@ export default function AddCoursePage() {
 
   const handlePreview = () => {
     // Get selected subtopic and topic info for preview
-    const selectedSubtopic = getAllSubtopics().find(s => s.id === courseForm.subtopicId);
+    const selectedSubtopic = getAllSubtopics().find(s => s.id === chapterForm.subtopicId);
     const selectedTopic = topics.find(topic => 
-      topic.subtopics?.some(subtopic => subtopic.id === courseForm.subtopicId)
+      topic.subtopics?.some(subtopic => subtopic.id === chapterForm.subtopicId)
     );
 
     // Create URL parameters for preview
     const params = new URLSearchParams({
-      title: courseForm.title,
-      description: courseForm.description,
-      content: courseForm.content,
-      youtubeUrl: courseForm.youtubeUrl,
-      isActive: courseForm.isActive.toString(),
-      subtopicId: courseForm.subtopicId,
+      title: chapterForm.title,
+      description: chapterForm.description,
+      content: chapterForm.content,
+      youtubeUrl: chapterForm.youtubeUrl,
+      isActive: chapterForm.isActive.toString(),
+      subtopicId: chapterForm.subtopicId,
       subtopicTitle: selectedSubtopic?.title || 'Subtopic',
       topicTitle: selectedTopic?.title || 'Topic'
     });
@@ -201,8 +201,8 @@ export default function AddCoursePage() {
                   </svg>
                 </button>
                 <div>
-                  <h1 className="text-4xl font-bold">Add New Course</h1>
-                  <p className="text-indigo-100 text-lg mt-2">Create a new course for your students</p>
+                  <h1 className="text-4xl font-bold">Add New Chapter</h1>
+                  <p className="text-indigo-100 text-lg mt-2">Create a new chapter for your students</p>
                 </div>
               </div>
               <div className="hidden md:block">
@@ -236,18 +236,18 @@ export default function AddCoursePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">Course Details</h2>
+                <h2 className="text-xl font-bold text-gray-900">Chapter Details</h2>
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="courseActiveDetails"
-                  checked={courseForm.isActive}
-                  onChange={(e) => setCourseForm({ ...courseForm, isActive: e.target.checked })}
+                  checked={chapterForm.isActive}
+                  onChange={(e) => setChapterForm({ ...chapterForm, isActive: e.target.checked })}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 />
-                <label htmlFor="courseActiveDetails" className="ml-2 block text-sm font-medium text-gray-700">
-                  Active course
+                <label htmlFor="chapterActiveDetails" className="ml-2 block text-sm font-medium text-gray-700">
+                  Active chapter
                 </label>
               </div>
             </div>
@@ -258,8 +258,8 @@ export default function AddCoursePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
                 <select
-                  value={courseForm.subtopicId}
-                  onChange={(e) => setCourseForm({ ...courseForm, subtopicId: e.target.value })}
+                  value={chapterForm.subtopicId}
+                  onChange={(e) => setChapterForm({ ...chapterForm, subtopicId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   required
                 >
@@ -280,10 +280,10 @@ export default function AddCoursePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
                 <input
                   type="text"
-                  value={courseForm.title}
-                  onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                  value={chapterForm.title}
+                  onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter course title"
+                  placeholder="Enter chapter title"
                   required
                 />
               </div>
@@ -292,19 +292,19 @@ export default function AddCoursePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL (optional)</label>
                 <input
                   type="url"
-                  value={courseForm.youtubeUrl}
-                  onChange={(e) => setCourseForm({ ...courseForm, youtubeUrl: e.target.value })}
+                  value={chapterForm.youtubeUrl}
+                  onChange={(e) => setChapterForm({ ...chapterForm, youtubeUrl: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Enter YouTube video URL"
                 />
                 
                 {/* YouTube Video Preview */}
-                {courseForm.youtubeUrl && (
+                {chapterForm.youtubeUrl && (
                   <div className="mt-4">
                     <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                       <div className="aspect-video">
                         {(() => {
-                          const videoId = getYoutubeVideoId(courseForm.youtubeUrl);
+                          const videoId = getYoutubeVideoId(chapterForm.youtubeUrl);
                           return videoId ? (
                             <iframe
                               src={`https://www.youtube.com/embed/${videoId}`}
@@ -336,10 +336,10 @@ export default function AddCoursePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
                 <textarea
-                  value={courseForm.description}
-                  onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                  value={chapterForm.description}
+                  onChange={(e) => setChapterForm({ ...chapterForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Enter course description"
+                  placeholder="Enter chapter description"
                   rows={3}
                 />
               </div>
@@ -348,10 +348,10 @@ export default function AddCoursePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
                 <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
                   <Editor
-                    value={courseForm.content}
-                    onTextChange={(e) => setCourseForm({ ...courseForm, content: e.htmlValue || '' })}
+                    value={chapterForm.content}
+                    onTextChange={(e) => setChapterForm({ ...chapterForm, content: e.htmlValue || '' })}
                     style={{ height: '320px' }}
-                    placeholder="Enter course content..."
+                    placeholder="Enter chapter content..."
                   />
                 </div>
               </div>
@@ -367,9 +367,9 @@ export default function AddCoursePage() {
               </button>
               <button
                 onClick={handlePreview}
-                disabled={!courseForm.title.trim() && !courseForm.content.trim()}
+                disabled={!chapterForm.title.trim() && !chapterForm.content.trim()}
                 className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl"
-                title="Preview how your course will look to students"
+                title="Preview how your chapter will look to students"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -378,14 +378,14 @@ export default function AddCoursePage() {
                 <span>Preview</span>
               </button>
               <button
-                onClick={handleAddCourse}
-                disabled={isSubmitting || !courseForm.title.trim() || !courseForm.content.trim() || !courseForm.subtopicId}
+                onClick={handleAddChapter}
+                disabled={isSubmitting || !chapterForm.title.trim() || !chapterForm.content.trim() || !chapterForm.subtopicId}
                 className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl"
               >
                 {isSubmitting && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 )}
-                <span>{isSubmitting ? 'Creating Course...' : 'Create Course'}</span>
+                <span>{isSubmitting ? 'Creating Chapter...' : 'Create Chapter'}</span>
               </button>
             </div>
           </div>

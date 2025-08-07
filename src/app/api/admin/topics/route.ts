@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all topics with subtopics and course count
+    // Get all topics with subtopics and chapter count
     const topics = await prisma.topic.findMany({
       include: {
         subtopics: {

@@ -29,14 +29,25 @@ export async function GET(
 
     const { id } = await params;
 
-    // Get course with topic
+    // Get course with chapters
     const course = await prisma.course.findUnique({
       where: { id },
       include: {
-        topic: {
+        chapters: {
+          orderBy: {
+            orderIndex: 'asc'
+          }
+        },
+        subtopic: {
           select: {
             id: true,
-            title: true
+            title: true,
+            topic: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
           }
         }
       }
@@ -85,18 +96,11 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, description, content, topicId, isActive } = await request.json();
+    const { title, description, thumbnail, duration, level, subtopicId, isActive } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
         { error: 'Title is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!content || content.trim() === '') {
-      return NextResponse.json(
-        { error: 'Content is required' },
         { status: 400 }
       );
     }
@@ -113,15 +117,15 @@ export async function PUT(
       );
     }
 
-    // Verify topic exists if topicId is provided
-    if (topicId && topicId !== existingCourse.topicId) {
-      const topic = await prisma.topic.findUnique({
-        where: { id: topicId }
+    // Verify subtopic exists if subtopicId is provided
+    if (subtopicId && subtopicId !== existingCourse.subtopicId) {
+      const subtopic = await prisma.subtopic.findUnique({
+        where: { id: subtopicId }
       });
 
-      if (!topic) {
+      if (!subtopic) {
         return NextResponse.json(
-          { error: 'Topic not found' },
+          { error: 'Subtopic not found' },
           { status: 404 }
         );
       }
@@ -133,15 +137,28 @@ export async function PUT(
       data: {
         title: title.trim(),
         description: description?.trim() || null,
-        content: content.trim(),
-        topicId: topicId || existingCourse.topicId,
+        thumbnail: thumbnail?.trim() || null,
+        duration: duration || null,
+        level: level || null,
+        subtopicId: subtopicId || existingCourse.subtopicId,
         isActive: isActive !== undefined ? isActive : existingCourse.isActive,
       },
       include: {
-        topic: {
+        chapters: {
+          orderBy: {
+            orderIndex: 'asc'
+          }
+        },
+        subtopic: {
           select: {
             id: true,
-            title: true
+            title: true,
+            topic: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
           }
         }
       }
@@ -196,7 +213,7 @@ export async function DELETE(
       );
     }
 
-    // Delete course
+    // Delete course (chapters will be deleted automatically due to cascade)
     await prisma.course.delete({
       where: { id }
     });

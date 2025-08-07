@@ -181,7 +181,7 @@ export async function DELETE(
       );
     }
 
-    // Delete all associated courses first (cascade delete)
+    // Delete all courses associated with this subtopic
     if (existingSubtopic.courses.length > 0) {
       await prisma.course.deleteMany({
         where: { subtopicId: params.id }

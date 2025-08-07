@@ -27,58 +27,48 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get subtopic ID from query params
+    // Get course ID from query params
     const { searchParams } = new URL(request.url);
-    const subtopicId = searchParams.get('subtopicId');
-    const topicId = searchParams.get('topicId');
+    const courseId = searchParams.get('courseId');
 
-    let whereClause = {};
-    if (subtopicId) {
-      whereClause = { subtopicId };
-    } else if (topicId) {
-      // If topicId is provided, get all courses from subtopics under that topic
-      whereClause = {
-        subtopic: {
-          topicId: topicId
-        }
-      };
+    if (!courseId) {
+      return NextResponse.json(
+        { error: 'Course ID is required' },
+        { status: 400 }
+      );
     }
 
-    // Get all courses with chapters and subtopic information
-    const courses = await prisma.course.findMany({
-      where: whereClause,
+    // Get all chapters for the course
+    const chapters = await prisma.chapter.findMany({
+      where: { courseId },
       include: {
-        chapters: {
-          orderBy: {
-            orderIndex: 'asc'
-          }
-        },
-        subtopic: {
+        course: {
           select: {
             id: true,
             title: true,
-            topic: {
+            subtopic: {
               select: {
                 id: true,
-                title: true
+                title: true,
+                topic: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
+                }
               }
             }
-          }
-        },
-        _count: {
-          select: {
-            chapters: true
           }
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        orderIndex: 'asc'
       }
     });
 
-    return NextResponse.json({ courses });
+    return NextResponse.json({ chapters });
   } catch (error) {
-    console.error('Admin courses error:', error);
+    console.error('Admin chapters error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -108,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, thumbnail, duration, level, isActive, subtopicId } = await request.json();
+    const { title, description, content, youtubeUrl, orderIndex, isActive, courseId } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -117,50 +107,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!subtopicId) {
+    if (!courseId) {
       return NextResponse.json(
-        { error: 'Subtopic is required' },
+        { error: 'Course is required' },
         { status: 400 }
       );
     }
 
-    // Verify subtopic exists
-    const subtopic = await prisma.subtopic.findUnique({
-      where: { id: subtopicId },
-      include: {
-        topic: {
-          select: {
-            id: true,
-            title: true
-          }
-        }
-      }
-    });
-
-    if (!subtopic) {
+    if (!content || content.trim() === '') {
       return NextResponse.json(
-        { error: 'Subtopic not found' },
-        { status: 404 }
+        { error: 'Content is required' },
+        { status: 400 }
       );
     }
 
-    // Create new course
-    const course = await prisma.course.create({
-      data: {
-        title: title.trim(),
-        description: description?.trim() || null,
-        thumbnail: thumbnail?.trim() || null,
-        duration: duration || null,
-        level: level || 'BEGINNER',
-        isActive: isActive !== undefined ? isActive : true,
-        subtopicId,
-      },
+    // Verify course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
       include: {
-        chapters: {
-          orderBy: {
-            orderIndex: 'asc'
-          }
-        },
         subtopic: {
           select: {
             id: true,
@@ -172,16 +136,62 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        },
-        _count: {
+        }
+      }
+    });
+
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Course not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get the maximum order index if not provided
+    let finalOrderIndex = orderIndex;
+    if (finalOrderIndex === undefined || finalOrderIndex === null) {
+      const maxOrderResult = await prisma.chapter.findFirst({
+        where: { courseId },
+        orderBy: { orderIndex: 'desc' },
+        select: { orderIndex: true }
+      });
+      finalOrderIndex = (maxOrderResult?.orderIndex ?? -1) + 1;
+    }
+
+    // Create new chapter
+    const chapter = await prisma.chapter.create({
+      data: {
+        title: title.trim(),
+        description: description?.trim() || null,
+        content: content.trim(),
+        youtubeUrl: youtubeUrl?.trim() || null,
+        orderIndex: finalOrderIndex,
+        isActive: isActive !== undefined ? isActive : true,
+        courseId,
+      },
+      include: {
+        course: {
           select: {
-            chapters: true
+            id: true,
+            title: true,
+            subtopic: {
+              select: {
+                id: true,
+                title: true,
+                topic: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
+                }
+              }
+            }
           }
         }
       }
     });
 
-    return NextResponse.json({ course });
+    return NextResponse.json({ chapter });
   } catch (error) {
     console.error('Admin chapter creation error:', error);
     return NextResponse.json(

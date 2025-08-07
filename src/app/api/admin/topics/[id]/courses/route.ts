@@ -3,11 +3,13 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-const createCourseSchema = z.object({
+const createChapterSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
   description: z.string().optional(),
   content: z.string().min(1, 'Content is required'),
+  youtubeUrl: z.string().optional(),
   isActive: z.boolean().default(true),
+  subtopicId: z.string().min(1, 'Subtopic ID is required'),
 });
 
 export async function POST(
@@ -42,27 +44,50 @@ export async function POST(
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = createCourseSchema.parse(body);
+    const validatedData = createChapterSchema.parse(body);
 
-    // Create the course under the specified topic
-    const course = await prisma.course.create({
+    // Verify subtopic exists and belongs to the topic
+    const subtopic = await prisma.subtopic.findFirst({
+      where: { 
+        id: validatedData.subtopicId,
+        topicId: topicId
+      },
+      select: { id: true, title: true }
+    });
+
+    if (!subtopic) {
+      return NextResponse.json({ error: 'Subtopic not found or does not belong to this topic' }, { status: 404 });
+    }
+
+    // Create the chapter under the specified subtopic
+    const chapter = await prisma.chapter.create({
       data: {
-        ...validatedData,
-        topicId,
+        title: validatedData.title,
+        description: validatedData.description || null,
+        content: validatedData.content,
+        youtubeUrl: validatedData.youtubeUrl || null,
+        isActive: validatedData.isActive,
+        subtopicId: validatedData.subtopicId,
       },
       include: {
-        topic: {
+        subtopic: {
           select: {
             id: true,
             title: true,
+            topic: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
           },
         },
       },
     });
 
-    return NextResponse.json(course, { status: 201 });
+    return NextResponse.json(chapter, { status: 201 });
   } catch (error) {
-    console.error('Error creating course:', error);
+    console.error('Error creating chapter:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

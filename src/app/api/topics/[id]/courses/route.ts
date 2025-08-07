@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    // Verify the token (any authenticated user can view courses)
+    // Verify the token (any authenticated user can view chapters)
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json(
@@ -44,23 +44,46 @@ export async function GET(
       );
     }
 
-    // Get all active courses for the topic
-    const courses = await prisma.course.findMany({
+    // Get all active chapters for the topic through subtopics
+    const topicWithChapters = await prisma.topic.findUnique({
       where: {
-        topicId: id,
+        id,
         isActive: true
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        createdAt: true,
-        updatedAt: true
-      },
-      orderBy: {
-        createdAt: 'asc'
+      include: {
+        subtopics: {
+          where: {
+            isActive: true
+          },
+          include: {
+            chapters: {
+              where: {
+                isActive: true
+              },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+                subtopicId: true
+              },
+              orderBy: {
+                createdAt: 'asc'
+              }
+            }
+          }
+        }
       }
     });
+
+    // Flatten all chapters from all subtopics
+    const chapters = topicWithChapters?.subtopics.flatMap(subtopic => 
+      subtopic.chapters.map(chapter => ({
+        ...chapter,
+        subtopicTitle: subtopic.title
+      }))
+    ) || [];
 
     return NextResponse.json({ 
       topic: {
@@ -68,10 +91,10 @@ export async function GET(
         title: topic.title,
         description: topic.description
       },
-      courses 
+      chapters 
     });
   } catch (error) {
-    console.error('Topic courses error:', error);
+    console.error('Topic chapters error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

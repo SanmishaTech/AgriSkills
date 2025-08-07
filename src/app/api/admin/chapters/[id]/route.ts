@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+// Force Node.js runtime to use jsonwebtoken
+export const runtime = 'nodejs';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,43 +32,41 @@ export async function GET(
 
     const { id } = await params;
 
-    // Get topic with subtopics and chapters
-    const topic = await prisma.topic.findUnique({
+    // Get chapter with course and subtopic info
+    const chapter = await prisma.chapter.findUnique({
       where: { id },
       include: {
-        subtopics: {
-          include: {
-            courses: {
-              include: {
-                _count: {
-                  select: { chapters: true }
+        course: {
+          select: {
+            id: true,
+            title: true,
+            subtopic: {
+              select: {
+                id: true,
+                title: true,
+                topic: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
                 }
               }
-            },
-            _count: {
-              select: { courses: true }
             }
-          },
-          orderBy: {
-            createdAt: 'desc'
           }
-        },
-        _count: {
-          select: { subtopics: true }
         }
       }
     });
 
-    if (!topic) {
+    if (!chapter) {
       return NextResponse.json(
-        { error: 'Topic not found' },
+        { error: 'Chapter not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ topic });
+    return NextResponse.json({ chapter });
   } catch (error) {
-    console.error('Admin topic details error:', error);
+    console.error('Admin chapter details error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -99,7 +100,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, description, isActive } = await request.json();
+    const { title, description, content, youtubeUrl, orderIndex, isActive } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -108,36 +109,61 @@ export async function PUT(
       );
     }
 
-    // Check if topic exists
-    const existingTopic = await prisma.topic.findUnique({
+    if (!content || content.trim() === '') {
+      return NextResponse.json(
+        { error: 'Content is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if chapter exists
+    const existingChapter = await prisma.chapter.findUnique({
       where: { id }
     });
 
-    if (!existingTopic) {
+    if (!existingChapter) {
       return NextResponse.json(
-        { error: 'Topic not found' },
+        { error: 'Chapter not found' },
         { status: 404 }
       );
     }
 
-    // Update topic
-    const updatedTopic = await prisma.topic.update({
+    // Update chapter
+    const updatedChapter = await prisma.chapter.update({
       where: { id },
       data: {
         title: title.trim(),
         description: description?.trim() || null,
-        isActive: isActive !== undefined ? isActive : existingTopic.isActive,
+        content: content.trim(),
+        youtubeUrl: youtubeUrl?.trim() || null,
+        orderIndex: orderIndex !== undefined ? orderIndex : existingChapter.orderIndex,
+        isActive: isActive !== undefined ? isActive : existingChapter.isActive,
       },
       include: {
-        _count: {
-          select: { subtopics: true }
+        course: {
+          select: {
+            id: true,
+            title: true,
+            subtopic: {
+              select: {
+                id: true,
+                title: true,
+                topic: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
+                }
+              }
+            }
+          }
         }
       }
     });
 
-    return NextResponse.json({ topic: updatedTopic });
+    return NextResponse.json({ chapter: updatedChapter });
   } catch (error) {
-    console.error('Admin topic update error:', error);
+    console.error('Admin chapter update error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -172,39 +198,26 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Check if topic exists
-    const existingTopic = await prisma.topic.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { subtopics: true }
-        }
-      }
+    // Check if chapter exists
+    const existingChapter = await prisma.chapter.findUnique({
+      where: { id }
     });
 
-    if (!existingTopic) {
+    if (!existingChapter) {
       return NextResponse.json(
-        { error: 'Topic not found' },
+        { error: 'Chapter not found' },
         { status: 404 }
       );
     }
 
-    // Check if topic has subtopics
-    if (existingTopic._count.subtopics > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete topic with subtopics. Please delete all subtopics first.' },
-        { status: 400 }
-      );
-    }
-
-    // Delete topic
-    await prisma.topic.delete({
+    // Delete chapter
+    await prisma.chapter.delete({
       where: { id }
     });
 
-    return NextResponse.json({ message: 'Topic deleted successfully' });
+    return NextResponse.json({ message: 'Chapter deleted successfully' });
   } catch (error) {
-    console.error('Admin topic delete error:', error);
+    console.error('Admin chapter delete error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

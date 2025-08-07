@@ -48,18 +48,34 @@ model Subtopic {
 }
 
 model Course {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  thumbnail   String?    // URL or path to course thumbnail
+  duration    Int?       // Total duration in minutes
+  level       String?    // Beginner, Intermediate, Advanced
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  subtopicId  String
+  subtopic    Subtopic   @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  chapters    Chapter[]
+}
+
+model Chapter {
   id          String      @id @default(uuid())
   title       String
   description String?
-  content     String      // Rich text content for the course
+  content     String      // Rich text content for the chapter
   youtubeUrl  String?     // Optional YouTube video URL
+  orderIndex  Int         @default(0) // To maintain chapter order within a course
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  subtopicId  String
-  subtopic    Subtopic    @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   demoVideos  DemoVideo[]
-  chapters    Chapter[]
+  sections    Section[]
 }
 
 model DemoVideo {
@@ -71,18 +87,18 @@ model DemoVideo {
   thumbnailUrl String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapterId   String
+  chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 }
 
-model Chapter {
+model Section {
   id          String   @id @default(uuid())
   title       String
   content     String   // Rich text content
-  orderIndex  Int      // To maintain chapter order
+  orderIndex  Int      // To maintain section order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapterId   String
+  chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 }
 

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Fetch active courses
+// Fetch active chapters
 export async function GET() {
   try {
-    const courses = await prisma.course.findMany({
+    const chapters = await prisma.chapter.findMany({
       where: {
         isActive: true
       },
@@ -20,9 +20,9 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ courses });
+    return NextResponse.json({ chapters });
   } catch (error) {
-    console.error('Error fetching public courses:', error);
+    console.error('Error fetching public chapters:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

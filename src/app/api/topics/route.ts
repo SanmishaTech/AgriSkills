@@ -27,15 +27,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all active topics with course count
+    // Get all active topics with subtopics and chapter count
     const topics = await prisma.topic.findMany({
       where: {
         isActive: true
       },
       include: {
+        subtopics: {
+          where: {
+            isActive: true
+          },
+          include: {
+            _count: {
+              select: {
+                chapters: {
+                  where: {
+                    isActive: true
+                  }
+                }
+              }
+            }
+          }
+        },
         _count: {
           select: { 
-            courses: {
+            subtopics: {
               where: {
                 isActive: true
               }
@@ -48,10 +64,19 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Filter out topics with no active courses
-    const topicsWithCourses = topics.filter(topic => topic._count.courses > 0);
+    // Filter out topics with no active chapters and calculate total chapters
+    const topicsWithChapters = topics.filter(topic => {
+      const totalChapters = topic.subtopics.reduce((sum, subtopic) => sum + subtopic._count.chapters, 0);
+      return totalChapters > 0;
+    }).map(topic => ({
+      ...topic,
+      _count: {
+        ...topic._count,
+        chapters: topic.subtopics.reduce((sum, subtopic) => sum + subtopic._count.chapters, 0)
+      }
+    }));
 
-    return NextResponse.json({ topics: topicsWithCourses });
+    return NextResponse.json({ topics: topicsWithChapters });
   } catch (error) {
     console.error('Topics error:', error);
     return NextResponse.json(

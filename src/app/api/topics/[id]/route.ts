@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const { id } = params;
 
-    // Fetch detailed topic data, including subtopics, courses, and demo videos
+    // Fetch detailed topic data, including subtopics, chapters, and demo videos
     const topic = await prisma.topic.findUnique({
       where: {
         id: id, // Using string ID as per schema
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             isActive: true
           },
           include: {
-            courses: {
+            chapters: {
               where: {
                 isActive: true
               },
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             },
             _count: {
               select: {
-                courses: {
+                chapters: {
                   where: {
                     isActive: true
                   }
@@ -61,16 +61,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       );
     }
 
-    // Collect all demo videos from all courses under this topic
+    // Collect all demo videos from all chapters under this topic
     const allDemoVideos: any[] = [];
-    let totalCourses = 0;
+    let totalChapters = 0;
     let totalStudents = 1250; // Mock data for now
     const rating = 4.8; // Mock data for now
 
     topic.subtopics.forEach((subtopic) => {
-      totalCourses += subtopic.courses.length;
-      subtopic.courses.forEach((course) => {
-        course.demoVideos.forEach((video) => {
+      totalChapters += subtopic.chapters.length;
+      subtopic.chapters.forEach((chapter) => {
+        chapter.demoVideos.forEach((video) => {
           const youtubeId = getYoutubeVideoId(video.videoUrl);
           if (youtubeId) {
             allDemoVideos.push({
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
               duration: formatDuration(video.duration),
               thumbnail: video.thumbnailUrl || '/api/placeholder/320/180',
               youtubeId: youtubeId,
-              instructor: 'Course Instructor' // Mock data - you might want to add instructor field
+              instructor: 'Chapter Instructor' // Mock data - you might want to add instructor field
             });
           }
         });
@@ -96,17 +96,17 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         id: subtopic.id,
         title: subtopic.title,
         description: subtopic.description || '',
-        courseCount: subtopic._count.courses,
-        courses: subtopic.courses.map((course) => ({
-          id: course.id,
-          title: course.title,
-          description: course.description || '',
+        chapterCount: subtopic._count.chapters,
+        chapters: subtopic.chapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+          description: chapter.description || '',
           duration: '2h 30m', // Mock duration - you might want to calculate this
           difficulty: 'Beginner', // Mock difficulty - you might want to add this field
           enrolledCount: 100 // Mock enrolled count - you might want to add this field
         }))
       })),
-      totalCourses,
+      totalChapters,
       totalStudents,
       rating
     };

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, BookOpen, Play, Clock, Users, Award, Star, Youtube } from 'lucide-react';
 
-interface CoursePreview {
+interface ChapterPreview {
   title: string;
   description: string;
   content: string;
@@ -15,14 +15,14 @@ interface CoursePreview {
   topicTitle?: string;
 }
 
-export default function CoursePreviewPage() {
+export default function ChapterPreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [courseData, setCourseData] = useState<CoursePreview | null>(null);
+  const [chapterData, setChapterData] = useState<ChapterPreview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get course data from URL parameters
+    // Get chapter data from URL parameters
     const title = searchParams.get('title') || '';
     const description = searchParams.get('description') || '';
     const content = searchParams.get('content') || '';
@@ -33,7 +33,7 @@ export default function CoursePreviewPage() {
     const topicTitle = searchParams.get('topicTitle') || 'Topic';
 
     if (title || content) {
-      setCourseData({
+      setChapterData({
         title,
         description,
         content,
@@ -99,11 +99,11 @@ export default function CoursePreviewPage() {
     );
   }
 
-  if (!courseData) {
+  if (!chapterData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">No course data found</p>
+          <p className="text-gray-600 mb-4">No chapter data found</p>
           <button
             onClick={() => router.back()}
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -136,15 +136,15 @@ export default function CoursePreviewPage() {
                   PREVIEW MODE
                 </span>
               </div>
-              <h1 className="text-3xl font-bold mb-2">{courseData.title || 'Course Title'}</h1>
-              {courseData.description && (
-                <p className="text-white/90 text-lg mb-4">{courseData.description}</p>
+              <h1 className="text-3xl font-bold mb-2">{chapterData.title || 'Chapter Title'}</h1>
+              {chapterData.description && (
+                <p className="text-white/90 text-lg mb-4">{chapterData.description}</p>
               )}
               
               <div className="flex flex-wrap gap-6 text-sm">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
-                  <span>{courseData.topicTitle} › {courseData.subtopicTitle}</span>
+                  <span>{chapterData.topicTitle} › {chapterData.subtopicTitle}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
@@ -152,12 +152,12 @@ export default function CoursePreviewPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Star className="w-4 h-4 fill-current" />
-                  <span>New Course</span>
+                  <span>New Chapter</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4" />
-                  <span className={courseData.isActive ? 'text-green-200' : 'text-red-200'}>
-                    {courseData.isActive ? 'Active' : 'Inactive'}
+                  <span className={chapterData.isActive ? 'text-green-200' : 'text-red-200'}>
+                    {chapterData.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
@@ -170,16 +170,16 @@ export default function CoursePreviewPage() {
       <main className="flex justify-center px-4 sm:px-6 lg:px-8 py-8">
         <div className="w-full max-w-4xl">
           {/* YouTube Video Section */}
-          {courseData.youtubeUrl && (
+          {chapterData.youtubeUrl && (
             <section className="mb-8">
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="aspect-video">
                   {(() => {
-                    const videoId = getYoutubeVideoId(courseData.youtubeUrl);
+                    const videoId = getYoutubeVideoId(chapterData.youtubeUrl);
                     return videoId ? (
                       <iframe
                         src={`https://www.youtube.com/embed/${videoId}`}
-                        title="Course Video"
+                        title="Chapter Video"
                         className="w-full h-full"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -193,19 +193,19 @@ export default function CoursePreviewPage() {
                         </div>
                       </div>
                     );
-                  })()}
+                  })()
+                  }
                 </div>
               </div>
             </section>
           )}
-
-          {/* Course Content */}
+          {/* Chapter Content */}
           <section className="mb-8">
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Course Content</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Chapter Content</h2>
               <div className="prose max-w-none">
-                {courseData.content ? (
-                  <div dangerouslySetInnerHTML={{ __html: convertYoutubeLinksToPlayers(courseData.content) }} />
+                {chapterData.content ? (
+                  <div dangerouslySetInnerHTML={{ __html: convertYoutubeLinksToPlayers(chapterData.content) }} />
                 ) : (
                   <div className="text-center py-8">
                     <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />

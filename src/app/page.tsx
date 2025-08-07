@@ -8,10 +8,61 @@ import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import { getProcessedVideos } from '@/config/youtube-videos';
 
+// Type definitions
+interface Video {
+  id: number;
+  youtubeId: string;
+  title: string;
+  duration: string;
+  instructor: string;
+  views: string;
+  timeAgo: string;
+  shortsUrl: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+}
+
+interface Subtopic {
+  id: string;
+  title: string;
+  _count?: {
+    courses: number;
+  };
+}
+
+interface Topic {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  subtopics: Subtopic[];
+  _count: {
+    subtopics: number;
+  };
+}
+
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  subtopics: Subtopic[];
+  _count: {
+    subtopics: number;
+  };
+}
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState('home');
-  const [topics, setTopics] = useState([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
 
   const circularMenuItems = [
@@ -23,11 +74,11 @@ export default function HomePage() {
     { id: 6, label: 'TECH', color: '#ec4899', icon: '💻' },
   ];
 
-  const [selectedShort, setSelectedShort] = useState(null);
+  const [selectedShort, setSelectedShort] = useState<Video | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const iframeRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [courses, setCourses] = useState([]);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   // Fetch popular courses from the server
   useEffect(() => {
@@ -47,7 +98,7 @@ export default function HomePage() {
   }, []);
 
   // Helper function for next video functionality
-  const playNextVideo = (currentVideoId) => {
+  const playNextVideo = (currentVideoId: number) => {
     const currentIndex = videos.findIndex(v => v.id === currentVideoId);
     const nextIndex = (currentIndex + 1) % videos.length; // Loop back to first video if at end
     const nextVideo = videos[nextIndex];
@@ -57,9 +108,9 @@ export default function HomePage() {
   };
 
   // Video player state management
-  const VideoPlayer = ({ video }) => {
+  const VideoPlayer = ({ video }: { video: Video }) => {
     const [playerState, setPlayerState] = useState('paused');
-    const playerRef = useRef(null);
+    const playerRef = useRef<any>(null);
     const iframeId = `youtube-player-${video.id}`;
     
     useEffect(() => {
@@ -98,11 +149,11 @@ export default function HomePage() {
             playsinline: 1
           },
           events: {
-            onReady: (event) => {
+            onReady: (event: any) => {
               setPlayerState('playing');
               event.target.playVideo();
             },
-            onStateChange: (event) => {
+            onStateChange: (event: any) => {
               switch (event.data) {
                 case window.YT.PlayerState.PLAYING:
                   setPlayerState('playing');
@@ -196,9 +247,10 @@ export default function HomePage() {
     );
   };
 
-  const videos = getProcessedVideos();
+  const processedVideos = getProcessedVideos();
+  const videos: Video[] = Array.isArray(processedVideos) ? processedVideos.filter((v): v is Video => v !== null) : [];
 
-  const openShort = (video) => {
+  const openShort = (video: Video) => {
     setSelectedShort(video);
   };
 
@@ -234,13 +286,13 @@ export default function HomePage() {
   }, []);
 
   // Generate colors for topics
-  const getTopicColor = (index) => {
+  const getTopicColor = (index: number) => {
     const colors = ['bg-green-100', 'bg-amber-100', 'bg-red-100', 'bg-blue-100', 'bg-yellow-100', 'bg-purple-100'];
     return colors[index % colors.length];
   };
 
   // Generate icons for topics
-  const getTopicIcon = (index) => {
+  const getTopicIcon = (index: number) => {
     const icons = ['🌾', '🌱', '🐛', '💧', '🚜', '📊'];
     return icons[index % icons.length];
   };
@@ -532,7 +584,7 @@ export default function HomePage() {
                               <div className="text-white text-2xl">{getTopicIcon(index)}</div>
                               {/* Topic ID Badge */}
                               <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
+                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
                               </div>
                               {/* Status Badge */}
                               {index % 3 === 0 && (
@@ -617,7 +669,7 @@ export default function HomePage() {
                               />
                               {/* Topic ID Badge */}
                               <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
+                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
                               </div>
                               {/* Status Badge */}
                               {index % 3 === 0 && (
@@ -636,7 +688,7 @@ export default function HomePage() {
                               <div className="text-white text-2xl">{getTopicIcon(index)}</div>
                               {/* Topic ID Badge */}
                               <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(topic.id * 100 + 445).toString().padStart(4, '0')}
+                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
                               </div>
                               {/* Status Badge */}
                               {index % 3 === 0 && (

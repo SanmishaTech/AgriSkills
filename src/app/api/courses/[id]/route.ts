@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    // Verify the token (any authenticated user can view course content)
+    // Verify the token (any authenticated user can view chapter content)
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json(
@@ -29,41 +29,48 @@ export async function GET(
 
     const { id } = await params;
 
-    // Get course with topic information
-    const course = await prisma.course.findUnique({
+    // Get chapter with subtopic and topic information
+    const chapter = await prisma.chapter.findUnique({
       where: {
         id,
         isActive: true
       },
       include: {
-        topic: {
+        subtopic: {
           select: {
             id: true,
             title: true,
-            description: true
+            description: true,
+            topic: {
+              select: {
+                id: true,
+                title: true,
+                description: true
+              }
+            }
           }
         }
       }
     });
 
-    if (!course) {
+    if (!chapter) {
       return NextResponse.json(
-        { error: 'Course not found' },
+        { error: 'Chapter not found' },
         { status: 404 }
       );
     }
 
-    // Verify topic is also active
-    if (!course.topic) {
+    // Verify subtopic and topic are available
+    if (!chapter.subtopic) {
       return NextResponse.json(
-        { error: 'Course topic not found' },
+        { error: 'Chapter subtopic not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ course });
+    return NextResponse.json({ chapter });
   } catch (error) {
-    console.error('Course details error:', error);
+    console.error('Chapter details error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
