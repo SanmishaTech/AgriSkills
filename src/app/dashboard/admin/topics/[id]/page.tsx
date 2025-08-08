@@ -395,7 +395,7 @@ export default function AdminTopicDetail() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/courses/${selectedChapter.id}`, {
+      const response = await fetch(`/api/admin/chapters/${selectedChapter.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -409,16 +409,19 @@ export default function AdminTopicDetail() {
       }
 
       const data = await response.json();
-      // Update the subtopic's chapters array
+      // Update the course's chapters array
       setTopic(prev => prev ? {
         ...prev,
-        subtopics: (prev.subtopics || []).map(subtopic =>
-          subtopic.chapters.some(chapter => chapter.id === selectedChapter.id)
-            ? { ...subtopic, chapters: subtopic.chapters.map(chapter => 
-                chapter.id === selectedChapter.id ? data.chapter : chapter
-              )}
-            : subtopic
-        )
+        subtopics: (prev.subtopics || []).map(subtopic => ({
+          ...subtopic,
+          courses: (subtopic.courses || []).map(course => 
+            course.id === selectedChapter.courseId
+              ? { ...course, chapters: (course.chapters || []).map(chapter => 
+                  chapter.id === selectedChapter.id ? data.chapter : chapter
+                )}
+              : course
+          )
+        }))
       } : null);
       setShowEditChapterModal(false);
       setSelectedChapter(null);
@@ -449,7 +452,7 @@ export default function AdminTopicDetail() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/courses/${selectedChapter.id}`, {
+      const response = await fetch(`/api/admin/chapters/${selectedChapter.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -460,14 +463,17 @@ export default function AdminTopicDetail() {
         throw new Error('Failed to delete chapter');
       }
 
-      // Update the subtopic's chapters array
+      // Update the course's chapters array
       setTopic(prev => prev ? {
         ...prev,
-        subtopics: (prev.subtopics || []).map(subtopic =>
-          subtopic.chapters.some(chapter => chapter.id === selectedChapter.id)
-            ? { ...subtopic, chapters: subtopic.chapters.filter(chapter => chapter.id !== selectedChapter.id) }
-            : subtopic
-        )
+        subtopics: (prev.subtopics || []).map(subtopic => ({
+          ...subtopic,
+          courses: (subtopic.courses || []).map(course => 
+            course.id === selectedChapter.courseId
+              ? { ...course, chapters: (course.chapters || []).filter(chapter => chapter.id !== selectedChapter.id) }
+              : course
+          )
+        }))
       } : null);
       setShowDeleteChapterModal(false);
       setSelectedChapter(null);
@@ -508,6 +514,88 @@ export default function AdminTopicDetail() {
   const openDeleteCourseModal = (course: Course) => {
     setCourseToDelete(course);
     setShowDeleteCourseModal(true);
+  };
+
+  const handleEditCourse = async () => {
+    if (!courseForm.title.trim() || !courseToEdit) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/courses/${courseToEdit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(courseForm),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update course');
+      }
+
+      const data = await response.json();
+      // Update the course in the subtopic's courses array
+      setTopic(prev => prev ? {
+        ...prev,
+        subtopics: (prev.subtopics || []).map(subtopic => ({
+          ...subtopic,
+          courses: (subtopic.courses || []).map(course => 
+            course.id === courseToEdit.id ? data.course : course
+          )
+        }))
+      } : null);
+      setShowEditCourseModal(false);
+      setCourseToEdit(null);
+      setCourseForm({
+        title: '',
+        description: '',
+        thumbnail: '',
+        duration: 0,
+        level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
+        isActive: true,
+        subtopicId: ''
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/courses/${courseToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
+      }
+
+      // Remove the course from the subtopic's courses array
+      setTopic(prev => prev ? {
+        ...prev,
+        subtopics: (prev.subtopics || []).map(subtopic => ({
+          ...subtopic,
+          courses: (subtopic.courses || []).filter(course => course.id !== courseToDelete.id)
+        }))
+      } : null);
+      setShowDeleteCourseModal(false);
+      setCourseToDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -728,7 +816,7 @@ export default function AdminTopicDetail() {
             <div className="mt-4">
               <button
                 onClick={() => setShowAddSubtopicModal(true)}
-                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-11 px-6 text-sm font-semibold ring-1 ring-white/20 shadow-md hover:shadow-lg hover:from-violet-700 hover:to-fuchsia-700 transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -753,7 +841,7 @@ export default function AdminTopicDetail() {
                   <div key={subtopic.id} className="border border-gray-200 rounded-xl overflow-hidden">
                     {/* Subtopic Header */}
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="bg-indigo-100 rounded-lg p-2">
                             <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -767,15 +855,15 @@ export default function AdminTopicDetail() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium ${
                             subtopic.isActive 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-red-100 text-red-800'
                           }`}>
                             {subtopic.isActive ? 'Active' : 'Inactive'}
                           </span>
-                          <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-semibold">
+                          <span className="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs sm:text-sm font-semibold">
                             {(subtopic.courses || []).length} {(subtopic.courses || []).length === 1 ? 'course' : 'courses'}
                           </span>
                           <button
@@ -783,7 +871,7 @@ export default function AdminTopicDetail() {
                               setCourseForm({ ...courseForm, subtopicId: subtopic.id });
                               setShowAddCourseModal(true);
                             }}
-                            className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center space-x-1"
+                            className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2 shrink-0"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -792,7 +880,7 @@ export default function AdminTopicDetail() {
                           </button>
                           <button
                             onClick={() => openDeleteSubtopicModal(subtopic)}
-                            className="bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+                            className="bg-red-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shrink-0"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -816,7 +904,16 @@ export default function AdminTopicDetail() {
                       ) : (
                         <div className="space-y-6">
                           {(subtopic.courses || []).map((course) => (
-                            <div key={course.id} className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                            <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
+                              <span
+                                className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${
+                                  course.isActive
+                                    ? 'bg-green-100 text-green-800 ring-green-200'
+                                    : 'bg-red-100 text-red-800 ring-red-200'
+                                }`}
+                              >
+                                {course.isActive ? 'Active' : 'Inactive'}
+                              </span>
                               <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1">
                                   <h4 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h4>
@@ -836,13 +933,6 @@ export default function AdminTopicDetail() {
                                     </span>
                                   </div>
                                 </div>
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  course.isActive 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {course.isActive ? 'Active' : 'Inactive'}
-                                </span>
                               </div>
                               
                               {course.description && (
@@ -863,12 +953,12 @@ export default function AdminTopicDetail() {
                                 <span>Created {formatDate(course.createdAt)}</span>
                               </div>
                               
-                              <div className="flex space-x-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <button
                                   onClick={() => {
                                     router.push(`/dashboard/admin/courses/${course.id}/chapters?title=${encodeURIComponent(course.title)}&topicId=${topicId}`);
                                   }}
-                                  className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center justify-center space-x-1">
+                                  className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-10 px-4 text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                   </svg>
@@ -876,7 +966,7 @@ export default function AdminTopicDetail() {
                                 </button>
                                 <button
                                   onClick={() => openEditCourseModal(course)}
-                                  className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-1">
+                                  className="w-full bg-indigo-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
@@ -884,7 +974,7 @@ export default function AdminTopicDetail() {
                                 </button>
                                 <button
                                   onClick={() => openDeleteCourseModal(course)}
-                                  className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1">
+                                  className="w-full bg-red-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
@@ -1094,7 +1184,7 @@ export default function AdminTopicDetail() {
 
         {/* Delete Chapter Modal */}
         {showDeleteChapterModal && selectedChapter && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Chapter</h3>
               
@@ -1134,7 +1224,7 @@ export default function AdminTopicDetail() {
 
         {/* Add Subtopic Modal */}
         {showAddSubtopicModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Subtopic</h3>
               
@@ -1201,7 +1291,7 @@ export default function AdminTopicDetail() {
 
         {/* Add Course Modal */}
         {showAddCourseModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900">Add New Course</h3>
@@ -1329,9 +1419,183 @@ export default function AdminTopicDetail() {
           </div>
         )}
 
+        {/* Edit Course Modal */}
+        {showEditCourseModal && courseToEdit && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Edit Course</h3>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="editCourseActiveHeader"
+                    checked={courseForm.isActive}
+                    onChange={(e) => setCourseForm({ ...courseForm, isActive: e.target.checked })}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="editCourseActiveHeader" className="ml-2 block text-sm text-gray-700">
+                    Active course
+                  </label>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={courseForm.title}
+                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter course title"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+                  <textarea
+                    value={courseForm.description}
+                    onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter course description"
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL (optional)</label>
+                  <input
+                    type="url"
+                    value={courseForm.thumbnail}
+                    onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter thumbnail URL"
+                  />
+                  {courseForm.thumbnail && (
+                    <div className="mt-2">
+                      <img
+                        src={courseForm.thumbnail}
+                        alt="Thumbnail preview"
+                        className="w-32 h-24 object-cover rounded-lg border border-gray-200"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={courseForm.duration}
+                      onChange={(e) => setCourseForm({ ...courseForm, duration: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+                    <select
+                      value={courseForm.level}
+                      onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="BEGINNER">Beginner</option>
+                      <option value="INTERMEDIATE">Intermediate</option>
+                      <option value="ADVANCED">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditCourseModal(false);
+                    setCourseToEdit(null);
+                    setCourseForm({
+                      title: '',
+                      description: '',
+                      thumbnail: '',
+                      duration: 0,
+                      level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
+                      isActive: true,
+                      subtopicId: ''
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditCourse}
+                  disabled={isSubmitting || !courseForm.title.trim()}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isSubmitting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>{isSubmitting ? 'Updating...' : 'Update Course'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Course Modal */}
+        {showDeleteCourseModal && courseToDelete && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Course</h3>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to delete the course &ldquo;{courseToDelete.title}&rdquo;? This action cannot be undone.
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-800 text-sm">
+                    <strong>Warning:</strong> All course data and associated chapters will be permanently removed.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteCourseModal(false);
+                    setCourseToDelete(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteCourse}
+                  disabled={isSubmitting}
+                  className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isSubmitting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>{isSubmitting ? 'Deleting...' : 'Delete Course'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Delete Subtopic Modal */}
         {showDeleteSubtopicModal && selectedSubtopic && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Subtopic</h3>
               

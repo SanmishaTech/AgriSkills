@@ -87,7 +87,7 @@ export default function HomePage() {
         const response = await fetch('/api/public/courses');
         if (response.ok) {
           const data = await response.json();
-          setCourses(data.courses);
+          setCourses(Array.isArray(data?.courses) ? data.courses : []);
         }
       } catch (error) {
         console.error('Failed to fetch courses:', error);
@@ -99,8 +99,9 @@ export default function HomePage() {
 
   // Helper function for next video functionality
   const playNextVideo = (currentVideoId: number) => {
+    if (!Array.isArray(videos) || videos.length === 0) return;
     const currentIndex = videos.findIndex(v => v.id === currentVideoId);
-    const nextIndex = (currentIndex + 1) % videos.length; // Loop back to first video if at end
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % videos.length : 0; // Loop or start from first
     const nextVideo = videos[nextIndex];
     if (nextVideo) {
       setSelectedShort(nextVideo);
@@ -273,7 +274,7 @@ export default function HomePage() {
         const response = await fetch('/api/public/topics');
         if (response.ok) {
           const data = await response.json();
-          setTopics(data.topics);
+          setTopics(Array.isArray(data?.topics) ? data.topics : []);
         }
       } catch (error) {
         console.error('Failed to fetch topics:', error);
