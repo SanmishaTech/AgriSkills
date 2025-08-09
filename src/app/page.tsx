@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic } from 'lucide-react';
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
-import { getProcessedVideos } from '@/config/youtube-videos';
-
 // Type definitions
 interface Video {
   id: number;
@@ -109,6 +107,38 @@ export default function HomePage() {
   };
 
   // Video player state management
+
+  // Mock function to replace the removed config dependency
+  const getProcessedVideos = (): Video[] => {
+    // Return sample videos for demonstration
+    return [
+      {
+        id: 1,
+        youtubeId: "dQw4w9WgXcQ",
+        title: "Organic Farming Basics",
+        duration: "5:32",
+        instructor: "AgriExpert",
+        views: "12K",
+        timeAgo: "2 days ago",
+        shortsUrl: "https://youtube.com/shorts/dQw4w9WgXcQ",
+        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
+      },
+      {
+        id: 2,
+        youtubeId: "jNQXAC9IVRw",
+        title: "Soil Health Management",
+        duration: "3:45",
+        instructor: "FarmGuru",
+        views: "8.5K",
+        timeAgo: "5 days ago",
+        shortsUrl: "https://youtube.com/shorts/jNQXAC9IVRw",
+        embedUrl: "https://www.youtube.com/embed/jNQXAC9IVRw",
+        thumbnailUrl: "https://img.youtube.com/vi/jNQXAC9IVRw/maxresdefault.jpg"
+      }
+    ];
+  };
+
   const VideoPlayer = ({ video }: { video: Video }) => {
     const [playerState, setPlayerState] = useState('paused');
     const playerRef = useRef<any>(null);

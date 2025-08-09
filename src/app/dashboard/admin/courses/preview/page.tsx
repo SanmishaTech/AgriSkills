@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, BookOpen, Play, Clock, Users, Award, Star, Youtube } from 'lucide-react';
 
@@ -15,7 +15,8 @@ interface ChapterPreview {
   topicTitle?: string;
 }
 
-export default function ChapterPreviewPage() {
+// Component that uses search params - must be wrapped in Suspense
+function ChapterPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [chapterData, setChapterData] = useState<ChapterPreview | null>(null);
@@ -218,5 +219,23 @@ export default function ChapterPreviewPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function ChapterPreviewLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function ChapterPreviewPage() {
+  return (
+    <Suspense fallback={<ChapterPreviewLoading />}>
+      <ChapterPreviewContent />
+    </Suspense>
   );
 }

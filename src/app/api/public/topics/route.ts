@@ -6,7 +6,9 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all active topics with their subtopics and courses count
+    console.log('Fetching public topics...');
+    
+    // Get all active topics with their subtopics and courses
     const topics = await prisma.topic.findMany({
       where: {
         isActive: true
@@ -21,11 +23,16 @@ export async function GET(request: NextRequest) {
               where: {
                 isActive: true
               },
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                isActive: true
+              include: {
+                _count: {
+                  select: {
+                    chapters: {
+                      where: {
+                        isActive: true
+                      }
+                    }
+                  }
+                }
               }
             },
             _count: {
@@ -54,13 +61,14 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('Topics with subtopics:', JSON.stringify(topics, null, 2));
+    console.log(`Found ${topics.length} topics`);
+    console.log('Topics:', topics.map(t => ({ id: t.id, title: t.title, subtopics: t.subtopics.length })));
 
     return NextResponse.json({ topics });
   } catch (error) {
     console.error('Public topics error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

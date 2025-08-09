@@ -28,8 +28,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
-    const userId = decoded.userId;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as { sub: string };
+    const userId = decoded.sub;
 
     // Get request body (FormData)
     const formData = await request.formData();

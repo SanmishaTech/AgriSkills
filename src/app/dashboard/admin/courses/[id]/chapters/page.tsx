@@ -53,6 +53,9 @@ export default function CourseChaptersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
   // Form state
   const [chapterForm, setChapterForm] = useState({
     title: '',
@@ -444,10 +447,40 @@ export default function CourseChaptersPage() {
                   {course.chapters.length} total
                 </span>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col lg:flex-row gap-3">
+                {/* Search Bar */}
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      placeholder="Search chapters by title or content..."
+                    />
+                    {searchQuery && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <button 
                   onClick={() => setShowAddModal(true)}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 shadow-sm"
+                  className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -468,52 +501,96 @@ export default function CourseChaptersPage() {
                 <p className="text-gray-400 text-sm mt-1">Get started by creating your first chapter</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {course.chapters.sort((a, b) => a.orderIndex - b.orderIndex).map((chapter, index) => (
-                  <div key={chapter.id} className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-bold">
-                              Chapter {index + 1}
-                            </span>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {(() => {
+                  // Filter chapters based on search query
+                  const filteredChapters = course.chapters.filter(chapter => {
+                    if (!searchQuery) return true;
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      chapter.title.toLowerCase().includes(query) ||
+                      (chapter.description && chapter.description.toLowerCase().includes(query)) ||
+                      chapter.content.toLowerCase().includes(query)
+                    );
+                  });
+                  
+                  // Show no results message if search returns empty
+                  if (searchQuery && filteredChapters.length === 0) {
+                    return (
+                      <div className="col-span-full text-center py-12">
+                        <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p className="text-gray-500 font-medium">No chapters found</p>
+                        <p className="text-gray-400 text-sm mt-1">Try adjusting your search terms</p>
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="mt-3 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  return filteredChapters.sort((a, b) => a.orderIndex - b.orderIndex).map((chapter, index) => (
+                    <div key={chapter.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl hover:border-indigo-200 transition-all duration-300 group">
+                    <div className="relative">
+                      {/* Header with gradient background */}
+                      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5">
+                              <span className="text-white font-bold text-sm">
+                                Chapter {index + 1}
+                              </span>
+                            </div>
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${
                               chapter.isActive 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
+                                ? 'bg-green-100 text-green-800 ring-1 ring-green-200' 
+                                : 'bg-red-100 text-red-800 ring-1 ring-red-200'
                             }`}>
                               {chapter.isActive ? 'Active' : 'Inactive'}
                             </span>
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{chapter.title}</h3>
-                          {chapter.description && (
-                            <p className="text-gray-600 text-sm mb-3">{chapter.description}</p>
-                          )}
+                          <div className="text-white/80 text-xs font-medium">
+                            Order: {chapter.orderIndex}
+                          </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-white mt-3 mb-1 line-clamp-2">{chapter.title}</h3>
+                        {chapter.description && (
+                          <p className="text-indigo-100 text-sm line-clamp-2">{chapter.description}</p>
+                        )}
+                      </div>
+
+                      <div className="p-6">
                           
                           {/* YouTube Video Preview */}
                           {chapter.youtubeUrl && (
                             <div className="mb-4">
-                              <div className="bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <div className="aspect-video">
+                              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                                <div className="aspect-video relative">
                                   {(() => {
                                     const videoId = getYoutubeVideoId(chapter.youtubeUrl);
                                     return videoId ? (
                                       <iframe
                                         src={`https://www.youtube.com/embed/${videoId}`}
                                         title={`${chapter.title} - Video`}
-                                        className="w-full h-full"
+                                        className="w-full h-full rounded-xl"
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                       />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-red-50">
-                                        <div className="text-center">
-                                          <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                          </svg>
-                                          <p className="text-red-600 text-sm font-medium">Invalid YouTube URL</p>
+                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+                                        <div className="text-center p-4">
+                                          <div className="bg-red-100 rounded-full p-3 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                                            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                            </svg>
+                                          </div>
+                                          <p className="text-red-700 text-sm font-semibold">Invalid YouTube URL</p>
+                                          <p className="text-red-600 text-xs mt-1">Please check the video link</p>
                                         </div>
                                       </div>
                                     );
@@ -523,57 +600,68 @@ export default function CourseChaptersPage() {
                             </div>
                           )}
                           
-                          {/* Content Preview */}
-                          {chapter.content && (
-                            <div className="bg-white border border-gray-200 rounded-lg p-4">
-                              <h4 className="text-sm font-medium text-gray-700 mb-2">Content Preview</h4>
-                              <div 
-                                className="prose prose-sm max-w-none text-gray-600 line-clamp-3"
-                                dangerouslySetInnerHTML={{ __html: chapter.content }}
-                              />
+                        {/* Content Preview */}
+                        {chapter.content && (
+                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-4 mb-4">
+                            <div className="flex items-center space-x-2 mb-3">
+                              <div className="bg-indigo-100 rounded-lg p-1.5">
+                                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <h4 className="text-sm font-semibold text-gray-800">Content Preview</h4>
                             </div>
-                          )}
+                            <div 
+                              className="prose prose-sm max-w-none text-gray-700 line-clamp-3 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: chapter.content }}
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-sm text-gray-500 mb-4 pt-2 border-t border-gray-100">
+                          <div className="flex items-center space-x-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0h6m-6 0a1 1 0 00-1 1v10a1 1 0 001 1h6a1 1 0 001-1V8a1 1 0 00-1-1" />
+                            </svg>
+                            <span className="font-medium">Created {formatDate(chapter.createdAt)}</span>
+                          </div>
                         </div>
-                      </div>
                       
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                        <span>Created {formatDate(chapter.createdAt)}</span>
-                        <span>Order: {chapter.orderIndex}</span>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(chapter)}
-                          className="flex-1 bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => handlePreviewChapter(chapter)}
-                          className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>Preview</span>
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(chapter)}
-                          className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          <span>Delete</span>
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => openEditModal(chapter)}
+                            className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handlePreviewChapter(chapter)}
+                            className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>Preview</span>
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(chapter)}
+                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
           </div>

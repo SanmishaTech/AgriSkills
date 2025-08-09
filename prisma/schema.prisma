@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -33,6 +34,7 @@ model Topic {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   subtopics   Subtopic[]
+  demo        TopicDemo?
 }
 
 model Subtopic {
@@ -100,5 +102,27 @@ model Section {
   updatedAt   DateTime @updatedAt
   chapterId   String
   chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+}
+
+model TopicDemo {
+  id          String   @id @default(uuid())
+  topicId     String   @unique
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  demoUrls    String[] // Array of YouTube URLs
+  content     String   // Rich text content describing the topic
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model YouTubeShort {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  url          String   @unique // YouTube shorts URL
+  videoId      String   // Extracted YouTube video ID
+  thumbnailUrl String   // YouTube thumbnail URL
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 

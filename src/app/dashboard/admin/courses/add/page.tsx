@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Editor } from 'primereact/editor';
 
@@ -33,7 +33,8 @@ interface User {
   updatedAt: string;
 }
 
-export default function AddChapterPage() {
+// Component that uses search params - must be wrapped in Suspense
+function AddChapterContent() {
   const [user, setUser] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +45,11 @@ export default function AddChapterPage() {
     description: '',
     content: '',
     youtubeUrl: '',
+    thumbnail: '',
     isActive: true,
     subtopicId: ''
   });
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,6 +96,40 @@ export default function AddChapterPage() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail');
+      }
+
+      const data = await response.json();
+      setChapterForm({ ...chapterForm, thumbnail: data.url });
+    } catch (err) {
+      alert('Failed to upload thumbnail. Please try again.');
+      console.error(err);
+    } finally {
+      setUploadingThumbnail(false);
     }
   };
 
@@ -345,6 +382,43 @@ export default function AddChapterPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+                <div className="space-y-2">
+                  {chapterForm.thumbnail && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                      <img 
+                        src={chapterForm.thumbnail} 
+                        alt="Course thumbnail" 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setChapterForm({ ...chapterForm, thumbnail: '' })}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleThumbnailUpload}
+                    disabled={uploadingThumbnail}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                  />
+                  {uploadingThumbnail && (
+                    <div className="flex items-center justify-center py-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                      <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
                 <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
                   <Editor
@@ -392,5 +466,28 @@ export default function AddChapterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function AddChapterLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p className="text-gray-500">Loading page...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function AddChapterPage() {
+  return (
+    <Suspense fallback={<AddChapterLoading />}>
+      <AddChapterContent />
+    </Suspense>
   );
 }

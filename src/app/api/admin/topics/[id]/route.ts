@@ -99,7 +99,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, description, isActive } = await request.json();
+    const { title, description, thumbnail, isActive } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -126,6 +126,7 @@ export async function PUT(
       data: {
         title: title.trim(),
         description: description?.trim() || null,
+        thumbnail: thumbnail?.trim() || null,
         isActive: isActive !== undefined ? isActive : existingTopic.isActive,
       },
       include: {

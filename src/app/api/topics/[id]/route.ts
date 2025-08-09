@@ -5,9 +5,14 @@ import { prisma } from '@/lib/prisma';
 export const runtime = 'nodejs';
 
 function getYoutubeVideoId(url: string): string | null {
-  const regex = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&\?]*).*/;
+  console.log('Testing YouTube ID extraction for:', url);
+  // Updated regex to handle YouTube Shorts and regular videos
+  const regex = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
   const match = url.match(regex);
-  return (match && match[1].length === 11) ? match[1] : null;
+  const result = (match && match[1].length === 11) ? match[1] : null;
+  console.log('Regex match result:', match);
+  console.log('Final YouTube ID:', result);
+  return result;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -21,28 +26,36 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const { id } = params;
 
-    // Fetch detailed topic data, including subtopics, chapters, and demo videos
+    // Fetch detailed topic data, including subtopics, courses, and topic demo
     const topic = await prisma.topic.findUnique({
       where: {
-        id: id, // Using string ID as per schema
+        id: id,
       },
       include: {
+        demo: true, // Include topic demo data
         subtopics: {
           where: {
             isActive: true
           },
           include: {
-            chapters: {
+            courses: {
               where: {
                 isActive: true
               },
               include: {
-                demoVideos: true
+                chapters: {
+                  where: {
+                    isActive: true
+                  },
+                  include: {
+                    demoVideos: true
+                  }
+                }
               }
             },
             _count: {
               select: {
-                chapters: {
+                courses: {
                   where: {
                     isActive: true
                   }
@@ -61,27 +74,59 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       );
     }
 
-    // Collect all demo videos from all chapters under this topic
+    // Collect demo videos from topic demo and all chapters under this topic
     const allDemoVideos: any[] = [];
-    let totalChapters = 0;
+    let topicDemoContent = '';
+    let totalCourses = 0;
     let totalStudents = 1250; // Mock data for now
     const rating = 4.8; // Mock data for now
 
+    // Add topic-level demo videos
+    console.log('Topic demo data:', topic.demo);
+    console.log('Demo URLs:', topic.demo?.demoUrls);
+    
+    if (topic.demo?.demoUrls) {
+      topic.demo.demoUrls.forEach((url: string, index: number) => {
+        console.log(`Processing URL ${index}:`, url);
+        const youtubeId = getYoutubeVideoId(url);
+        console.log('Extracted YouTube ID:', youtubeId);
+        
+        if (youtubeId) {
+          allDemoVideos.push({
+            id: `topic-demo-${index}`,
+            title: `${topic.title} Demo ${index + 1}`,
+            duration: '0:00', // We don't have duration for topic demos
+            thumbnail: `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`,
+            youtubeId: youtubeId,
+            instructor: 'Topic Demo'
+          });
+        }
+      });
+    }
+
+    // Get topic demo content
+    if (topic.demo?.content) {
+      topicDemoContent = topic.demo.content;
+    }
+
+    // Add chapter demo videos
     topic.subtopics.forEach((subtopic) => {
-      totalChapters += subtopic.chapters.length;
-      subtopic.chapters.forEach((chapter) => {
-        chapter.demoVideos.forEach((video) => {
-          const youtubeId = getYoutubeVideoId(video.videoUrl);
-          if (youtubeId) {
-            allDemoVideos.push({
-              id: video.id,
-              title: video.title,
-              duration: formatDuration(video.duration),
-              thumbnail: video.thumbnailUrl || '/api/placeholder/320/180',
-              youtubeId: youtubeId,
-              instructor: 'Chapter Instructor' // Mock data - you might want to add instructor field
-            });
-          }
+      totalCourses += subtopic.courses.length;
+      subtopic.courses.forEach((course) => {
+        course.chapters.forEach((chapter) => {
+          chapter.demoVideos.forEach((video) => {
+            const youtubeId = getYoutubeVideoId(video.videoUrl);
+            if (youtubeId) {
+              allDemoVideos.push({
+                id: video.id,
+                title: video.title,
+                duration: formatDuration(video.duration),
+                thumbnail: video.thumbnailUrl || '/api/placeholder/320/180',
+                youtubeId: youtubeId,
+                instructor: 'Chapter Instructor' // Mock data - you might want to add instructor field
+              });
+            }
+          });
         });
       });
     });
@@ -96,24 +141,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         id: subtopic.id,
         title: subtopic.title,
         description: subtopic.description || '',
-        chapterCount: subtopic._count.chapters,
-        chapters: subtopic.chapters.map((chapter) => ({
-          id: chapter.id,
-          title: chapter.title,
-          description: chapter.description || '',
+        courseCount: subtopic._count.courses,
+        courses: subtopic.courses.map((course) => ({
+          id: course.id,
+          title: course.title,
+          description: course.description || '',
           duration: '2h 30m', // Mock duration - you might want to calculate this
           difficulty: 'Beginner', // Mock difficulty - you might want to add this field
           enrolledCount: 100 // Mock enrolled count - you might want to add this field
         }))
       })),
-      totalChapters,
+      totalCourses,
       totalStudents,
       rating
     };
 
     return NextResponse.json({ 
       topic: transformedTopic,
-      demoVideos: allDemoVideos
+      demoVideos: allDemoVideos,
+      demoContent: topicDemoContent
     });
   } catch (error) {
     console.error('Fetch topic error:', error);

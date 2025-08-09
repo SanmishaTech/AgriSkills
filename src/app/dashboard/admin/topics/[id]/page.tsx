@@ -73,6 +73,7 @@ interface Topic {
   id: string;
   title: string;
   description: string | null;
+  thumbnail?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -100,6 +101,7 @@ export default function AdminTopicDetail() {
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
+    thumbnail: '',
     isActive: true
   });
   const [showAddSubtopicModal, setShowAddSubtopicModal] = useState(false);
@@ -141,6 +143,14 @@ export default function AdminTopicDetail() {
     courseId: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingCourseThumbnail, setUploadingCourseThumbnail] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Subtopic expansion state for accordion
+  const [expandedSubtopics, setExpandedSubtopics] = useState<Set<string>>(new Set());
   
   const router = useRouter();
   const params = useParams();
@@ -163,6 +173,7 @@ export default function AdminTopicDetail() {
       setEditForm({
         title: data.topic.title,
         description: data.topic.description || '',
+        thumbnail: data.topic.thumbnail || '',
         isActive: data.topic.isActive
       });
     } catch (err) {
@@ -204,6 +215,7 @@ export default function AdminTopicDetail() {
         body: JSON.stringify({
           title: editForm.title,
           description: editForm.description || null,
+          thumbnail: editForm.thumbnail || null,
           isActive: editForm.isActive
         }),
       });
@@ -219,6 +231,74 @@ export default function AdminTopicDetail() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail');
+      }
+
+      const data = await response.json();
+      setEditForm({ ...editForm, thumbnail: data.url });
+    } catch (err) {
+      alert('Failed to upload thumbnail. Please try again.');
+      console.error(err);
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const handleCourseThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingCourseThumbnail(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail');
+      }
+
+      const data = await response.json();
+      setCourseForm({ ...courseForm, thumbnail: data.url });
+    } catch (err) {
+      alert('Failed to upload thumbnail. Please try again.');
+      console.error(err);
+    } finally {
+      setUploadingCourseThumbnail(false);
     }
   };
 
@@ -247,6 +327,51 @@ export default function AdminTopicDetail() {
         subtopics: [data.subtopic, ...(prev.subtopics || [])]
       } : null);
       setShowAddSubtopicModal(false);
+      setSubtopicForm({
+        title: '',
+        description: '',
+        isActive: true
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditSubtopic = async () => {
+    if (!subtopicForm.title.trim() || !selectedSubtopic) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/subtopics/${selectedSubtopic.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: subtopicForm.title,
+          description: subtopicForm.description || null,
+          isActive: subtopicForm.isActive
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update subtopic');
+      }
+
+      const data = await response.json();
+      // Update the subtopic in the topic's subtopics array
+      setTopic(prev => prev ? {
+        ...prev,
+        subtopics: (prev.subtopics || []).map(subtopic => 
+          subtopic.id === selectedSubtopic.id ? data.subtopic : subtopic
+        )
+      } : null);
+      setShowEditSubtopicModal(false);
+      setSelectedSubtopic(null);
       setSubtopicForm({
         title: '',
         description: '',
@@ -288,6 +413,16 @@ export default function AdminTopicDetail() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openEditSubtopicModal = (subtopic: Subtopic) => {
+    setSelectedSubtopic(subtopic);
+    setSubtopicForm({
+      title: subtopic.title,
+      description: subtopic.description || '',
+      isActive: subtopic.isActive
+    });
+    setShowEditSubtopicModal(true);
   };
 
   const openDeleteSubtopicModal = (subtopic: Subtopic) => {
@@ -441,7 +576,7 @@ export default function AdminTopicDetail() {
   };
 
   const getYoutubeVideoId = (url: string): string | null => {
-    const regex = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regex = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
     const match = url.match(regex);
     return (match && match[1].length === 11) ? match[1] : null;
   };
@@ -598,6 +733,19 @@ export default function AdminTopicDetail() {
     }
   };
 
+  // Toggle accordion state
+  const toggleSubtopic = (subtopicId: string) => {
+    setExpandedSubtopics(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subtopicId)) {
+        newSet.delete(subtopicId);
+      } else {
+        newSet.add(subtopicId);
+      }
+      return newSet;
+    });
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -730,6 +878,43 @@ export default function AdminTopicDetail() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+                  <div className="space-y-2">
+                    {editForm.thumbnail && (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={editForm.thumbnail} 
+                          alt="Topic thumbnail" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, thumbnail: '' })}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleThumbnailUpload}
+                      disabled={uploadingThumbnail}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {uploadingThumbnail && (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                        <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -781,6 +966,20 @@ export default function AdminTopicDetail() {
                   </div>
                 </div>
                 
+                {topic.thumbnail && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Thumbnail</h4>
+                    <img
+                      src={topic.thumbnail}
+                      alt={`${topic.title} thumbnail`}
+                      className="w-48 h-32 object-cover rounded-lg border border-gray-200 shadow-sm"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                
                 {topic.description && (
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
@@ -789,6 +988,31 @@ export default function AdminTopicDetail() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Demo Management */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+          <div 
+            className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-blue-100 hover:to-blue-150 transition-colors"
+            onClick={() => router.push(`/dashboard/admin/topics/${topicId}/demo`)}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="bg-blue-100 rounded-lg p-2">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Demo Videos & Content</h2>
+                <p className="text-sm text-gray-600 mt-1">Manage demo videos and topic description content</p>
+              </div>
+              <div className="ml-auto">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -812,8 +1036,8 @@ export default function AdminTopicDetail() {
               </div>
             </div>
             
-            {/* Add Subtopic Button */}
-            <div className="mt-4">
+            {/* Add Subtopic Button and Search */}
+            <div className="mt-4 space-y-3">
               <button
                 onClick={() => setShowAddSubtopicModal(true)}
                 className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-11 px-6 text-sm font-semibold ring-1 ring-white/20 shadow-md hover:shadow-lg hover:from-violet-700 hover:to-fuchsia-700 transition-colors duration-200 flex items-center justify-center gap-2"
@@ -823,33 +1047,111 @@ export default function AdminTopicDetail() {
                 </svg>
                 <span>Add Subtopic</span>
               </button>
+              
+              {/* Search Bar */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                  placeholder="Search subtopics by title or description..."
+                />
+                {searchQuery && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="p-6">
-            {(topic.subtopics || []).length === 0 ? (
-              <div className="text-center py-12">
-                <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <p className="text-gray-500 font-medium">No subtopics found</p>
-                <p className="text-gray-400 text-sm mt-1">Get started by creating your first subtopic</p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {(topic.subtopics || []).map((subtopic) => (
+            {(() => {
+              // Filter subtopics based on search query
+              const filteredSubtopics = (topic.subtopics || []).filter(subtopic => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  subtopic.title.toLowerCase().includes(query) ||
+                  (subtopic.description && subtopic.description.toLowerCase().includes(query))
+                );
+              });
+              
+              // Show no results message if search returns empty
+              if (searchQuery && filteredSubtopics.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="text-gray-500 font-medium">No subtopics found</p>
+                    <p className="text-gray-400 text-sm mt-1">Try adjusting your search terms</p>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="mt-3 text-violet-600 hover:text-violet-700 text-sm font-medium"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                );
+              }
+              
+              // Show original no subtopics message if no subtopics exist
+              if (filteredSubtopics.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p className="text-gray-500 font-medium">No subtopics found</p>
+                    <p className="text-gray-400 text-sm mt-1">Get started by creating your first subtopic</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-8">
+                  {filteredSubtopics.map((subtopic) => (
                   <div key={subtopic.id} className="border border-gray-200 rounded-xl overflow-hidden">
                     {/* Subtopic Header */}
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-colors"
+                      onClick={() => toggleSubtopic(subtopic.id)}
+                    >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 flex-1">
                           <div className="bg-indigo-100 rounded-lg p-2">
                             <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">{subtopic.title}</h3>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-gray-900">{subtopic.title}</h3>
+                              <svg 
+                                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                                  expandedSubtopics.has(subtopic.id) ? 'rotate-90' : ''
+                                }`}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
                             {subtopic.description && (
                               <p className="text-sm text-gray-600 mt-1">{subtopic.description}</p>
                             )}
@@ -879,6 +1181,15 @@ export default function AdminTopicDetail() {
                             <span>Add Course</span>
                           </button>
                           <button
+                            onClick={() => openEditSubtopicModal(subtopic)}
+                            className="bg-indigo-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+                          <button
                             onClick={() => openDeleteSubtopicModal(subtopic)}
                             className="bg-red-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shrink-0"
                           >
@@ -892,104 +1203,110 @@ export default function AdminTopicDetail() {
                     </div>
 
                     {/* Courses List */}
-                    <div className="p-6">
-                      {(subtopic.courses || []).length === 0 ? (
-                        <div className="text-center py-8">
-                          <svg className="w-10 h-10 text-gray-400 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                          </svg>
-                          <p className="text-gray-500 font-medium">No courses in this subtopic</p>
-                          <p className="text-gray-400 text-sm mt-1">Add a course to get started</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {(subtopic.courses || []).map((course) => (
-                            <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
-                              <span
-                                className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${
-                                  course.isActive
-                                    ? 'bg-green-100 text-green-800 ring-green-200'
-                                    : 'bg-red-100 text-red-800 ring-red-200'
-                                }`}
-                              >
-                                {course.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex-1">
-                                  <h4 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h4>
-                                  <div className="flex items-center space-x-3 mt-2">
-                                    {course.level && (
-                                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                                        {course.level}
-                                      </span>
-                                    )}
-                                    {course.duration && (
+                    {expandedSubtopics.has(subtopic.id) && (
+                      <div className="p-6">
+                        {(subtopic.courses || []).length === 0 ? (
+                          <div className="text-center py-8">
+                            <svg className="w-10 h-10 text-gray-400 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            <p className="text-gray-500 font-medium">No courses in this subtopic</p>
+                            <p className="text-gray-400 text-sm mt-1">Add a course to get started</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {(subtopic.courses || []).map((course) => (
+                              <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                <span
+                                  className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${
+                                    course.isActive
+                                      ? 'bg-green-100 text-green-800 ring-green-200'
+                                      : 'bg-red-100 text-red-800 ring-red-200'
+                                  }`}
+                                >
+                                  {course.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex-1">
+                                    <h4 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h4>
+                                    <div className="flex items-center space-x-3 mt-2">
+                                      {course.level && (
+                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                          {course.level}
+                                        </span>
+                                      )}
+                                      {course.duration && (
+                                        <span className="text-xs text-gray-500">
+                                          {course.duration} hours
+                                        </span>
+                                      )}
                                       <span className="text-xs text-gray-500">
-                                        {course.duration} hours
+                                        {(course.chapters || []).length} {(course.chapters || []).length === 1 ? 'chapter' : 'chapters'}
                                       </span>
-                                    )}
-                                    <span className="text-xs text-gray-500">
-                                      {(course.chapters || []).length} {(course.chapters || []).length === 1 ? 'chapter' : 'chapters'}
-                                    </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              
-                              {course.description && (
-                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-                              )}
-                              
-                              {course.thumbnail && (
-                                <div className="mb-4">
-                                  <img
-                                    src={course.thumbnail}
-                                    alt={course.title}
-                                    className="w-full h-48 object-cover rounded-lg"
-                                  />
+                                
+                                {course.description && (
+                                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
+                                )}
+                                
+                                {course.thumbnail && (
+                                  <div className="mb-4">
+                                    <img
+                                      src={course.thumbnail}
+                                      alt={course.title}
+                                      className="w-full h-48 object-cover rounded-lg"
+                                    />
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                  <span>Created {formatDate(course.createdAt)}</span>
                                 </div>
-                              )}
-                              
-                              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                                <span>Created {formatDate(course.createdAt)}</span>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                  <button
+                                    onClick={() => {
+                                      router.push(`/dashboard/admin/courses/${course.id}/chapters?title=${encodeURIComponent(course.title)}&topicId=${topicId}`);
+                                    }}
+                                    className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-10 px-4 text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                    <span>View Chapters</span>
+                                  </button>
+                                  <button
+                                    onClick={() => openEditCourseModal(course)}
+                                    className="w-full bg-indigo-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteCourseModal(course)}
+                                    className="w-full bg-red-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
                               </div>
-                              
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <button
-                                  onClick={() => {
-                                    router.push(`/dashboard/admin/courses/${course.id}/chapters?title=${encodeURIComponent(course.title)}&topicId=${topicId}`);
-                                  }}
-                                  className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-10 px-4 text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                  </svg>
-                                  <span>View Chapters</span>
-                                </button>
-                                <button
-                                  onClick={() => openEditCourseModal(course)}
-                                  className="w-full bg-indigo-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  <span>Edit</span>
-                                </button>
-                                <button
-                                  onClick={() => openDeleteCourseModal(course)}
-                                  className="w-full bg-red-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  <span>Delete</span>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -1334,26 +1651,40 @@ export default function AdminTopicDetail() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL (optional)</label>
-                  <input
-                    type="url"
-                    value={courseForm.thumbnail}
-                    onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Enter thumbnail URL"
-                  />
-                  {courseForm.thumbnail && (
-                    <div className="mt-2">
-                      <img
-                        src={courseForm.thumbnail}
-                        alt="Thumbnail preview"
-                        className="w-32 h-24 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+                  <div className="space-y-2">
+                    {courseForm.thumbnail && (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={courseForm.thumbnail} 
+                          alt="Course thumbnail" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCourseForm({ ...courseForm, thumbnail: '' })}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleCourseThumbnailUpload}
+                      disabled={uploadingCourseThumbnail}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {uploadingCourseThumbnail && (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                        <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1464,26 +1795,40 @@ export default function AdminTopicDetail() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL (optional)</label>
-                  <input
-                    type="url"
-                    value={courseForm.thumbnail}
-                    onChange={(e) => setCourseForm({ ...courseForm, thumbnail: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Enter thumbnail URL"
-                  />
-                  {courseForm.thumbnail && (
-                    <div className="mt-2">
-                      <img
-                        src={courseForm.thumbnail}
-                        alt="Thumbnail preview"
-                        className="w-32 h-24 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+                  <div className="space-y-2">
+                    {courseForm.thumbnail && (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={courseForm.thumbnail} 
+                          alt="Course thumbnail" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCourseForm({ ...courseForm, thumbnail: '' })}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleCourseThumbnailUpload}
+                      disabled={uploadingCourseThumbnail}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {uploadingCourseThumbnail && (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                        <span className="ml-2 text-sm text-gray-600">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1587,6 +1932,81 @@ export default function AdminTopicDetail() {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   )}
                   <span>{isSubmitting ? 'Deleting...' : 'Delete Course'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Subtopic Modal */}
+        {showEditSubtopicModal && selectedSubtopic && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Subtopic</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={subtopicForm.title}
+                    onChange={(e) => setSubtopicForm({ ...subtopicForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Enter subtopic title"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+                  <textarea
+                    value={subtopicForm.description}
+                    onChange={(e) => setSubtopicForm({ ...subtopicForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Enter subtopic description"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="editSubtopicActive"
+                    checked={subtopicForm.isActive}
+                    onChange={(e) => setSubtopicForm({ ...subtopicForm, isActive: e.target.checked })}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="editSubtopicActive" className="ml-2 block text-sm text-gray-700">
+                    Active subtopic
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-4 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditSubtopicModal(false);
+                    setSelectedSubtopic(null);
+                    setSubtopicForm({
+                      title: '',
+                      description: '',
+                      isActive: true
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSubtopic}
+                  disabled={isSubmitting || !subtopicForm.title.trim()}
+                  className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isSubmitting && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>{isSubmitting ? 'Updating...' : 'Update Subtopic'}</span>
                 </button>
               </div>
             </div>

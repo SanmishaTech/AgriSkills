@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface User {
@@ -12,7 +12,8 @@ interface User {
   updatedAt: string;
 }
 
-export default function ChapterPreviewPage() {
+// Component that uses search params - must be wrapped in Suspense
+function ChapterPreviewContent() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -264,5 +265,28 @@ export default function ChapterPreviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function ChapterPreviewLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p className="text-gray-500">Loading preview...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function ChapterPreviewPage() {
+  return (
+    <Suspense fallback={<ChapterPreviewLoading />}>
+      <ChapterPreviewContent />
+    </Suspense>
   );
 }

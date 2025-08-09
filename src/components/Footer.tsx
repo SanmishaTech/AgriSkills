@@ -101,9 +101,9 @@ export default function Footer() {
           {/* Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex flex-col items-center px-3 py-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex flex-col items-center px-3 py-2 text-xs text-gray-600 hover:text-gray-900 transition-all duration-200 transform hover:scale-105"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
             <span className="mt-1">Menu</span>
@@ -116,36 +116,36 @@ export default function Footer() {
         <>
           {/* Overlay */}
           <div
-            className="fixed inset-0 z-50 bg-black bg-opacity-50"
+            className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-all duration-300 ease-in-out"
             onClick={() => setIsOpen(false)}
           />
           
           {/* Slide-up Panel */}
           <div className={`
-            fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl
-            transform transition-transform duration-300 ease-in-out
-            ${isOpen ? 'translate-y-0' : 'translate-y-full'}
+            fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md rounded-t-2xl shadow-2xl border-t border-gray-200/50
+            transform transition-all duration-500 ease-out
+            ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
           `}>
             <div className="p-4">
               {/* Handle bar */}
-              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 transform transition-all duration-300 hover:bg-gray-400" />
               
               {/* User Info */}
-              <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200">
-                <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center">
+              <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200/50">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg transform transition-all duration-300 hover:scale-110">
                   <span className="text-white font-medium text-lg">
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 transition-all duration-200">
                     {user.name || user.email}
                   </p>
                   <p className="text-xs text-gray-600">{user.email}</p>
-                  <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                  <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 shadow-sm transform transition-all duration-200 hover:scale-105 ${
                     user.role === 'admin' 
-                      ? 'bg-purple-100 text-purple-800' 
-                      : 'bg-green-100 text-green-800'
+                      ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300/50' 
+                      : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300/50'
                   }`}>
                     {user.role}
                   </span>
@@ -154,23 +154,11 @@ export default function Footer() {
 
               {/* Additional Menu Items */}
               <div className="space-y-2">
-                <Link
-                  href="/settings"
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>Settings</span>
-                </Link>
-
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 w-full transition-colors"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 w-full transition-all duration-300 ease-in-out transform hover:translate-x-1 hover:shadow-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 transition-transform duration-200 hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                   <span>Logout</span>
