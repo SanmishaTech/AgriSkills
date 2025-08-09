@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
 
-const prisma = new PrismaClient();
+// Force Node.js runtime to use jsonwebtoken
+export const runtime = 'nodejs';
 
 // Helper function to extract video ID from YouTube URL
 function extractVideoId(url: string): string | null {
@@ -16,38 +17,28 @@ function generateThumbnailUrl(videoId: string): string {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 }
 
-// Helper function to verify admin token
-async function verifyAdminToken(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    });
-
-    if (!user || user.role !== 'admin') {
-      return null;
-    }
-
-    return user;
-  } catch (error) {
-    return null;
-  }
-}
 
 // GET - Fetch all YouTube shorts
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin authentication
-    const user = await verifyAdminToken(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Get the token from the Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the token
+    const decoded = verifyToken(token) as { role: string } | null;
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -95,10 +86,24 @@ export async function GET(request: NextRequest) {
 // POST - Create new YouTube short
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin authentication
-    const user = await verifyAdminToken(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Get the token from the Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the token
+    const decoded = verifyToken(token) as { role: string } | null;
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     const { title, description, url } = await request.json();

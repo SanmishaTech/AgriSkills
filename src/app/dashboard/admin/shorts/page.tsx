@@ -119,28 +119,41 @@ export default function ShortsManager() {
 
     setIsSubmitting(true);
     try {
-      // In a real app, you would save to a database
-      // For now, we'll update the config file content in memory
-      const videoId = extractVideoId(shortForm.url);
-      if (!videoId) {
-        throw new Error('Could not extract video ID');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required');
+        return;
       }
 
-      const newShort: Short = {
-        id: shorts.length + 1,
-        url: shortForm.url,
-        title: shortForm.title,
-        videoId,
-        thumbnailUrl: generateThumbnailUrl(videoId)
-      };
+      const response = await fetch('/api/admin/youtube-shorts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: shortForm.url,
+          title: shortForm.title,
+          description: '' // Optional description field
+        })
+      });
 
-      setShorts(prev => [newShort, ...prev]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to add short: ${response.status}`);
+      }
+
+      const newShort = await response.json();
+      
+      // Reload the shorts list to get updated data
+      await loadShorts();
+      
       setShowAddModal(false);
       resetForm();
       setError(null);
       
       // Show success message
-      alert('Short added successfully! Note: To persist this change, update the youtube-videos.js config file.');
+      alert('Short added successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add short');
     } finally {

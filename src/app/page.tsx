@@ -76,24 +76,6 @@ export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const iframeRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [courses, setCourses] = useState<Course[]>([]);
-
-  // Fetch popular courses from the server
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch('/api/public/courses');
-        if (response.ok) {
-          const data = await response.json();
-          setCourses(Array.isArray(data?.courses) ? data.courses : []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch courses:', error);
-      }
-    };
-
-    fetchCourses();
-  }, []);
 
   // Helper function for next video functionality
   const playNextVideo = (currentVideoId: number) => {
@@ -108,36 +90,37 @@ export default function HomePage() {
 
   // Video player state management
 
-  // Mock function to replace the removed config dependency
-  const getProcessedVideos = (): Video[] => {
-    // Return sample videos for demonstration
-    return [
-      {
-        id: 1,
-        youtubeId: "dQw4w9WgXcQ",
-        title: "Organic Farming Basics",
-        duration: "5:32",
-        instructor: "AgriExpert",
-        views: "12K",
-        timeAgo: "2 days ago",
-        shortsUrl: "https://youtube.com/shorts/dQw4w9WgXcQ",
-        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
-      },
-      {
-        id: 2,
-        youtubeId: "jNQXAC9IVRw",
-        title: "Soil Health Management",
-        duration: "3:45",
-        instructor: "FarmGuru",
-        views: "8.5K",
-        timeAgo: "5 days ago",
-        shortsUrl: "https://youtube.com/shorts/jNQXAC9IVRw",
-        embedUrl: "https://www.youtube.com/embed/jNQXAC9IVRw",
-        thumbnailUrl: "https://img.youtube.com/vi/jNQXAC9IVRw/maxresdefault.jpg"
+  // State for YouTube shorts
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [videosLoading, setVideosLoading] = useState(true);
+
+  // Fetch YouTube shorts from the database
+  useEffect(() => {
+    const fetchYouTubeShorts = async () => {
+      try {
+        const response = await fetch('/api/public/youtube-shorts?limit=20');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.shorts)) {
+            setVideos(data.shorts);
+          } else {
+            console.warn('Invalid YouTube shorts data format:', data);
+            setVideos([]);
+          }
+        } else {
+          console.error('Failed to fetch YouTube shorts:', response.status);
+          setVideos([]);
+        }
+      } catch (error) {
+        console.error('Error fetching YouTube shorts:', error);
+        setVideos([]);
+      } finally {
+        setVideosLoading(false);
       }
-    ];
-  };
+    };
+
+    fetchYouTubeShorts();
+  }, []);
 
   const VideoPlayer = ({ video }: { video: Video }) => {
     const [playerState, setPlayerState] = useState('paused');
@@ -278,8 +261,6 @@ export default function HomePage() {
     );
   };
 
-  const processedVideos = getProcessedVideos();
-  const videos: Video[] = Array.isArray(processedVideos) ? processedVideos.filter((v): v is Video => v !== null) : [];
 
   const openShort = (video: Video) => {
     setSelectedShort(video);
@@ -455,48 +436,78 @@ export default function HomePage() {
 
           {/* Horizontal scroll for all screen sizes */}
           <div className="flex overflow-x-auto gap-3 sm:gap-4 lg:gap-6 px-1 pb-2 scrollbar-hide snap-x snap-mandatory">
-            {videos.map((video) => (
+            {videosLoading ? (
+              <div className="flex items-center justify-center w-full py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mr-3"></div>
+                <p className="text-gray-600">Loading videos...</p>
+              </div>
+            ) : videos.length === 0 ? (
+              <div className="flex items-center justify-center w-full py-12 text-gray-500">
+                <p>No videos available yet</p>
+              </div>
+            ) : (
+              videos.map((video) => (
               <motion.div
                 key={video.id}
-                className="bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex-shrink-0 w-36 sm:w-48 md:w-52 lg:w-56 xl:w-60 h-52 sm:h-64 md:h-68 lg:h-72 snap-start"
-                whileHover={{ y: -4 }}
+                className="bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 snap-start relative"
+                style={{ aspectRatio: '9/16', height: 'auto' }}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => openShort(video)}
               >
-                {/* YouTube Thumbnail */}
-                <div className="relative w-full aspect-video bg-black overflow-hidden">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${video.youtubeId}?controls=1&modestbranding=1&rel=0`}
-                    title={video.title}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
+                {/* YouTube Short Thumbnail - Vertical */}
+                <div className="relative w-full h-full bg-black overflow-hidden">
+                  {/* Thumbnail Image */}
+                  <img
+                    src={video.thumbnailUrl}
+                    alt={video.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
+                    }}
+                  />
                   
-                  {/* Duration badge */}
-                  <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded pointer-events-none">
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                      <Play className="w-6 h-6 text-black fill-black ml-1" />
+                    </div>
+                  </div>
+                  
+                  {/* Duration badge - YouTube Shorts style */}
+                  <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded font-medium">
                     {video.duration}
+                  </div>
+                  
+                  {/* Shorts badge */}
+                  <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
+                    SHORTS
+                  </div>
+                  
+                  {/* Views count overlay */}
+                  <div className="absolute bottom-3 left-3 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
+                    {video.views}
                   </div>
                 </div>
                 
-                {/* Video info */}
-                <div className="p-3 sm:p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
+                {/* Video info overlay - positioned at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white">
+                  <h3 className="font-semibold text-white mb-1 text-sm line-clamp-2 leading-tight">
                     {video.title}
                   </h3>
-                  <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-1">
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-300 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
-                      <span className="text-xs sm:text-sm font-medium">{video.instructor.charAt(0)}</span>
+                  <div className="flex items-center text-gray-200 text-xs mb-1">
+                    <div className="w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                      <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
                     </div>
-                    <span className="truncate">{video.instructor}</span>
+                    <span className="truncate text-xs">{video.instructor}</span>
                   </div>
-                  <div className="text-gray-500 text-xs sm:text-sm leading-tight">
-                    <span>{video.views} views</span> · <span>{video.timeAgo}</span>
+                  <div className="text-gray-300 text-xs">
+                    <span>{video.timeAgo}</span>
                   </div>
                 </div>
               </motion.div>
-            ))}
+            ))
+            )}
           </div>
           
           {/* Learn on WhatsApp Button - Mobile Only */}
@@ -778,53 +789,6 @@ export default function HomePage() {
             </div>
           </div>
           
-          {/* Popular Courses Section */}
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">Popular Courses</h3>
-              <button 
-                onClick={() => router.push('/login')}
-                className="text-green-600 text-sm md:text-base font-medium hover:text-green-700 transition-colors"
-              >
-                View All
-              </button>
-            </div>
-            
-            {/* Courses Horizontal Scroll */}
-            <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x snap-mandatory">
-              {/* Display message if no courses are available */}
-              {courses.length === 0 ? (
-                <div className="flex items-center justify-center w-full py-8 text-gray-500">
-                  <p>No courses available</p>
-                </div>
-              ) : (
-                courses.map((course) => (
-                  <motion.div
-                    key={course.id}
-                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex-shrink-0 w-80 sm:w-72 md:w-80 lg:w-72 xl:w-80 snap-start"
-                    whileHover={{ y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => router.push('/login')}
-                  >
-                    {/* Course Content */}
-                    <div className="p-4">
-                      <h4 className="font-semibold text-gray-900 text-sm md:text-base mb-2 line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
-                        {course.title}
-                      </h4>
-                      <p className="text-gray-600 text-xs md:text-sm mb-3 line-clamp-2 leading-relaxed">
-                        {course.description}
-                      </p>
-                      {/* Learn More Button */}
-                      <button className="w-full bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm font-medium py-2.5 px-4 rounded-lg transition-colors group-hover:bg-green-700">
-                        Learn More
-                      </button>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </div>
-            
-          </div>
           
           {/* Success Stories Section */}
           <div className="mt-8">
