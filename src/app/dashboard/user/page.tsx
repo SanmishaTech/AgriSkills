@@ -14,7 +14,15 @@ import {
   ArrowLeft,
   GraduationCap,
   FileText,
-  Star
+  Star,
+  Home,
+  Search,
+  User,
+  Settings,
+  Menu,
+  Bell,
+  LogOut,
+  ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 
 interface User {
@@ -85,6 +93,7 @@ export default function UserDashboard() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [navigation, setNavigation] = useState<NavigationState>({
     level: 'topics',
     breadcrumb: []
@@ -200,6 +209,111 @@ export default function UserDashboard() {
     });
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  const renderNavbar = () => {
+    return (
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left side - Logo/Brand */}
+            <div className="flex items-center">
+              <BookOpen className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">AgriSkills</h1>
+                <p className="text-xs text-gray-500">Learning Platform</p>
+              </div>
+            </div>
+
+            {/* Center - Search (on larger screens) */}
+            <div className="hidden md:flex flex-1 max-w-md mx-8">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="search"
+                  placeholder="Search courses, topics..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Right side - User menu */}
+            <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              <button className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                <Bell className="w-5 h-5" />
+              </button>
+
+              {/* User menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-3 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 p-2 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <div className="text-sm font-medium text-gray-900">{user?.name || 'User'}</div>
+                    <div className="text-xs text-gray-500">{user?.role || 'Student'}</div>
+                  </div>
+                  <ChevronDownIcon className="w-4 h-4 text-gray-400 hidden md:block" />
+                </button>
+
+                {/* Dropdown menu */}
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                  >
+                    <div className="py-1">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      </div>
+                      
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <User className="w-4 h-4 mr-3" />
+                        My Profile
+                      </button>
+                      
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <BookOpen className="w-4 h-4 mr-3" />
+                        My Courses
+                      </button>
+                      
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <Settings className="w-4 h-4 mr-3" />
+                        Settings
+                      </button>
+                      
+                      <div className="border-t border-gray-100">
+                        <button 
+                          onClick={handleLogout}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                        >
+                          <LogOut className="w-4 h-4 mr-3" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  };
+
   const renderBreadcrumb = () => {
     if (navigation.breadcrumb.length === 0) return null;
 
@@ -241,9 +355,17 @@ export default function UserDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -4, scale: 1.02 }}
-              className="bg-white rounded-xl shadow-sm hover:shadow-lg border border-gray-200 overflow-hidden cursor-pointer transition-all"
-              onClick={() => navigateToSubtopics(topic)}
+              whileHover={topic._count.subtopics > 0 ? { y: -4, scale: 1.02 } : {}}
+              className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all ${
+                topic._count.subtopics > 0 
+                  ? 'hover:shadow-lg cursor-pointer' 
+                  : 'opacity-75 cursor-not-allowed'
+              }`}
+              onClick={() => {
+                if (topic._count.subtopics > 0) {
+                  navigateToSubtopics(topic);
+                }
+              }}
             >
               {topic.thumbnail ? (
                 <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 relative">
@@ -269,7 +391,16 @@ export default function UserDashboard() {
                     <BookOpen className="w-4 h-4 mr-1" />
                     <span>{topic._count.subtopics} Subtopics</span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-green-600" />
+                  {topic._count.subtopics > 0 ? (
+                    <ChevronRight className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 mb-1">
+                        Coming Soon
+                      </span>
+                      <div className="text-xs text-gray-400">Content being prepared</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -562,31 +693,22 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
-              <p className="text-gray-600">Continue your agricultural learning journey</p>
-            </div>
-            
-            {navigation.level !== 'topics' && (
-              <button
-                onClick={navigateToTopics}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Topics
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Top Navbar */}
+      {renderNavbar()}
+      
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {navigation.level !== 'topics' && (
+          <button
+            onClick={navigateToTopics}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Topics
+          </button>
+        )}
+        
         {renderBreadcrumb()}
         
         <AnimatePresence mode="wait">
@@ -604,6 +726,56 @@ export default function UserDashboard() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+        <div className="max-w-md mx-auto">
+          <div className="flex justify-around items-center py-2">
+            {/* Home */}
+            <button 
+              onClick={navigateToTopics}
+              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
+                navigation.level === 'topics'
+                  ? 'text-green-600 bg-green-50'
+                  : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
+              }`}
+            >
+              <Home className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Home</span>
+            </button>
+
+            {/* Search */}
+            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
+              <Search className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Search</span>
+            </button>
+
+            {/* Courses */}
+            <button 
+              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
+                navigation.level === 'courses' || navigation.level === 'chapters'
+                  ? 'text-green-600 bg-green-50'
+                  : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
+              }`}
+            >
+              <BookOpen className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Courses</span>
+            </button>
+
+            {/* Profile */}
+            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
+              <User className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Profile</span>
+            </button>
+
+            {/* Menu */}
+            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
+              <Menu className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Menu</span>
+            </button>
+          </div>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -18,8 +18,8 @@ export default function Footer() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Don't show footer on login/register pages and topic pages
-  const hideOnPages = ['/login', '/register', '/'];
+  // Don't show footer on register pages, root page, and topic pages
+  const hideOnPages = ['/register', '/'];
   const shouldHideFooter = hideOnPages.includes(pathname) || pathname.startsWith('/topic/');
 
   useEffect(() => {
@@ -43,7 +43,25 @@ export default function Footer() {
     router.push('/login');
   };
 
-  if (shouldHideFooter || !user) {
+  if (shouldHideFooter) {
+    return null;
+  }
+
+  // Show different footer for login page (no user required)
+  if (pathname === '/login' && !user) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+        <div className="flex justify-center items-center py-4">
+          <p className="text-sm text-gray-600">
+            Welcome to AgriSkills
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show regular footer if no user (except login page handled above)
+  if (!user) {
     return null;
   }
 
