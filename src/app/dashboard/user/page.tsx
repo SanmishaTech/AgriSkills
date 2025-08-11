@@ -22,7 +22,12 @@ import {
   Menu,
   Bell,
   LogOut,
-  ChevronDown as ChevronDownIcon
+  ChevronDown as ChevronDownIcon,
+  Package,
+  Plus,
+  Edit,
+  Trash2,
+  X
 } from 'lucide-react';
 
 interface User {
@@ -88,6 +93,18 @@ interface NavigationState {
   breadcrumb: { label: string; onClick: () => void }[];
 }
 
+interface LearningPackage {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number; // in days
+  features: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function UserDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -97,6 +114,18 @@ export default function UserDashboard() {
   const [navigation, setNavigation] = useState<NavigationState>({
     level: 'topics',
     breadcrumb: []
+  });
+  const [showPackageModal, setShowPackageModal] = useState(false);
+  const [packages, setPackages] = useState<LearningPackage[]>([]);
+  const [packageModalMode, setPackageModalMode] = useState<'list' | 'add' | 'edit'>('list');
+  const [selectedPackage, setSelectedPackage] = useState<LearningPackage | null>(null);
+  const [packageForm, setPackageForm] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    duration: 30,
+    features: [''],
+    isActive: true
   });
   const router = useRouter();
 
@@ -214,6 +243,136 @@ export default function UserDashboard() {
     router.push('/login');
   };
 
+  // Package Management Functions
+  const openPackageModal = () => {
+    setShowPackageModal(true);
+    setPackageModalMode('list');
+    setShowUserMenu(false);
+    loadPackages();
+  };
+
+  const closePackageModal = () => {
+    setShowPackageModal(false);
+    setPackageModalMode('list');
+    setSelectedPackage(null);
+    resetPackageForm();
+  };
+
+  const resetPackageForm = () => {
+    setPackageForm({
+      name: '',
+      description: '',
+      price: 0,
+      duration: 30,
+      features: [''],
+      isActive: true
+    });
+  };
+
+  const loadPackages = async () => {
+    // Mock data - in a real app, this would fetch from an API
+    const mockPackages: LearningPackage[] = [
+      {
+        id: '1',
+        name: 'Basic Learning Package',
+        description: 'Perfect for beginners starting their agricultural journey',
+        price: 49.99,
+        duration: 30,
+        features: ['Access to 10 courses', 'Basic support', '30-day access'],
+        isActive: true,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01'
+      },
+      {
+        id: '2',
+        name: 'Premium Learning Package',
+        description: 'Comprehensive package for serious learners',
+        price: 99.99,
+        duration: 90,
+        features: ['Access to all courses', 'Priority support', '90-day access', 'Certificates'],
+        isActive: true,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01'
+      }
+    ];
+    setPackages(mockPackages);
+  };
+
+  const addPackage = () => {
+    setPackageModalMode('add');
+    resetPackageForm();
+  };
+
+  const editPackage = (pkg: LearningPackage) => {
+    setSelectedPackage(pkg);
+    setPackageModalMode('edit');
+    setPackageForm({
+      name: pkg.name,
+      description: pkg.description,
+      price: pkg.price,
+      duration: pkg.duration,
+      features: pkg.features,
+      isActive: pkg.isActive
+    });
+  };
+
+  const deletePackage = (packageId: string) => {
+    setPackages(prev => prev.filter(pkg => pkg.id !== packageId));
+  };
+
+  const savePackage = () => {
+    if (packageModalMode === 'add') {
+      const newPackage: LearningPackage = {
+        id: Date.now().toString(),
+        name: packageForm.name,
+        description: packageForm.description,
+        price: packageForm.price,
+        duration: packageForm.duration,
+        features: packageForm.features.filter(f => f.trim() !== ''),
+        isActive: packageForm.isActive,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setPackages(prev => [...prev, newPackage]);
+    } else if (packageModalMode === 'edit' && selectedPackage) {
+      const updatedPackage: LearningPackage = {
+        ...selectedPackage,
+        name: packageForm.name,
+        description: packageForm.description,
+        price: packageForm.price,
+        duration: packageForm.duration,
+        features: packageForm.features.filter(f => f.trim() !== ''),
+        isActive: packageForm.isActive,
+        updatedAt: new Date().toISOString()
+      };
+      setPackages(prev => prev.map(pkg => pkg.id === selectedPackage.id ? updatedPackage : pkg));
+    }
+    setPackageModalMode('list');
+    resetPackageForm();
+    setSelectedPackage(null);
+  };
+
+  const addFeature = () => {
+    setPackageForm(prev => ({
+      ...prev,
+      features: [...prev.features, '']
+    }));
+  };
+
+  const updateFeature = (index: number, value: string) => {
+    setPackageForm(prev => ({
+      ...prev,
+      features: prev.features.map((f, i) => i === index ? value : f)
+    }));
+  };
+
+  const removeFeature = (index: number) => {
+    setPackageForm(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index)
+    }));
+  };
+
   const renderNavbar = () => {
     return (
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -292,6 +451,14 @@ export default function UserDashboard() {
                       <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <Settings className="w-4 h-4 mr-3" />
                         Settings
+                      </button>
+                      
+                      <button 
+                        onClick={openPackageModal}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <Package className="w-4 h-4 mr-3" />
+                        Packages
                       </button>
                       
                       <div className="border-t border-gray-100">
@@ -726,6 +893,284 @@ export default function UserDashboard() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Package Management Modal */}
+      <AnimatePresence>
+        {showPackageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={(e) => e.target === e.currentTarget && closePackageModal()}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Package className="w-6 h-6 text-green-600" />
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {packageModalMode === 'list' ? 'Learning Packages' : 
+                     packageModalMode === 'add' ? 'Add New Package' : 'Edit Package'}
+                  </h2>
+                </div>
+                <button
+                  onClick={closePackageModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+                {packageModalMode === 'list' && (
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <p className="text-gray-600">Manage your learning packages</p>
+                      <button
+                        onClick={addPackage}
+                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Package
+                      </button>
+                    </div>
+
+                    {packages.length > 0 ? (
+                      <div className="space-y-4">
+                        {packages.map((pkg, index) => (
+                          <motion.div
+                            key={pkg.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-lg font-bold text-gray-900">{pkg.name}</h3>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    pkg.isActive 
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {pkg.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 mb-3">{pkg.description}</p>
+                                <div className="flex items-center gap-6 text-sm text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">Price:</span>
+                                    <span>${pkg.price}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">Duration:</span>
+                                    <span>{pkg.duration} days</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium">Features:</span>
+                                    <span>{pkg.features.length} items</span>
+                                  </div>
+                                </div>
+                                <div className="mt-3">
+                                  <p className="text-sm font-medium text-gray-700 mb-1">Features:</p>
+                                  <ul className="text-sm text-gray-600">
+                                    {pkg.features.slice(0, 3).map((feature, idx) => (
+                                      <li key={idx} className="flex items-center gap-1">
+                                        <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                                        {feature}
+                                      </li>
+                                    ))}
+                                    {pkg.features.length > 3 && (
+                                      <li className="text-gray-500 italic">+{pkg.features.length - 3} more</li>
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <button
+                                  onClick={() => editPackage(pkg)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Edit Package"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deletePackage(pkg.id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Delete Package"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Packages Yet</h3>
+                        <p className="text-gray-600 mb-6">Create your first learning package to get started.</p>
+                        <button
+                          onClick={addPackage}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Add Your First Package
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(packageModalMode === 'add' || packageModalMode === 'edit') && (
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      {/* Package Name */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Package Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={packageForm.name}
+                          onChange={(e) => setPackageForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Enter package name"
+                        />
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description *
+                        </label>
+                        <textarea
+                          value={packageForm.description}
+                          onChange={(e) => setPackageForm(prev => ({ ...prev, description: e.target.value }))}
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Describe this package"
+                        />
+                      </div>
+
+                      {/* Price and Duration */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Price ($) *
+                          </label>
+                          <input
+                            type="number"
+                            value={packageForm.price}
+                            onChange={(e) => setPackageForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                            min="0"
+                            step="0.01"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Duration (days) *
+                          </label>
+                          <input
+                            type="number"
+                            value={packageForm.duration}
+                            onChange={(e) => setPackageForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
+                            min="1"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            placeholder="30"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Package Features *
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addFeature}
+                            className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Feature
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {packageForm.features.map((feature, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={feature}
+                                onChange={(e) => updateFeature(index, e.target.value)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="Enter feature description"
+                              />
+                              {packageForm.features.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeFeature(index)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Active Status */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="isActive"
+                          checked={packageForm.isActive}
+                          onChange={(e) => setPackageForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                          className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                        />
+                        <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                          Package is active and available for purchase
+                        </label>
+                      </div>
+
+                      {/* Form Actions */}
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => setPackageModalMode('list')}
+                          className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={savePackage}
+                          disabled={!packageForm.name || !packageForm.description || packageForm.features.every(f => !f.trim())}
+                          className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                        >
+                          {packageModalMode === 'add' ? 'Create Package' : 'Update Package'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
