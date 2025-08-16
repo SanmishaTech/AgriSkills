@@ -145,13 +145,13 @@ export default function AdminTopicDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [uploadingCourseThumbnail, setUploadingCourseThumbnail] = useState(false);
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Subtopic expansion state for accordion
   const [expandedSubtopics, setExpandedSubtopics] = useState<Set<string>>(new Set());
-  
+
   const router = useRouter();
   const params = useParams();
   const topicId = params.id as string;
@@ -186,7 +186,7 @@ export default function AdminTopicDetail() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== 'admin') {
@@ -366,7 +366,7 @@ export default function AdminTopicDetail() {
       // Update the subtopic in the topic's subtopics array
       setTopic(prev => prev ? {
         ...prev,
-        subtopics: (prev.subtopics || []).map(subtopic => 
+        subtopics: (prev.subtopics || []).map(subtopic =>
           subtopic.id === selectedSubtopic.id ? data.subtopic : subtopic
         )
       } : null);
@@ -453,7 +453,7 @@ export default function AdminTopicDetail() {
       // Update the subtopic's courses array
       setTopic(prev => prev ? {
         ...prev,
-        subtopics: (prev.subtopics || []).map(subtopic => 
+        subtopics: (prev.subtopics || []).map(subtopic =>
           subtopic.id === courseForm.subtopicId
             ? { ...subtopic, courses: [data.course, ...(subtopic.courses || [])] }
             : subtopic
@@ -501,7 +501,7 @@ export default function AdminTopicDetail() {
         ...prev,
         subtopics: (prev.subtopics || []).map(subtopic => ({
           ...subtopic,
-          courses: (subtopic.courses || []).map(course => 
+          courses: (subtopic.courses || []).map(course =>
             course.id === chapterForm.courseId
               ? { ...course, chapters: [data.chapter, ...(course.chapters || [])] }
               : course
@@ -549,11 +549,13 @@ export default function AdminTopicDetail() {
         ...prev,
         subtopics: (prev.subtopics || []).map(subtopic => ({
           ...subtopic,
-          courses: (subtopic.courses || []).map(course => 
+          courses: (subtopic.courses || []).map(course =>
             course.id === selectedChapter.courseId
-              ? { ...course, chapters: (course.chapters || []).map(chapter => 
+              ? {
+                ...course, chapters: (course.chapters || []).map(chapter =>
                   chapter.id === selectedChapter.id ? data.chapter : chapter
-                )}
+                )
+              }
               : course
           )
         }))
@@ -603,7 +605,7 @@ export default function AdminTopicDetail() {
         ...prev,
         subtopics: (prev.subtopics || []).map(subtopic => ({
           ...subtopic,
-          courses: (subtopic.courses || []).map(course => 
+          courses: (subtopic.courses || []).map(course =>
             course.id === selectedChapter.courseId
               ? { ...course, chapters: (course.chapters || []).filter(chapter => chapter.id !== selectedChapter.id) }
               : course
@@ -676,7 +678,7 @@ export default function AdminTopicDetail() {
         ...prev,
         subtopics: (prev.subtopics || []).map(subtopic => ({
           ...subtopic,
-          courses: (subtopic.courses || []).map(course => 
+          courses: (subtopic.courses || []).map(course =>
             course.id === courseToEdit.id ? data.course : course
           )
         }))
@@ -807,7 +809,7 @@ export default function AdminTopicDetail() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => router.back()}
+                  onClick={() => router.push('/dashboard/admin/topics')}
                   className="bg-white/20 hover:bg-white/30 rounded-lg p-2 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -821,7 +823,7 @@ export default function AdminTopicDetail() {
               </div>
               <div className="hidden md:block">
                 <svg className="w-24 h-24 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
                 </svg>
               </div>
             </div>
@@ -866,7 +868,7 @@ export default function AdminTopicDetail() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
@@ -883,9 +885,9 @@ export default function AdminTopicDetail() {
                   <div className="space-y-2">
                     {editForm.thumbnail && (
                       <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                        <img 
-                          src={editForm.thumbnail} 
-                          alt="Topic thumbnail" 
+                        <img
+                          src={editForm.thumbnail}
+                          alt="Topic thumbnail"
                           className="w-full h-full object-cover"
                         />
                         <button
@@ -953,11 +955,10 @@ export default function AdminTopicDetail() {
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{topic.title}</h3>
                   <div className="flex items-center space-x-4 mb-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      topic.isActive 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${topic.isActive
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {topic.isActive ? 'Active' : 'Inactive'}
                     </span>
                     <span className="text-gray-500 text-sm">
@@ -965,7 +966,7 @@ export default function AdminTopicDetail() {
                     </span>
                   </div>
                 </div>
-                
+
                 {topic.thumbnail && (
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Thumbnail</h4>
@@ -979,7 +980,7 @@ export default function AdminTopicDetail() {
                     />
                   </div>
                 )}
-                
+
                 {topic.description && (
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
@@ -993,7 +994,7 @@ export default function AdminTopicDetail() {
 
         {/* Demo Management */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
-          <div 
+          <div
             className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-blue-100 hover:to-blue-150 transition-colors"
             onClick={() => router.push(`/dashboard/admin/topics/${topicId}/demo`)}
           >
@@ -1035,7 +1036,7 @@ export default function AdminTopicDetail() {
                 <p className="text-sm text-gray-600 mt-1">Manage subtopics and their courses</p>
               </div>
             </div>
-            
+
             {/* Add Subtopic Button and Search */}
             <div className="mt-4 space-y-3">
               <button
@@ -1047,7 +1048,7 @@ export default function AdminTopicDetail() {
                 </svg>
                 <span>Add Subtopic</span>
               </button>
-              
+
               {/* Search Bar */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1089,7 +1090,7 @@ export default function AdminTopicDetail() {
                   (subtopic.description && subtopic.description.toLowerCase().includes(query))
                 );
               });
-              
+
               // Show no results message if search returns empty
               if (searchQuery && filteredSubtopics.length === 0) {
                 return (
@@ -1108,7 +1109,7 @@ export default function AdminTopicDetail() {
                   </div>
                 );
               }
-              
+
               // Show original no subtopics message if no subtopics exist
               if (filteredSubtopics.length === 0) {
                 return (
@@ -1121,188 +1122,185 @@ export default function AdminTopicDetail() {
                   </div>
                 );
               }
-              
+
               return (
                 <div className="space-y-8">
                   {filteredSubtopics.map((subtopic) => (
-                  <div key={subtopic.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                    {/* Subtopic Header */}
-                    <div 
-                      className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-colors"
-                      onClick={() => toggleSubtopic(subtopic.id)}
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <div className="bg-indigo-100 rounded-lg p-2">
-                            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-bold text-gray-900">{subtopic.title}</h3>
-                              <svg 
-                                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                                  expandedSubtopics.has(subtopic.id) ? 'rotate-90' : ''
-                                }`}
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <div key={subtopic.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                      {/* Subtopic Header */}
+                      <div
+                        className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-colors"
+                        onClick={() => toggleSubtopic(subtopic.id)}
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center space-x-3 flex-1">
+                            <div className="bg-indigo-100 rounded-lg p-2">
+                              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
                             </div>
-                            {subtopic.description && (
-                              <p className="text-sm text-gray-600 mt-1">{subtopic.description}</p>
-                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-gray-900">{subtopic.title}</h3>
+                                <svg
+                                  className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${expandedSubtopics.has(subtopic.id) ? 'rotate-90' : ''
+                                    }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                              {subtopic.description && (
+                                <p className="text-sm text-gray-600 mt-1">{subtopic.description}</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium ${
-                            subtopic.isActive 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {subtopic.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                          <span className="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs sm:text-sm font-semibold">
-                            {(subtopic.courses || []).length} {(subtopic.courses || []).length === 1 ? 'course' : 'courses'}
-                          </span>
-                          <button
-                            onClick={() => {
-                              setCourseForm({ ...courseForm, subtopicId: subtopic.id });
-                              setShowAddCourseModal(true);
-                            }}
-                            className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2 shrink-0"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span>Add Course</span>
-                          </button>
-                          <button
-                            onClick={() => openEditSubtopicModal(subtopic)}
-                            className="bg-indigo-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => openDeleteSubtopicModal(subtopic)}
-                            className="bg-red-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shrink-0"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span>Delete</span>
-                          </button>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium ${subtopic.isActive
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                              }`}>
+                              {subtopic.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                            <span className="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs sm:text-sm font-semibold">
+                              {(subtopic.courses || []).length} {(subtopic.courses || []).length === 1 ? 'course' : 'courses'}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setCourseForm({ ...courseForm, subtopicId: subtopic.id });
+                                setShowAddCourseModal(true);
+                              }}
+                              className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2 shrink-0"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              <span>Add Course</span>
+                            </button>
+                            <button
+                              onClick={() => openEditSubtopicModal(subtopic)}
+                              className="bg-indigo-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => openDeleteSubtopicModal(subtopic)}
+                              className="bg-red-600 text-white rounded-full h-9 px-4 text-xs sm:h-10 sm:px-5 sm:text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shrink-0"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Courses List */}
-                    {expandedSubtopics.has(subtopic.id) && (
-                      <div className="p-6">
-                        {(subtopic.courses || []).length === 0 ? (
-                          <div className="text-center py-8">
-                            <svg className="w-10 h-10 text-gray-400 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                            <p className="text-gray-500 font-medium">No courses in this subtopic</p>
-                            <p className="text-gray-400 text-sm mt-1">Add a course to get started</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-6">
-                            {(subtopic.courses || []).map((course) => (
-                              <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
-                                <span
-                                  className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${
-                                    course.isActive
-                                      ? 'bg-green-100 text-green-800 ring-green-200'
-                                      : 'bg-red-100 text-red-800 ring-red-200'
-                                  }`}
-                                >
-                                  {course.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                                <div className="flex items-start justify-between mb-4">
-                                  <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h4>
-                                    <div className="flex items-center space-x-3 mt-2">
-                                      {course.level && (
-                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                                          {course.level}
-                                        </span>
-                                      )}
-                                      {course.duration && (
+                      {/* Courses List */}
+                      {expandedSubtopics.has(subtopic.id) && (
+                        <div className="p-6">
+                          {(subtopic.courses || []).length === 0 ? (
+                            <div className="text-center py-8">
+                              <svg className="w-10 h-10 text-gray-400 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                              <p className="text-gray-500 font-medium">No courses in this subtopic</p>
+                              <p className="text-gray-400 text-sm mt-1">Add a course to get started</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                              {(subtopic.courses || []).map((course) => (
+                                <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                  <span
+                                    className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${course.isActive
+                                        ? 'bg-green-100 text-green-800 ring-green-200'
+                                        : 'bg-red-100 text-red-800 ring-red-200'
+                                      }`}
+                                  >
+                                    {course.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div className="flex-1">
+                                      <h4 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h4>
+                                      <div className="flex items-center space-x-3 mt-2">
+                                        {course.level && (
+                                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                            {course.level}
+                                          </span>
+                                        )}
+                                        {course.duration && (
+                                          <span className="text-xs text-gray-500">
+                                            {course.duration} hours
+                                          </span>
+                                        )}
                                         <span className="text-xs text-gray-500">
-                                          {course.duration} hours
+                                          {(course.chapters || []).length} {(course.chapters || []).length === 1 ? 'chapter' : 'chapters'}
                                         </span>
-                                      )}
-                                      <span className="text-xs text-gray-500">
-                                        {(course.chapters || []).length} {(course.chapters || []).length === 1 ? 'chapter' : 'chapters'}
-                                      </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                
-                                {course.description && (
-                                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-                                )}
-                                
-                                {course.thumbnail && (
-                                  <div className="mb-4">
-                                    <img
-                                      src={course.thumbnail}
-                                      alt={course.title}
-                                      className="w-full h-48 object-cover rounded-lg"
-                                    />
+
+                                  {course.description && (
+                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
+                                  )}
+
+                                  {course.thumbnail && (
+                                    <div className="mb-4">
+                                      <img
+                                        src={course.thumbnail}
+                                        alt={course.title}
+                                        className="w-full h-48 object-cover rounded-lg"
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                    <span>Created {formatDate(course.createdAt)}</span>
                                   </div>
-                                )}
-                                
-                                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                                  <span>Created {formatDate(course.createdAt)}</span>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button
+                                      onClick={() => {
+                                        router.push(`/dashboard/admin/courses/${course.id}/chapters?title=${encodeURIComponent(course.title)}&topicId=${topicId}`);
+                                      }}
+                                      className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-10 px-4 text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                      </svg>
+                                      <span>View Chapters</span>
+                                    </button>
+                                    <button
+                                      onClick={() => openEditCourseModal(course)}
+                                      className="w-full bg-indigo-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      <span>Edit</span>
+                                    </button>
+                                    <button
+                                      onClick={() => openDeleteCourseModal(course)}
+                                      className="w-full bg-red-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
                                 </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                  <button
-                                    onClick={() => {
-                                      router.push(`/dashboard/admin/courses/${course.id}/chapters?title=${encodeURIComponent(course.title)}&topicId=${topicId}`);
-                                    }}
-                                    className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full h-10 px-4 text-sm font-semibold ring-1 ring-white/20 shadow-sm hover:from-violet-700 hover:to-fuchsia-700 transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                    <span>View Chapters</span>
-                                  </button>
-                                  <button
-                                    onClick={() => openEditCourseModal(course)}
-                                    className="w-full bg-indigo-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    <span>Edit</span>
-                                  </button>
-                                  <button
-                                    onClick={() => openDeleteCourseModal(course)}
-                                    className="w-full bg-red-600 text-white rounded-full h-10 px-4 text-sm font-semibold shadow-sm hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    <span>Delete</span>
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               );
@@ -1329,7 +1327,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
@@ -1340,7 +1338,7 @@ export default function AdminTopicDetail() {
                     required
                   >
                     <option value="">Select a course</option>
-                    {(topic.subtopics || []).flatMap(subtopic => 
+                    {(topic.subtopics || []).flatMap(subtopic =>
                       (subtopic.courses || []).map(course => (
                         <option key={course.id} value={course.id}>
                           {subtopic.title} - {course.title}
@@ -1370,7 +1368,7 @@ export default function AdminTopicDetail() {
                     placeholder="Enter YouTube video URL"
                   />
                 </div>
-                
+
 
 
                 <div>
@@ -1385,7 +1383,7 @@ export default function AdminTopicDetail() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => {
@@ -1424,7 +1422,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Chapter</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
@@ -1447,7 +1445,7 @@ export default function AdminTopicDetail() {
                     placeholder="Enter YouTube video URL"
                   />
                 </div>
-                
+
 
 
                 <div>
@@ -1475,7 +1473,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => setShowEditChapterModal(false)}
@@ -1504,7 +1502,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Chapter</h3>
-              
+
               <div className="mb-6">
                 <p className="text-gray-600 mb-4">
                   Are you sure you want to delete the chapter &ldquo;{selectedChapter.title}&rdquo;? This action cannot be undone.
@@ -1515,7 +1513,7 @@ export default function AdminTopicDetail() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => setShowDeleteChapterModal(false)}
@@ -1544,7 +1542,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Subtopic</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
@@ -1557,7 +1555,7 @@ export default function AdminTopicDetail() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
                   <textarea
@@ -1582,7 +1580,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => setShowAddSubtopicModal(false)}
@@ -1625,7 +1623,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
@@ -1638,7 +1636,7 @@ export default function AdminTopicDetail() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
                   <textarea
@@ -1649,15 +1647,15 @@ export default function AdminTopicDetail() {
                     rows={3}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
                   <div className="space-y-2">
                     {courseForm.thumbnail && (
                       <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                        <img 
-                          src={courseForm.thumbnail} 
-                          alt="Course thumbnail" 
+                        <img
+                          src={courseForm.thumbnail}
+                          alt="Course thumbnail"
                           className="w-full h-full object-cover"
                         />
                         <button
@@ -1686,7 +1684,7 @@ export default function AdminTopicDetail() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
@@ -1700,7 +1698,7 @@ export default function AdminTopicDetail() {
                       placeholder="0"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
                     <select
@@ -1715,7 +1713,7 @@ export default function AdminTopicDetail() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => {
@@ -1769,7 +1767,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
@@ -1782,7 +1780,7 @@ export default function AdminTopicDetail() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
                   <textarea
@@ -1793,15 +1791,15 @@ export default function AdminTopicDetail() {
                     rows={3}
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
                   <div className="space-y-2">
                     {courseForm.thumbnail && (
                       <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                        <img 
-                          src={courseForm.thumbnail} 
-                          alt="Course thumbnail" 
+                        <img
+                          src={courseForm.thumbnail}
+                          alt="Course thumbnail"
                           className="w-full h-full object-cover"
                         />
                         <button
@@ -1830,7 +1828,7 @@ export default function AdminTopicDetail() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
@@ -1844,7 +1842,7 @@ export default function AdminTopicDetail() {
                       placeholder="0"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
                     <select
@@ -1859,7 +1857,7 @@ export default function AdminTopicDetail() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => {
@@ -1900,7 +1898,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Course</h3>
-              
+
               <div className="mb-6">
                 <p className="text-gray-600 mb-4">
                   Are you sure you want to delete the course &ldquo;{courseToDelete.title}&rdquo;? This action cannot be undone.
@@ -1911,7 +1909,7 @@ export default function AdminTopicDetail() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => {
@@ -1943,7 +1941,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Subtopic</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
@@ -1956,7 +1954,7 @@ export default function AdminTopicDetail() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
                   <textarea
@@ -1981,7 +1979,7 @@ export default function AdminTopicDetail() {
                   </label>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => {
@@ -2018,7 +2016,7 @@ export default function AdminTopicDetail() {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Subtopic</h3>
-              
+
               <div className="mb-6">
                 <p className="text-gray-600 mb-4">
                   Are you sure you want to delete the subtopic &ldquo;{selectedSubtopic.title}&rdquo;? This action cannot be undone.
@@ -2029,7 +2027,7 @@ export default function AdminTopicDetail() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => setShowDeleteSubtopicModal(false)}

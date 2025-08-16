@@ -27,7 +27,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  X
+  X,
+  HelpCircle
 } from 'lucide-react';
 
 interface User {
@@ -818,6 +819,14 @@ export default function UserDashboard() {
                             Previous
                           </button>
                         )}
+                        {/* Quiz Button - Show if chapter has a quiz */}
+                        <button 
+                          onClick={() => router.push(`/quiz/${chapter.id}`)}
+                          className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                          Take Quiz
+                        </button>
                         {index < chapters.length - 1 && (
                           <button className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors">
                             Next Chapter

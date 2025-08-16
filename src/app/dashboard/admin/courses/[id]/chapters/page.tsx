@@ -288,6 +288,12 @@ export default function CourseChaptersPage() {
     window.open(`/dashboard/admin/chapters/preview?${params.toString()}`, '_blank');
   };
 
+  const handleQuizChapter = (chapter: Chapter) => {
+    // Navigate to quiz management for the chapter
+    // You can adjust this route based on your quiz management structure
+    router.push(`/dashboard/admin/chapters/${chapter.id}/quiz?courseId=${courseId}&topicId=${topicId}`);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -636,6 +642,16 @@ export default function CourseChaptersPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleQuizChapter(chapter)}
+                            className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:from-amber-700 hover:to-orange-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                            title="Manage quiz for this chapter"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            <span>Quiz</span>
                           </button>
                           <button
                             onClick={() => handlePreviewChapter(chapter)}

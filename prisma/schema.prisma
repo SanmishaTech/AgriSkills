@@ -12,17 +12,19 @@ datasource db {
 }
 
 model User {
-  id                       String    @id @default(uuid())
-  email                    String    @unique
+  id                       String         @id @default(uuid())
+  email                    String         @unique
   password                 String
   name                     String?
-  role                     String    @default("user")
+  role                     String         @default("user")
   profilePhoto             String?
   emailVerified            DateTime?
   verificationToken        String?
   verificationTokenExpiry  DateTime?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  quizAttempts             QuizAttempt[]  // User's quiz attempts
+  certificates             Certificate[]  // User's earned certificates
 }
 
 model Topic {
@@ -78,6 +80,7 @@ model Chapter {
   course      Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   demoVideos  DemoVideo[]
   sections    Section[]
+  quiz        Quiz?       // Each chapter can have one quiz
 }
 
 model DemoVideo {
@@ -124,5 +127,89 @@ model YouTubeShort {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// Quiz System Models
+model Quiz {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  isActive    Boolean       @default(true)
+  passingScore Int          @default(50) // Minimum percentage to pass (50%)
+  timeLimit   Int?          // Time limit in minutes (optional)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  chapterId   String        @unique
+  chapter     Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  questions   Question[]    // Quiz questions
+  attempts    QuizAttempt[] // User attempts
+}
+
+model Question {
+  id         String   @id @default(uuid())
+  text       String   // Question text
+  type       String   @default("multiple_choice") // multiple_choice, true_false, fill_in_blank
+  points     Int      @default(1) // Points for correct answer
+  orderIndex Int      @default(0) // Order of questions
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers    Answer[] // Possible answers
+}
+
+model Answer {
+  id         String   @id @default(uuid())
+  text       String   // Answer text
+  isCorrect  Boolean  @default(false) // Whether this answer is correct
+  orderIndex Int      @default(0) // Order of answers
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id           String                @id @default(uuid())
+  score        Float                 // Score achieved (percentage)
+  totalPoints  Int                   // Total points earned
+  maxPoints    Int                   // Maximum possible points
+  isPassed     Boolean               // Whether user passed (score >= passingScore)
+  timeSpent    Int?                  // Time spent in minutes
+  startedAt    DateTime              @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId       String
+  quiz         Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  responses    QuizResponse[]        // User's answers
+  certificate  Certificate?          // Generated certificate if passed
+}
+
+model QuizResponse {
+  id            String      @id @default(uuid())
+  selectedText  String?     // For text answers or selected choice text
+  isCorrect     Boolean     // Whether the response was correct
+  pointsEarned  Int         // Points earned for this response
+  createdAt     DateTime    @default(now())
+  attemptId     String
+  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId    String
+  answerId      String?     // Selected answer ID (for multiple choice)
+}
+
+model Certificate {
+  id              String      @id @default(uuid())
+  certificateUrl  String?     // URL to the generated PDF certificate
+  certificateData String?     // Base64 or JSON data of certificate
+  issuedAt        DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptId       String      @unique
+  attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 }
 
