@@ -12,19 +12,20 @@ datasource db {
 }
 
 model User {
-  id                       String         @id @default(uuid())
-  email                    String         @unique
+  id                       String              @id @default(uuid())
+  email                    String              @unique
   password                 String
   name                     String?
-  role                     String         @default("user")
+  role                     String              @default("user")
   profilePhoto             String?
   emailVerified            DateTime?
   verificationToken        String?
   verificationTokenExpiry  DateTime?
-  createdAt                DateTime       @default(now())
-  updatedAt                DateTime       @updatedAt
-  quizAttempts             QuizAttempt[]  // User's quiz attempts
-  certificates             Certificate[]  // User's earned certificates
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  quizAttempts             QuizAttempt[]       // User's quiz attempts
+  certificates             Certificate[]       // User's earned certificates
+  courseCompletions        CourseCompletion[]  // User's completed courses
 }
 
 model Topic {
@@ -64,6 +65,7 @@ model Course {
   subtopicId  String
   subtopic    Subtopic   @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
   chapters    Chapter[]
+  completions CourseCompletion[] // Track users who completed this course
 }
 
 model Chapter {
@@ -146,16 +148,17 @@ model Quiz {
 }
 
 model Question {
-  id         String   @id @default(uuid())
-  text       String   // Question text
-  type       String   @default("multiple_choice") // multiple_choice, true_false, fill_in_blank
-  points     Int      @default(1) // Points for correct answer
-  orderIndex Int      @default(0) // Order of questions
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id         String         @id @default(uuid())
+  text       String         // Question text
+  type       String         @default("multiple_choice") // multiple_choice, true_false, fill_in_blank
+  points     Int            @default(1) // Points for correct answer
+  orderIndex Int            @default(0) // Order of questions
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
   quizId     String
-  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  answers    Answer[] // Possible answers
+  quiz       Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers    Answer[]       // Possible answers
+  responses  QuizResponse[] // Quiz responses for this question
 }
 
 model Answer {
@@ -186,6 +189,7 @@ model QuizAttempt {
   quiz         Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
   responses    QuizResponse[]        // User's answers
   certificate  Certificate?          // Generated certificate if passed
+  courseCompletion CourseCompletion? // Course completion if this attempt passed
 }
 
 model QuizResponse {
@@ -197,6 +201,7 @@ model QuizResponse {
   attemptId     String
   attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   questionId    String
+  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerId      String?     // Selected answer ID (for multiple choice)
 }
 
@@ -213,3 +218,23 @@ model Certificate {
   attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 }
 
+// Track course completions
+model CourseCompletion {
+  id              String       @id @default(cuid())
+  userId          String
+  courseId        String
+  completedAt     DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Relations
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizAttemptId   String?      @unique // Reference to the quiz attempt that completed the course
+  quizAttempt     QuizAttempt? @relation(fields: [quizAttemptId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId]) // A user can complete a course only once
+  @@index([userId])
+  @@index([courseId])
+  @@index([completedAt])
+}

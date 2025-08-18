@@ -12,7 +12,7 @@ async function verifyUser(request: NextRequest) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
+      where: { id: decoded.sub }
     });
 
     return user;
@@ -45,7 +45,6 @@ export async function GET(
         where: {
           id: attemptId,
           userId: user.id,
-          quizId,
           completedAt: { not: null }
         },
         include: {
@@ -57,6 +56,11 @@ export async function GET(
                 },
                 orderBy: {
                   orderIndex: 'asc'
+                }
+              },
+              chapter: {
+                include: {
+                  course: true
                 }
               }
             }
@@ -81,26 +85,61 @@ export async function GET(
         );
       }
 
+      // Check if course is completed
+      let courseCompleted = false;
+      if (attempt.isPassed && attempt.quiz.chapter?.course) {
+        const completion = await prisma.courseCompletion.findUnique({
+          where: {
+            userId_courseId: {
+              userId: user.id,
+              courseId: attempt.quiz.chapter.course.id
+            }
+          }
+        });
+        courseCompleted = !!completion;
+      }
+
       return NextResponse.json({
         success: true,
         result: {
-          attempt: {
-            id: attempt.id,
-            score: attempt.score,
-            totalPoints: attempt.totalPoints,
-            maxPoints: attempt.maxPoints,
-            isPassed: attempt.isPassed,
-            timeSpent: attempt.timeSpent,
-            startedAt: attempt.startedAt,
-            completedAt: attempt.completedAt
-          },
+          id: attempt.id,
+          score: attempt.score,
+          totalPoints: attempt.totalPoints,
+          maxPoints: attempt.maxPoints,
+          isPassed: attempt.isPassed,
+          timeSpent: attempt.timeSpent,
+          completedAt: attempt.completedAt,
+          courseCompleted,
           quiz: {
             id: attempt.quiz.id,
             title: attempt.quiz.title,
-            description: attempt.quiz.description,
             passingScore: attempt.quiz.passingScore,
-            timeLimit: attempt.quiz.timeLimit
+            chapter: {
+              id: attempt.quiz.chapter.id,
+              title: attempt.quiz.chapter.title,
+              course: {
+                id: attempt.quiz.chapter.course.id,
+                title: attempt.quiz.chapter.course.title
+              }
+            }
           },
+          responses: attempt.responses.map(response => ({
+            id: response.id,
+            isCorrect: response.isCorrect,
+            pointsEarned: response.pointsEarned,
+            selectedText: response.selectedText,
+            question: {
+              id: response.question.id,
+              text: response.question.text,
+              type: response.question.type,
+              points: response.question.points,
+              answers: response.question.answers.map(answer => ({
+                id: answer.id,
+                text: answer.text,
+                isCorrect: answer.isCorrect
+              }))
+            }
+          })),
           questions: attempt.quiz.questions.map(question => {
             const response = attempt.responses.find(r => r.questionId === question.id);
             return {
@@ -130,10 +169,23 @@ export async function GET(
       });
     } else {
       // Get all attempts for this quiz by the user
+      // First find the quiz by chapter ID (since the ID in URL is chapter ID)
+      const quiz = await prisma.quiz.findUnique({
+        where: { chapterId: quizId }
+      });
+
+      if (!quiz) {
+        return NextResponse.json({
+          success: true,
+          attempts: [],
+          quiz: null
+        });
+      }
+
       const attempts = await prisma.quizAttempt.findMany({
         where: {
           userId: user.id,
-          quizId,
+          quizId: quiz.id,
           completedAt: { not: null }
         },
         include: {

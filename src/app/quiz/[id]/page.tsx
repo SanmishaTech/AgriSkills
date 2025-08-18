@@ -73,6 +73,49 @@ export default function QuizPage() {
   const quizId = params.id as string;
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      if (!token || !userData) {
+        router.push('/login');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      setUser(user);
+      
+      // Check if user has already passed this quiz
+      try {
+        const statusResponse = await fetch('/api/quiz/check-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ chapterIds: [quizId] })
+        });
+        
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          if (statusData.statusMap[quizId]?.passed) {
+            // User has already passed this quiz, redirect back
+            setError('You have already passed this quiz!');
+            setTimeout(() => {
+              router.back();
+            }, 2000);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking quiz status:', error);
+      }
+    };
+
+    checkAuth();
+  }, [quizId, router]);
+
+  useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     
@@ -104,14 +147,20 @@ export default function QuizPage() {
     return () => clearInterval(interval);
   }, [hasStarted, startTime, quiz?.timeLimit]);
 
-  const startQuizAttempt = async () => {
+  const startQuiz = async () => {
     if (!user) return;
-
+    
     try {
       setStarting(true);
       setError(null);
-
       const token = localStorage.getItem('token');
+      
+      // Check if token exists
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+      
       const response = await fetch(`/api/quiz/${quizId}/attempt`, {
         method: 'POST',
         headers: {
@@ -120,9 +169,26 @@ export default function QuizPage() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to start quiz');
+        // If unauthorized, redirect to login
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+          return;
+        }
+        if (response.status === 404) {
+          throw new Error('Quiz not found or has been deactivated');
+        } else if (response.status === 401) {
+          throw new Error('You are not authorized to take this quiz');
+        } else {
+          throw new Error(data.error || 'Failed to start quiz');
+        }
+      }
+
+      if (!data.attempt || !data.attempt.quiz) {
+        throw new Error('Invalid quiz data received');
       }
 
       setQuiz(data.attempt.quiz);
@@ -138,7 +204,8 @@ export default function QuizPage() {
       }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Quiz start error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while starting the quiz');
     } finally {
       setStarting(false);
     }
@@ -149,53 +216,100 @@ export default function QuizPage() {
 
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/quiz/${quizId}/attempt`, {
-        method: 'POST',
+      
+      // Check if token exists
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+      
+      // First, fetch quiz info using GET endpoint
+      const quizResponse = await fetch(`/api/quiz/${quizId}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load quiz');
+      if (!quizResponse.ok) {
+        const quizData = await quizResponse.json();
+        
+        // If unauthorized, redirect to login
+        if (quizResponse.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+          return;
+        }
+        
+        throw new Error(quizData.error || 'Failed to load quiz');
       }
 
-      // If there's an existing attempt, continue it
-      if (data.attempt.startedAt) {
-        const startedAt = new Date(data.attempt.startedAt);
-        const now = new Date();
+      const quizData = await quizResponse.json();
+      
+      // Check if quiz is available
+      if (!quizData.success || !quizData.quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      // If there's an active attempt, load it
+      if (quizData.hasActiveAttempt) {
+        // Try to continue the active attempt
+        const attemptResponse = await fetch(`/api/quiz/${quizId}/attempt`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const attemptData = await attemptResponse.json();
         
-        // Check if time limit exceeded
-        if (data.attempt.timeLimit) {
-          const elapsed = now.getTime() - startedAt.getTime();
-          const timeLimit = data.attempt.timeLimit * 60 * 1000;
+        if (attemptResponse.ok && attemptData.attempt) {
+          const startedAt = new Date(attemptData.attempt.startedAt);
+          const now = new Date();
           
-          if (elapsed > timeLimit) {
-            setError('Time limit exceeded. Please start a new attempt.');
-            return;
+          // Check if time limit exceeded
+          if (attemptData.attempt.timeLimit) {
+            const elapsed = now.getTime() - startedAt.getTime();
+            const timeLimit = attemptData.attempt.timeLimit * 60 * 1000;
+            
+            if (elapsed > timeLimit) {
+              setError('Time limit exceeded. This attempt has expired.');
+              setQuiz(null);
+              return;
+            }
+          }
+          
+          setQuiz(attemptData.attempt.quiz);
+          setAttemptId(attemptData.attempt.id);
+          setStartTime(startedAt);
+          setHasStarted(true);
+
+          if (attemptData.attempt.timeLimit) {
+            const elapsed = now.getTime() - startedAt.getTime();
+            const totalTime = attemptData.attempt.timeLimit * 60 * 1000;
+            setTimeRemaining(totalTime - elapsed);
           }
         }
-        
-        setQuiz(data.attempt.quiz);
-        setAttemptId(data.attempt.id);
-        setStartTime(startedAt);
-        setHasStarted(true);
-
-        if (data.attempt.timeLimit) {
-          const elapsed = now.getTime() - startedAt.getTime();
-          const totalTime = data.attempt.timeLimit * 60 * 1000;
-          setTimeRemaining(totalTime - elapsed);
-        }
       } else {
-        setQuiz(data.attempt.quiz);
-        setAttemptId(data.attempt.id);
+        // No active attempt, show quiz info for starting
+        // We'll create the attempt when user clicks "Start Quiz"
+        setQuiz({
+          id: quizData.quiz.id,
+          title: quizData.quiz.title,
+          description: quizData.quiz.description,
+          passingScore: quizData.quiz.passingScore,
+          timeLimit: quizData.quiz.timeLimit,
+          questions: [] // Will be loaded when starting
+        });
       }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Quiz loading error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while loading the quiz');
+      setQuiz(null);
     } finally {
       setLoading(false);
     }
@@ -298,7 +412,41 @@ export default function QuizPage() {
   // Quiz introduction screen
   if (!hasStarted && quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Back
+              </button>
+              <h1 className="text-xl font-semibold">Quiz</h1>
+              <div className="w-20" /> {/* Spacer for centering */}
+            </div>
+          </div>
+        </header>
+        
+        {/* Show error if user has already passed */}
+        {error && error.includes('already passed') && (
+          <div className="max-w-3xl mx-auto mt-8 px-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-xl font-semibold text-green-800 mb-2">Quiz Already Completed!</h2>
+              <p className="text-green-600 mb-4">You have successfully passed this quiz. No need to retake it.</p>
+              <p className="text-sm text-gray-600">Redirecting you back...</p>
+            </div>
+          </div>
+        )}
+        
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
@@ -307,7 +455,7 @@ export default function QuizPage() {
                 <div>
                   <h1 className="text-3xl font-bold mb-2">{quiz.title}</h1>
                   <p className="text-indigo-100">
-                    {quiz.questions.length} questions • {quiz.questions.reduce((sum, q) => sum + q.points, 0)} points total
+                    Ready to start the quiz
                   </p>
                 </div>
                 <BookOpen className="w-16 h-16 text-white/20" />
@@ -329,7 +477,7 @@ export default function QuizPage() {
                     <HelpCircle className="w-6 h-6 text-indigo-600 mr-3" />
                     <div>
                       <p className="text-sm text-gray-600">Questions</p>
-                      <p className="text-lg font-semibold text-gray-900">{quiz.questions.length}</p>
+                      <p className="text-lg font-semibold text-gray-900">Quiz Ready</p>
                     </div>
                   </div>
                 </div>
@@ -390,7 +538,7 @@ export default function QuizPage() {
                 </button>
 
                 <button
-                  onClick={startQuizAttempt}
+                  onClick={startQuiz}
                   disabled={starting}
                   className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

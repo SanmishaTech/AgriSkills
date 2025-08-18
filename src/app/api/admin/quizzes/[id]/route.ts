@@ -12,7 +12,7 @@ async function verifyAdmin(request: NextRequest) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
+      where: { id: decoded.sub }
     });
 
     if (!user || user.role !== 'admin') {

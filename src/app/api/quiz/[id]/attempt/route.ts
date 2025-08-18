@@ -12,7 +12,7 @@ async function verifyUser(request: NextRequest) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
+      where: { id: decoded.sub }
     });
 
     return user;
@@ -35,11 +35,11 @@ export async function POST(
       );
     }
 
-    const { id: quizId } = await params;
+    const { id } = await params;
 
-    // Check if quiz exists and is active
-    const quiz = await prisma.quiz.findUnique({
-      where: { id: quizId, isActive: true },
+    // Check if quiz exists and is active - try both quiz ID and chapter ID
+    let quiz = await prisma.quiz.findUnique({
+      where: { id, isActive: true },
       include: {
         questions: {
           include: {
@@ -59,6 +59,30 @@ export async function POST(
       }
     });
 
+    // If not found by ID, try to find by chapterId
+    if (!quiz) {
+      quiz = await prisma.quiz.findUnique({
+        where: { chapterId: id, isActive: true },
+        include: {
+          questions: {
+            include: {
+              answers: {
+                select: {
+                  id: true,
+                  text: true,
+                  orderIndex: true
+                  // Don't include isCorrect for security
+                }
+              }
+            },
+            orderBy: {
+              orderIndex: 'asc'
+            }
+          }
+        }
+      });
+    }
+
     if (!quiz) {
       return NextResponse.json(
         { error: 'Quiz not found or inactive' },
@@ -70,7 +94,7 @@ export async function POST(
     const activeAttempt = await prisma.quizAttempt.findFirst({
       where: {
         userId: user.id,
-        quizId,
+        quizId: quiz.id,
         completedAt: null
       }
     });
@@ -97,7 +121,7 @@ export async function POST(
     const attempt = await prisma.quizAttempt.create({
       data: {
         userId: user.id,
-        quizId,
+        quizId: quiz.id,
         score: 0,
         totalPoints: 0,
         maxPoints: quiz.questions.reduce((sum, q) => sum + q.points, 0),
@@ -142,7 +166,7 @@ export async function PUT(
       );
     }
 
-    const { id: quizId } = await params;
+    const { id } = await params;
     const body = await request.json();
     const { attemptId, answers } = body;
 
@@ -158,7 +182,6 @@ export async function PUT(
       where: {
         id: attemptId,
         userId: user.id,
-        quizId,
         completedAt: null
       },
       include: {
@@ -289,6 +312,42 @@ export async function PUT(
             issuedAt: new Date()
           }
         });
+
+        // Mark course as completed
+        // First, get the course ID from the quiz's chapter
+        const quizWithChapter = await tx.quiz.findUnique({
+          where: { id: attempt.quizId },
+          include: {
+            chapter: {
+              include: {
+                course: true
+              }
+            }
+          }
+        });
+
+        if (quizWithChapter?.chapter?.course) {
+          // Check if course is already completed
+          const existingCompletion = await tx.courseCompletion.findUnique({
+            where: {
+              userId_courseId: {
+                userId: user.id,
+                courseId: quizWithChapter.chapter.course.id
+              }
+            }
+          });
+
+          // Create course completion if not already completed
+          if (!existingCompletion) {
+            await tx.courseCompletion.create({
+              data: {
+                userId: user.id,
+                courseId: quizWithChapter.chapter.course.id,
+                quizAttemptId: attempt.id
+              }
+            });
+          }
+        }
       }
 
       return updated;

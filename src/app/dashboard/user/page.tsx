@@ -46,6 +46,8 @@ interface Chapter {
   youtubeUrl?: string;
   orderIndex: number;
   createdAt: string;
+  quizPassed?: boolean;
+  quizScore?: number;
 }
 
 interface Course {
@@ -128,6 +130,7 @@ export default function UserDashboard() {
     features: [''],
     isActive: true
   });
+  const [quizStatuses, setQuizStatuses] = useState<Record<string, { passed: boolean; score?: number; attemptDate?: string }>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -195,7 +198,36 @@ export default function UserDashboard() {
       const response = await fetch(`/api/courses/${course.id}/chapters`);
       if (response.ok) {
         const data = await response.json();
-        const courseWithChapters = { ...course, chapters: data.course.chapters };
+        const chapters = data.course.chapters;
+        
+        // Check quiz pass status for all chapters
+        let courseWithChapters = { ...course, chapters };
+        const chapterIds = chapters.map((ch: Chapter) => ch.id);
+        if (chapterIds.length > 0) {
+          const token = localStorage.getItem('token');
+          const statusResponse = await fetch('/api/quiz/check-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ chapterIds })
+          });
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            setQuizStatuses(statusData.statusMap);
+            
+            // Add quiz status to each chapter
+            const chaptersWithStatus = chapters.map((ch: Chapter) => ({
+              ...ch,
+              quizPassed: statusData.statusMap[ch.id]?.passed || false,
+              quizScore: statusData.statusMap[ch.id]?.score
+            }));
+            
+            courseWithChapters = { ...course, chapters: chaptersWithStatus };
+          }
+        }
         
         setNavigation(prev => ({
           level: 'chapters',
@@ -819,14 +851,26 @@ export default function UserDashboard() {
                             Previous
                           </button>
                         )}
-                        {/* Quiz Button - Show if chapter has a quiz */}
-                        <button 
-                          onClick={() => router.push(`/quiz/${chapter.id}`)}
-                          className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
-                        >
-                          <HelpCircle className="w-3 h-3" />
-                          Take Quiz
-                        </button>
+                        {/* Quiz Button - Show different states based on pass status */}
+                        {chapter.quizPassed ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded flex items-center gap-1">
+                              <Star className="w-3 h-3" />
+                              Passed {chapter.quizScore && `(${chapter.quizScore}%)`}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Chapter Completed
+                            </span>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => router.push(`/quiz/${chapter.id}`)}
+                            className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
+                          >
+                            <HelpCircle className="w-3 h-3" />
+                            Take Quiz
+                          </button>
+                        )}
                         {index < chapters.length - 1 && (
                           <button className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors">
                             Next Chapter
