@@ -876,11 +876,7 @@ export default function UserDashboard() {
                             Next Chapter
                           </button>
                         )}
-                        {index === chapters.length - 1 && (
-                          <button className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors">
-                            Complete Course
-                          </button>
-                        )}
+                        
                       </div>
                     </div>
                   </div>
