@@ -135,11 +135,20 @@ export default function UserDashboard() {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (userData) {
+    const token = localStorage.getItem('token');
+    
+    console.log('User Dashboard Auth Check:', {
+      hasToken: !!token,
+      hasUserData: !!userData,
+      tokenPreview: token ? token.substring(0, 20) + '...' : null
+    });
+    
+    if (userData && token) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       fetchTopics();
     } else {
+      console.log('Missing auth, redirecting to login');
       router.push('/login');
     }
   }, [router]);
@@ -815,69 +824,48 @@ export default function UserDashboard() {
                   </div>
                 </div>
 
-                {/* Chapter Content */}
+                {/* Chapter Actions */}
                 <div className="p-6">
-                  {chapter.youtubeUrl && (
-                    <div className="mb-6">
-                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${chapter.youtubeUrl.split('/').pop()?.split('?')[0] || chapter.youtubeUrl.split('watch?v=')[1]?.split('&')[0]}?rel=0&modestbranding=1`}
-                          title={chapter.title}
-                          className="w-full h-full"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {chapter.content && (
-                    <div 
-                      className="prose prose-green max-w-none"
-                      dangerouslySetInnerHTML={{ __html: chapter.content }}
-                    />
-                  )}
-                  
-                  {/* Chapter Actions */}
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">
-                        Chapter {index + 1} of {chapters.length}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {index > 0 && (
-                          <button className="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded border transition-colors">
-                            Previous
-                          </button>
-                        )}
-                        {/* Quiz Button - Show different states based on pass status */}
-                        {chapter.quizPassed ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded flex items-center gap-1">
-                              <Star className="w-3 h-3" />
-                              Passed {chapter.quizScore && `(${chapter.quizScore}%)`}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Chapter Completed
-                            </span>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => router.push(`/quiz/${chapter.id}`)}
-                            className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded transition-colors flex items-center gap-1"
-                          >
-                            <HelpCircle className="w-3 h-3" />
-                            Take Quiz
-                          </button>
-                        )}
-                        {index < chapters.length - 1 && (
-                          <button className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors">
-                            Next Chapter
-                          </button>
-                        )}
-                        
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      Chapter {index + 1} of {chapters.length}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Learn Button */}
+                      <button 
+                        onClick={() => router.push(`/learn/${chapter.id}`)}
+                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex items-center gap-1"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        Learn
+                      </button>
+                      
+                      {/* Quiz Button - Show different states based on pass status */}
+                      {chapter.quizPassed ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded flex items-center gap-1">
+                            <Star className="w-3 h-3" />
+                            Passed {chapter.quizScore && `(${chapter.quizScore}%)`}
+                          </span>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            const token = localStorage.getItem('token');
+                            const userData = localStorage.getItem('user');
+                            console.log('Dashboard Quiz Button Click:', {
+                              hasToken: !!token,
+                              hasUserData: !!userData,
+                              navigatingTo: `/quiz/${chapter.id}`
+                            });
+                            router.push(`/quiz/${chapter.id}`);
+                          }}
+                          className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition-colors flex items-center gap-1"
+                        >
+                          <HelpCircle className="w-4 h-4" />
+                          Take Quiz
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

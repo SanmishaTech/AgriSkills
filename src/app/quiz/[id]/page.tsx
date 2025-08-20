@@ -77,7 +77,14 @@ export default function QuizPage() {
       const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
       
+      console.log('Quiz Auth Check:', { 
+        hasToken: !!token, 
+        hasUserData: !!userData,
+        token: token ? token.substring(0, 20) + '...' : null 
+      });
+      
       if (!token || !userData) {
+        console.log('No auth found, redirecting to login');
         router.push('/login');
         return;
       }
@@ -115,18 +122,7 @@ export default function QuizPage() {
     checkAuth();
   }, [quizId, router]);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (userData && token) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-    } else {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
+  // Removed duplicate auth check - handled in the main auth useEffect above
 
   // Timer effect
   useEffect(() => {

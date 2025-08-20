@@ -19,7 +19,8 @@ export async function comparePasswords(plainPassword: string, hashedPassword: st
 export function generateToken(userId: string, email: string, role: string): string {
   return jwt.sign(
     { 
-      sub: userId,
+      sub: userId,  // Standard JWT claim for subject (user ID)
+      userId,       // Keep both for backward compatibility
       email,
       role
     },
