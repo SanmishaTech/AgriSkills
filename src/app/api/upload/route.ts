@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     
     const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'thumbnails');
+    const uploadDir = path.join(process.cwd(), 'uploads', 'thumbnails');
     const filePath = path.join(uploadDir, filename);
     
     // Create directory if it doesn't exist
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     // Save file
     await writeFile(filePath, buffer);
     
-    // Return the URL path
-    const url = `/uploads/thumbnails/${filename}`;
+    // Return the API URL path
+    const url = `/api/thumbnails/${filename}`;
     
     return NextResponse.json({ url });
   } catch (error) {
