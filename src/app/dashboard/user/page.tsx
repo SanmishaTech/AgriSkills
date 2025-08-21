@@ -20,7 +20,6 @@ import {
   User,
   Settings,
   Menu,
-  Bell,
   LogOut,
   ChevronDown as ChevronDownIcon,
   Package,
@@ -445,11 +444,6 @@ export default function UserDashboard() {
 
             {/* Right side - User menu */}
             <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-                <Bell className="w-5 h-5" />
-              </button>
-
               {/* User menu */}
               <div className="relative">
                 <button
@@ -480,29 +474,14 @@ export default function UserDashboard() {
                         <p className="text-xs text-gray-500">{user?.email}</p>
                       </div>
                       
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <button
+                        onClick={() => { setShowUserMenu(false); router.push('/profile'); }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
                         <User className="w-4 h-4 mr-3" />
                         My Profile
                       </button>
-                      
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <BookOpen className="w-4 h-4 mr-3" />
-                        My Courses
-                      </button>
-                      
-                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <Settings className="w-4 h-4 mr-3" />
-                        Settings
-                      </button>
-                      
-                      <button 
-                        onClick={openPackageModal}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <Package className="w-4 h-4 mr-3" />
-                        Packages
-                      </button>
-                      
+
                       <div className="border-t border-gray-100">
                         <button 
                           onClick={handleLogout}

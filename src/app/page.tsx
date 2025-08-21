@@ -551,7 +551,7 @@ export default function HomePage() {
                   <div
                     key={topic.id}
                     className="bg-white rounded-xl overflow-hidden min-w-[140px] cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => router.push('/login')}
+                    onClick={() => router.push(`/topic/${topic.id}`)}
                   >
                     {/* Topic Thumbnail */}
                     {topic.thumbnail ? (
@@ -619,7 +619,7 @@ export default function HomePage() {
                           <div
                             key={topic.id}
                             className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => router.push('/login')}
+                            onClick={() => router.push(`/topic/${topic.id}`)}
                           >
                             {/* Topic Image */}
                             <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
@@ -697,7 +697,7 @@ export default function HomePage() {
                         <div
                           key={topic.id}
                           className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => router.push('/login')}
+                          onClick={() => router.push(`/topic/${topic.id}`)}
                         >
                           {/* Topic Image */}
                           {topic.thumbnail ? (

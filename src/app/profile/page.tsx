@@ -215,12 +215,12 @@ export default function UpdateProfile() {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="shadow-xl">
+        <Card className="rounded-2xl border border-gray-200/60 shadow-2xl overflow-hidden">
           {/* Header */}
-          <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
+          <CardHeader className="relative bg-gradient-to-r from-primary to-primary/80 text-primary-foreground p-6 sm:p-8">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-3xl font-bold">Profile Settings</CardTitle>
+                <CardTitle className="text-3xl font-bold drop-shadow-sm">Profile Settings</CardTitle>
                 <CardDescription className="text-primary-foreground/80 mt-2">
                   Manage your account information and preferences
                 </CardDescription>
@@ -235,7 +235,7 @@ export default function UpdateProfile() {
           </CardHeader>
 
           {/* Content */}
-          <div className="px-6 py-6">
+          <div className="px-6 sm:px-8 py-8">
             {/* Message */}
             {message.text && (
               <div className={`mb-6 p-4 rounded-md ${
@@ -247,24 +247,24 @@ export default function UpdateProfile() {
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Profile Photo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
                   Profile Photo
                 </label>
-                <div className="flex items-center space-x-6">
+                <div className="flex flex-col items-center space-y-4">
                   <div className="relative">
                     {previewUrl || profilePhotoUrl ? (
                       <Image
                         src={previewUrl || profilePhotoUrl}
                         alt="Profile"
-                        width={96}
-                        height={96}
-                        className="rounded-full object-cover border-2 border-gray-300"
+                        width={128}
+                        height={128}
+                        className="rounded-full object-cover border-2 border-gray-300 ring-4 ring-white shadow-md"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                      <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
                         <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
@@ -283,7 +283,7 @@ export default function UpdateProfile() {
                     )}
                   </div>
                   {isEditing && (
-                    <div className="flex-1">
+                    <div className="w-full sm:w-auto">
                       <input
                         type="file"
                         id="profilePhoto"
@@ -299,19 +299,6 @@ export default function UpdateProfile() {
                 </div>
               </div>
 
-              {/* User ID (Read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  User ID
-                </label>
-                <input
-                  type="text"
-                  value={user?.id || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                />
-              </div>
-
               {/* Role (Read-only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -321,7 +308,7 @@ export default function UpdateProfile() {
                   type="text"
                   value={user?.role || ''}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
               </div>
 
@@ -336,7 +323,7 @@ export default function UpdateProfile() {
                   value={formData.email}
                   onChange={handleInputChange}
                   readOnly={!isEditing}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm ${
+                  className={`w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm ${
                     isEditing 
                       ? 'focus:ring-indigo-500 focus:border-indigo-500' 
                       : 'bg-gray-50 text-gray-500 cursor-not-allowed'
@@ -406,7 +393,7 @@ export default function UpdateProfile() {
                 <div className="pt-6 border-t border-gray-200">
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -421,7 +408,7 @@ export default function UpdateProfile() {
                   <button
                     onClick={handleSave}
                     disabled={updateLoading}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {updateLoading ? (
                       <>
@@ -440,7 +427,7 @@ export default function UpdateProfile() {
                   <button
                     onClick={handleCancel}
                     disabled={updateLoading}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

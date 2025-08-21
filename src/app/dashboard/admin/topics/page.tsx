@@ -41,6 +41,8 @@ export default function AdminTopics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
   const [newTopic, setNewTopic] = useState({ title: '', description: '', thumbnail: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -114,6 +116,39 @@ export default function AdminTopics() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteTopic = async () => {
+    if (!topicToDelete) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/topics?id=${topicToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete topic');
+      }
+
+      // Remove the deleted topic from the topics list
+      setTopics(topics.filter(topic => topic.id !== topicToDelete.id));
+      setShowDeleteModal(false);
+      setTopicToDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (topic: Topic) => {
+    setTopicToDelete(topic);
+    setShowDeleteModal(true);
   };
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,29 +282,49 @@ export default function AdminTopics() {
                   topics.map((topic) => (
                     <div
                       key={topic.id}
-                      className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                      onClick={() => router.push(`/dashboard/admin/topics/${topic.id}`)}
+                      className="relative bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
                     >
-                      {topic.thumbnail && (
-                        <div className="w-full h-48 bg-gray-100">
-                          <img 
-                            src={topic.thumbnail} 
-                            alt={topic.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{topic.title}</h3>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            topic.isActive 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {topic.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
+                      
+
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/dashboard/admin/topics/${topic.id}`)}
+                      >
+                        {topic.thumbnail && (
+                          <div className="w-full h-48 bg-gray-100">
+                            <img 
+                              src={topic.thumbnail} 
+                              alt={topic.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 pr-2">{topic.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                topic.isActive 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {topic.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteModal(topic);
+                                }}
+                                className="text-red-600 hover:text-red-700 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                                title="Delete topic"
+                                aria-label="Delete topic"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
                         
                         {topic.description && (
                           <p className="text-gray-600 text-sm mb-4 line-clamp-3">{topic.description}</p>
@@ -291,6 +346,7 @@ export default function AdminTopics() {
                             </span>
                           </div>
                           <span>{formatDate(topic.createdAt)}</span>
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -394,6 +450,49 @@ export default function AdminTopics() {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     )}
                     <span>{isSubmitting ? 'Creating...' : 'Create Topic'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Topic Modal */}
+          {showDeleteModal && topicToDelete && (
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Topic</h3>
+
+                <div className="mb-6">
+                  <p className="text-gray-600 mb-4">
+                    Are you sure you want to delete the topic “{topicToDelete.title}”? This action cannot be undone.
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-800 text-sm">
+                      <strong>Warning:</strong> All topic data, subtopics, courses, and chapters will be permanently removed.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setTopicToDelete(null);
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteTopic}
+                    disabled={isSubmitting}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {isSubmitting && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    )}
+                    <span>{isSubmitting ? 'Deleting...' : 'Delete Topic'}</span>
                   </button>
                 </div>
               </div>

@@ -147,16 +147,6 @@ export default function LearnPage() {
             <p className="text-green-100 mb-4 text-lg">{chapter.description}</p>
           )}
           
-          {/* Chapter Details */}
-          {chapter.content && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
-              <div 
-                className="prose prose-invert prose-green max-w-none text-green-50"
-                dangerouslySetInnerHTML={{ __html: chapter.content }}
-              />
-            </div>
-          )}
-          
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-1">
               <FileText className="w-4 h-4" />
@@ -188,6 +178,17 @@ export default function LearnPage() {
                 allowFullScreen
               ></iframe>
             </div>
+          </div>
+        )}
+
+        {/* Chapter Content - moved below the video */}
+        {chapter.content && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-3">Chapter Content</h2>
+            <div
+              className="prose prose-green max-w-none"
+              dangerouslySetInnerHTML={{ __html: chapter.content }}
+            />
           </div>
         )}
 

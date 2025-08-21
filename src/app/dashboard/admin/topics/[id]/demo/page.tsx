@@ -44,6 +44,11 @@ export default function AdminTopicDemo() {
   const params = useParams();
   const topicId = params.id as string;
 
+  // Ensure we always render exactly 5 inputs by padding with empty strings
+  const padToFive = (arr: string[] = []) => {
+    return [...arr, '', '', '', '', ''].slice(0, 5);
+  };
+
   const fetchTopicAndDemo = useCallback(async (token: string) => {
     try {
       // Fetch topic details
@@ -71,7 +76,7 @@ export default function AdminTopicDemo() {
         if (demoResponse.ok) {
           const demoData = await demoResponse.json();
           if (demoData.demo) {
-            setDemoUrls(demoData.demo.demoUrls || ['', '', '', '', '']);
+            setDemoUrls(padToFive(demoData.demo.demoUrls));
             setContent(demoData.demo.content || '');
           }
         }
@@ -146,7 +151,8 @@ export default function AdminTopicDemo() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          demoUrls: demoUrls.filter(url => url.trim()), // Only send non-empty URLs
+          // Preserve exactly 5 slots; trim but do not remove empties so positions persist
+          demoUrls: padToFive(demoUrls.map((u) => u.trim())),
           content: content.trim(),
         }),
       });
