@@ -2,75 +2,124 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+// GET /api/courses/[id] - Get course details for users
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the token from the Authorization header
+    const { id: courseId } = await params;
+
+    // Optional authentication - users can view courses without being logged in
     const authHeader = request.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
-
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    let userId: string | null = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = verifyToken(token) as { id: string } | null;
+      if (decoded) {
+        userId = decoded.id;
+      }
     }
 
-    // Verify the token (any authenticated user can view chapter content)
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-
-    // Get chapter with subtopic and topic information
-    const chapter = await prisma.chapter.findUnique({
-      where: {
-        id,
+    // Fetch course with all related data
+    const course = await prisma.course.findUnique({
+      where: { 
+        id: courseId,
         isActive: true
       },
       include: {
         subtopic: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
+          include: {
             topic: {
               select: {
                 id: true,
                 title: true,
-                description: true
+                description: true,
+                thumbnail: true
               }
             }
           }
-        }
+        },
+        chapters: {
+          where: {
+            isActive: true
+          },
+          orderBy: {
+            orderIndex: 'asc'
+          },
+          include: {
+            quiz: {
+              select: {
+                id: true,
+                title: true,
+                passingScore: true,
+                timeLimit: true,
+                // Don't include questions in course overview
+              }
+            }
+          }
+        },
+        completions: userId ? {
+          where: {
+            userId: userId
+          },
+          select: {
+            id: true,
+            completedAt: true
+          }
+        } : false
       }
     });
 
-    if (!chapter) {
+    if (!course) {
       return NextResponse.json(
-        { error: 'Chapter not found' },
+        { error: 'Course not found' },
         { status: 404 }
       );
     }
 
-    // Verify subtopic and topic are available
-    if (!chapter.subtopic) {
-      return NextResponse.json(
-        { error: 'Chapter subtopic not found' },
-        { status: 404 }
-      );
-    }
+    // Get completion status
+    const isCompleted = userId && course.completions && course.completions.length > 0;
+    const completedAt = isCompleted ? course.completions[0].completedAt : null;
 
-    return NextResponse.json({ chapter });
+    // Calculate total duration from chapters
+    const totalDuration = course.chapters.reduce((total, chapter) => {
+      // Estimate 10 minutes per chapter if no specific duration
+      return total + (chapter.duration || 10);
+    }, 0);
+
+    // Format response
+    const responseData = {
+      course: {
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        thumbnail: course.thumbnail,
+        level: course.level,
+        duration: totalDuration,
+        isCompleted,
+        completedAt,
+        subtopic: course.subtopic,
+        chapters: course.chapters.map(chapter => ({
+          id: chapter.id,
+          title: chapter.title,
+          description: chapter.description,
+          orderIndex: chapter.orderIndex,
+          hasQuiz: !!chapter.quiz,
+          quiz: chapter.quiz ? {
+            id: chapter.quiz.id,
+            title: chapter.quiz.title,
+            passingScore: chapter.quiz.passingScore,
+            timeLimit: chapter.quiz.timeLimit
+          } : null
+        }))
+      }
+    };
+
+    return NextResponse.json(responseData);
   } catch (error) {
-    console.error('Chapter details error:', error);
+    console.error('Get course error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -319,9 +319,31 @@ export default function TopicDetailPage() {
                                   {course.enrolledCount} enrolled
                                 </span>
                               </div>
-                              <button className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors">
-                                Enroll Now
-                              </button>
+                              {/* Show "Try First Course" for the first course in first subtopic, "Enroll Now" for others */}
+                              {topic.subtopics.findIndex(st => st.id === subtopic.id) === 0 && 
+                               subtopic.courses.findIndex(c => c.id === course.id) === 0 ? (
+                                <div className="space-y-2">
+                                  <button 
+                                    onClick={() => router.push(`/learn-free/${course.id}`)} 
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
+                                  >
+                                    Try First Course (Free)
+                                  </button>
+                                  <button 
+                                    onClick={() => router.push('/login')} 
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
+                                  >
+                                    Enroll for Full Access
+                                  </button>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => router.push('/login')} 
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
+                                >
+                                  Enroll Now
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -329,31 +351,21 @@ export default function TopicDetailPage() {
                     )}
                   </motion.div>
                 ))}
-
-                {topic.subtopics.length === 0 && (
-                  <div className="bg-white rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
-                    <BookOpen className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-base font-medium text-gray-900 mb-1">No Subtopics Yet</h3>
-                    <p className="text-sm text-gray-600">Subtopics and courses for this topic are coming soon.</p>
-                  </div>
-                )}
               </div>
             </section>
           </div>
         </div>
 
-        {/* CTA Section */}
-        <section className="bg-green-50 rounded-xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Ready to Master {topic.title}?
-          </h3>
-          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+        {/* Call to Action Section */}
+        <section className="mt-12 bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-8 text-center text-white">
+          <h2 className="text-2xl font-bold mb-4">Ready to Start Your Learning Journey?</h2>
+          <p className="text-green-100 mb-6 max-w-2xl mx-auto">
             Join thousands of students who have transformed their farming practices 
             with our comprehensive courses.
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+            className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-medium transition-colors"
           >
             Get Started Today
           </button>
