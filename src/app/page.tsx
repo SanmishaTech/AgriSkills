@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic } from 'lucide-react';
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
+import FullScreenDemoPlayer from '@/components/FullScreenDemoPlayer';
 // Type definitions
 interface Video {
   id: number;
@@ -56,7 +57,6 @@ declare global {
     onYouTubeIframeAPIReady: () => void;
   }
 }
-
 export default function HomePage() {
   const router = useRouter();
   const [activeNav, setActiveNav] = useState('home');
@@ -76,6 +76,10 @@ export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const iframeRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Demo player state
+  const [showDemoPlayer, setShowDemoPlayer] = useState(false);
+  const [demoUrls, setDemoUrls] = useState<string[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
   // Helper function for next video functionality
   const playNextVideo = (currentVideoId: number) => {
@@ -86,6 +90,40 @@ export default function HomePage() {
     if (nextVideo) {
       setSelectedShort(nextVideo);
     }
+  };
+
+  // Open topic demo player by fetching demo videos for the topic
+  const openTopicDemo = async (topicId: string) => {
+    try {
+      const res = await fetch(`/api/topics/${topicId}`);
+      if (!res.ok) {
+        router.push(`/topic/${topicId}`);
+        return;
+      }
+      const data = await res.json();
+      const urls: string[] = Array.isArray(data?.demoVideos)
+        ? data.demoVideos
+            .map((v: any) => v?.youtubeId)
+            .filter((id: any) => typeof id === 'string' && id.length === 11)
+            .map((id: string) => `https://www.youtube.com/watch?v=${id}`)
+        : [];
+
+      if (urls.length > 0) {
+        setSelectedTopicId(topicId);
+        setDemoUrls(urls);
+        setShowDemoPlayer(true);
+      } else {
+        router.push(`/topic/${topicId}`);
+      }
+    } catch (e) {
+      router.push(`/topic/${topicId}`);
+    }
+  };
+
+  const closeDemo = () => {
+    setShowDemoPlayer(false);
+    setDemoUrls([]);
+    setSelectedTopicId(null);
   };
 
   // Video player state management
@@ -551,7 +589,7 @@ export default function HomePage() {
                   <div
                     key={topic.id}
                     className="bg-white rounded-xl overflow-hidden min-w-[140px] cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => router.push(`/topic/${topic.id}`)}
+                    onClick={() => openTopicDemo(topic.id)}
                   >
                     {/* Topic Thumbnail */}
                     {topic.thumbnail ? (
@@ -619,21 +657,11 @@ export default function HomePage() {
                           <div
                             key={topic.id}
                             className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => router.push(`/topic/${topic.id}`)}
+                            onClick={() => openTopicDemo(topic.id)}
                           >
                             {/* Topic Image */}
                             <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
                               <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                              {/* Topic ID Badge */}
-                              <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
-                              </div>
-                              {/* Status Badge */}
-                              {index % 3 === 0 && (
-                                <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  NEW
-                                </div>
-                              )}
                               {index % 3 === 1 && (
                                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
                                   BEST
@@ -697,7 +725,7 @@ export default function HomePage() {
                         <div
                           key={topic.id}
                           className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => router.push(`/topic/${topic.id}`)}
+                          onClick={() => openTopicDemo(topic.id)}
                         >
                           {/* Topic Image */}
                           {topic.thumbnail ? (
@@ -709,16 +737,6 @@ export default function HomePage() {
                                 objectFit="cover"
                                 className="object-cover"
                               />
-                              {/* Topic ID Badge */}
-                              <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
-                              </div>
-                              {/* Status Badge */}
-                              {index % 3 === 0 && (
-                                <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  NEW
-                                </div>
-                              )}
                               {index % 3 === 1 && (
                                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
                                   BEST
@@ -728,16 +746,6 @@ export default function HomePage() {
                           ) : (
                             <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
                               <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                              {/* Topic ID Badge */}
-                              <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium">
-                                EH{(parseInt(topic.id) * 100 + 445).toString().padStart(4, '0')}
-                              </div>
-                              {/* Status Badge */}
-                              {index % 3 === 0 && (
-                                <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  NEW
-                                </div>
-                              )}
                               {index % 3 === 1 && (
                                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
                                   BEST
@@ -979,6 +987,15 @@ export default function HomePage() {
           </button>
         </div>
       </nav>
+
+      {/* Fullscreen Demo Player */}
+      {showDemoPlayer && selectedTopicId && (
+        <FullScreenDemoPlayer
+          demoUrls={demoUrls}
+          onClose={closeDemo}
+          topicId={selectedTopicId}
+        />
+      )}
 
       {/* YouTube Shorts Modal */}
       {selectedShort && (

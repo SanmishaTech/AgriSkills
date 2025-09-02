@@ -112,7 +112,7 @@ export default function QuizFreePage() {
       
       if (!response.ok) {
         if (response.status === 403) {
-          setError('This quiz is not available for free preview');
+          setError('This quiz is not available for preview');
         } else if (response.status === 404) {
           setError('Quiz not found');
         } else {
@@ -353,11 +353,11 @@ export default function QuizFreePage() {
                 </div>
               </div>
 
-              {/* Free Preview Notice */}
+              {/* Preview Notice */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-medium text-blue-900 mb-2">Free Preview Results</h3>
+                    <h3 className="text-lg font-medium text-blue-900 mb-2">Preview Results</h3>
                     <p className="text-blue-800">
                       This was a preview quiz. Sign up to save your progress, earn certificates, and access all course content!
                     </p>
@@ -369,10 +369,10 @@ export default function QuizFreePage() {
               {/* Action Buttons */}
               <div className="flex items-center justify-center gap-4">
                 <button
-                  onClick={() => router.push('/register')}
+                  onClick={() => router.push('/login')}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
                 >
-                  Sign Up for Full Access
+                  Sign In for Full Access
                 </button>
               </div>
             </div>
@@ -396,7 +396,7 @@ export default function QuizFreePage() {
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 Back
               </button>
-              <h1 className="text-xl font-semibold">Free Quiz Preview</h1>
+              <h1 className="text-xl font-semibold">Quiz Preview</h1>
               <div className="w-20" />
             </div>
           </div>
@@ -409,7 +409,7 @@ export default function QuizFreePage() {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <span className="text-blue-800 text-sm font-medium">
-                  Free Preview - Results won't be saved
+                  Preview - Results won't be saved
                 </span>
               </div>
               <button
@@ -482,7 +482,7 @@ export default function QuizFreePage() {
 
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-medium text-blue-900 mb-3">Free Preview Instructions</h3>
+                <h3 className="text-lg font-medium text-blue-900 mb-3">Preview Instructions</h3>
                 <ul className="space-y-2 text-blue-800">
                   <li>• This is a preview quiz - your results won't be saved</li>
                   <li>• Read each question carefully before answering</li>
@@ -503,10 +503,10 @@ export default function QuizFreePage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-start md:justify-between gap-4 md:gap-6">
                 <button
                   onClick={() => router.back()}
-                  className="flex items-center space-x-2 px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Back</span>
@@ -515,14 +515,14 @@ export default function QuizFreePage() {
                 <button
                   onClick={startQuiz}
                   disabled={starting}
-                  className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group inline-flex items-center gap-2 px-7 py-3 rounded-xl text-white font-medium bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg hover:shadow-xl active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {starting ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   ) : (
-                    <Play className="w-5 h-5" />
+                    <Play className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
                   )}
-                  <span>{starting ? 'Starting...' : 'Start Free Quiz'}</span>
+                  <span>{starting ? 'Starting...' : 'Start Quiz'}</span>
                 </button>
               </div>
             </div>
@@ -543,7 +543,7 @@ export default function QuizFreePage() {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{quiz.title}</h1>
                 <p className="text-sm text-blue-600 font-medium">
-                  Free Preview • Question {currentQuestionIndex + 1} of {quiz.questions.length} • 
+                  Preview • Question {currentQuestionIndex + 1} of {quiz.questions.length} • 
                   {getAnsweredCount()} answered
                 </p>
               </div>
@@ -752,7 +752,7 @@ export default function QuizFreePage() {
                   <Send className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="text-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Submit Free Quiz</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Submit Quiz</h3>
                   <p className="text-gray-600">
                     You have answered {getAnsweredCount()} out of {quiz.questions.length} questions. 
                     Are you sure you want to submit your quiz?

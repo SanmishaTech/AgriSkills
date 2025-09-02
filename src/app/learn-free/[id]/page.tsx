@@ -160,7 +160,7 @@ export default function LearnFreePage() {
                 <BookOpen className="w-6 h-6 text-green-600" />
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">{currentChapter.course.title}</h1>
-                  <p className="text-xs text-blue-600 font-medium">Free Preview</p>
+                  <p className="text-xs text-blue-600 font-medium">Preview</p>
                 </div>
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function LearnFreePage() {
               onClick={() => router.push(`/quiz-free/${currentChapter.id}`)}
               className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
             >
-              Try Free Quiz
+              Quiz
             </button>
           </div>
         </div>
