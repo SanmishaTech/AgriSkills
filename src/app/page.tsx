@@ -951,42 +951,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="lg:hidden bg-gray-50 border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.08)] flex-shrink-0">
-        <div className="flex justify-around items-center py-2">
-          {/* Home Button */}
-          <button
-            onClick={() => setActiveNav('home')}
-            className={`flex flex-col items-center px-4 py-2 transition-colors ${activeNav === 'home' ? 'text-yellow-600' : 'text-gray-500'}`}
-          >
-            <Home className="w-6 h-6" strokeWidth={activeNav === 'home' ? 2.5 : 2} />
-            <span className="text-xs mt-1 font-medium">Home</span>
-          </button>
-          
-          {/* Speak Button - Center with green circle */}
-          <button
-            onClick={() => setActiveNav('speak')}
-            className="relative flex flex-col items-center -mt-7"
-          >
-            <div className="bg-green-600 rounded-full p-4 shadow-lg border-4 border-white">
-              <Mic className="w-7 h-7 text-white" strokeWidth={2.5} />
-            </div>
-            <span className="text-xs mt-1 font-medium text-green-600">Speak</span>
-          </button>
-          
-          {/* Learn Button */}
-          <button
-            onClick={() => setActiveNav('learn')}
-            className={`flex flex-col items-center px-4 py-2 transition-colors ${activeNav === 'learn' ? 'text-gray-700' : 'text-gray-500'}`}
-          >
-            <div className="relative">
-              <BookOpen className="w-6 h-6" strokeWidth={activeNav === 'learn' ? 2.5 : 2} />
-              <div className="absolute -top-1 -right-1 w-0 h-0 border-l-[6px] border-l-transparent border-b-[8px] border-b-gray-600 border-r-[6px] border-r-transparent"></div>
-            </div>
-            <span className="text-xs mt-1 font-medium">Learn</span>
-          </button>
-        </div>
-      </nav>
+      
 
       {/* Fullscreen Demo Player */}
       {showDemoPlayer && selectedTopicId && (

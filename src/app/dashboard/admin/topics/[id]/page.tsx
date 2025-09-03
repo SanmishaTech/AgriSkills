@@ -1017,6 +1017,32 @@ export default function AdminTopicDetail() {
           </div>
         </div>
 
+        {/* Questions Management */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+          <div
+            className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-purple-100 hover:to-pink-100 transition-colors"
+            onClick={() => router.push(`/dashboard/admin/topics/${topicId}/questions`)}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="bg-purple-100 rounded-lg p-2">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Questions</h2>
+                <p className="text-sm text-gray-600 mt-1">Manage questions that users can select for this topic</p>
+              </div>
+              <div className="ml-auto">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
         {/* Subtopics Management */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-5 border-b border-gray-200">

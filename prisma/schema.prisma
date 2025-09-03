@@ -26,6 +26,7 @@ model User {
   quizAttempts             QuizAttempt[]       // User's quiz attempts
   certificates             Certificate[]       // User's earned certificates
   courseCompletions        CourseCompletion[]  // User's completed courses
+  questionSelections       TopicQuestionSelection[] // User's topic question selections
 }
 
 model Topic {
@@ -38,6 +39,7 @@ model Topic {
   updatedAt   DateTime    @updatedAt
   subtopics   Subtopic[]
   demo        TopicDemo?
+  questions   TopicQuestion[] // Topic questions for user selection
 }
 
 model Subtopic {
@@ -117,6 +119,35 @@ model TopicDemo {
   content     String   // Rich text content describing the topic
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Topic Questions for user selection
+model TopicQuestion {
+  id          String               @id @default(uuid())
+  topicId     String
+  topic       Topic                @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  question    String               // Question text
+  isActive    Boolean              @default(true)
+  orderIndex  Int                  @default(0) // Order of questions
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  selections  TopicQuestionSelection[] // User selections
+}
+
+// User selections of topic questions
+model TopicQuestionSelection {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    TopicQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  topicId     String         // Denormalized for easier querying
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, questionId]) // A user can select a question only once per topic
+  @@index([userId])
+  @@index([topicId])
 }
 
 model YouTubeShort {

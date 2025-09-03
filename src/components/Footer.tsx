@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Home as HomeIcon, BookOpen, Mic } from 'lucide-react';
 
 interface User {
   id: string;
@@ -13,29 +14,28 @@ interface User {
 }
 
 export default function Footer() {
+  // Avoid reading localStorage during initial render to keep SSR/CSR identical
   const [user, setUser] = useState<User | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
-  // Don't show footer on login/register pages, root page, and topic pages
-  const hideOnPages = ['/login', '/register', '/'];
-  const shouldHideFooter = hideOnPages.includes(pathname) || pathname.startsWith('/topic/');
+  // Don't show footer on auth pages only
+  const hideOnPages = ['/login', '/register'];
+  const shouldHideFooter = hideOnPages.includes(pathname);
+  const isAdminRoute = pathname?.startsWith('/dashboard/admin');
+  const isDashboardRoute = pathname?.startsWith('/dashboard');
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        console.log('Footer - User data:', parsedUser);
-        console.log('Footer - User role:', parsedUser.role);
-        console.log('Footer - Is admin?:', parsedUser.role === 'admin');
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
+    setMounted(true);
+    try {
+      const userData = localStorage.getItem('user');
+      setUser(userData ? JSON.parse(userData) : null);
+    } catch {
+      setUser(null);
     }
-  }, []);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -43,78 +43,74 @@ export default function Footer() {
     router.push('/login');
   };
 
-  if (shouldHideFooter) {
+  // Hide footer for: auth pages, any dashboard route (SSR-safe), any admin route, and any logged-in user
+  if (shouldHideFooter || isDashboardRoute || isAdminRoute || !!user || !mounted) {
     return null;
   }
 
   // Removed login-specific footer; login should not show any footer
 
-  // Don't show regular footer if no user (except login page handled above)
-  if (!user) {
-    return null;
-  }
+  // Render footer for both guests and authenticated users
 
   // Check if user is admin with explicit validation
   const isUserAdmin = user && user.role && user.role.toLowerCase().trim() === 'admin';
   
+  // Dynamic destination for Learn
+  const learnHref = user ? '/dashboard/user' : '/login';
+
   const menuItems = [
     {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H9L7 5H3a2 2 0 00-2 2z" />
-        </svg>
-      ),
+      name: 'Home',
+      href: '/',
+      icon: <HomeIcon className="w-5 h-5" />,
     },
     {
-      name: 'Profile',
-      href: '/profile',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      ),
+      name: 'Learn',
+      href: learnHref,
+      icon: <BookOpen className="w-5 h-5" />,
     },
   ];
 
   return (
     <>
-      {/* Bottom Navigation Menu - Mobile Style */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="flex justify-around items-center py-2">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`
-                  flex flex-col items-center px-3 py-2 text-xs transition-colors
-                  ${isActive 
-                    ? 'text-indigo-600' 
-                    : 'text-gray-600 hover:text-gray-900'
-                  }
-                `}
-              >
-                <div className={isActive ? 'text-indigo-600' : 'text-gray-600'}>
-                  {item.icon}
-                </div>
-                <span className="mt-1">{item.name}</span>
-              </Link>
-            );
-          })}
-          
-          {/* Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex flex-col items-center px-3 py-2 text-xs text-gray-600 hover:text-gray-900 transition-all duration-200 transform hover:scale-105"
-          >
-            <svg className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <span className="mt-1">Menu</span>
-          </button>
+      {/* Bottom Navigation - Home | Speak | Learn */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200/70 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
+        <div className="relative mx-auto max-w-3xl">
+          <div className="flex justify-between items-center px-8 py-2">
+            {/* Home */}
+            <Link
+              href={menuItems[0].href}
+              className={`flex flex-col items-center text-xs ${pathname === menuItems[0].href ? 'text-amber-600' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+            >
+              <div className="mb-0.5">{menuItems[0].icon}</div>
+              <span>Home</span>
+            </Link>
+
+            {/* Spacer for center button */}
+            <div className="w-20" />
+
+            {/* Learn */}
+            <Link
+              href={learnHref}
+              className={`flex flex-col items-center text-xs ${pathname?.startsWith('/dashboard') ? 'text-gray-700' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+            >
+              <div className="mb-0.5">{menuItems[1].icon}</div>
+              <span>Learn</span>
+            </Link>
+          </div>
+
+          {/* Center Speak Button + Label */}
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => {/* TODO: wire voice action */}}
+              aria-label="Speak"
+              className="bg-green-600 hover:bg-green-700 text-white rounded-full w-14 h-14 shadow-xl flex items-center justify-center ring-4 ring-white"
+            >
+              <Mic className="w-6 h-6" />
+            </button>
+            <span className="mt-1 text-xs font-medium text-green-700">Speak</span>
+          </div>
         </div>
       </div>
 

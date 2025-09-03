@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, BookOpen, Play, Clock, Users, Award, ChevronRight, Star } from 'lucide-react';
 import Image from 'next/image';
+import TopicQuestions from './components/TopicQuestions';
 
 interface Course {
   id: string;
@@ -355,6 +356,9 @@ export default function TopicDetailPage() {
             </section>
           </div>
         </div>
+
+        {/* Topic Questions Section - Full Width */}
+        <TopicQuestions topicId={params.id as string} />
 
         {/* Call to Action Section */}
         <section className="mt-12 bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-8 text-center text-white">

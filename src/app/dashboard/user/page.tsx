@@ -130,7 +130,16 @@ export default function UserDashboard() {
     isActive: true
   });
   const [quizStatuses, setQuizStatuses] = useState<Record<string, { passed: boolean; score?: number; attemptDate?: string }>>({});
+  // Show only a few topics first, reveal all on demand
+  const [showAllTopics, setShowAllTopics] = useState(false);
   const router = useRouter();
+
+  // Topic Questions modal state
+  const [showQuestionsModal, setShowQuestionsModal] = useState(false);
+  const [selectedTopicForQuestions, setSelectedTopicForQuestions] = useState<Topic | null>(null);
+  const [topicQuestions, setTopicQuestions] = useState<{ id: string; question: string }[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -414,6 +423,71 @@ export default function UserDashboard() {
     }));
   };
 
+  // Topic Questions handlers
+  const openTopicQuestions = async (topic: Topic) => {
+    try {
+      setSelectedTopicForQuestions(topic);
+      setShowQuestionsModal(true);
+      setQuestionsLoading(true);
+
+      // Preload any saved selections
+      const saved = localStorage.getItem(`topic-questions-${topic.id}`);
+      if (saved) {
+        try {
+          setSelectedQuestionIds(new Set(JSON.parse(saved)));
+        } catch {}
+      } else {
+        setSelectedQuestionIds(new Set());
+      }
+
+      const res = await fetch(`/api/topics/${topic.id}/questions`);
+      if (res.ok) {
+        const data = await res.json();
+        setTopicQuestions((data.questions || []).map((q: any) => ({ id: q.id, question: q.question })));
+      } else {
+        setTopicQuestions([]);
+      }
+    } catch (e) {
+      console.error('Failed to open topic questions:', e);
+      setTopicQuestions([]);
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+
+  const toggleQuestionSelection = (id: string) => {
+    setSelectedQuestionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const closeTopicQuestionsModal = () => {
+    setShowQuestionsModal(false);
+    setSelectedTopicForQuestions(null);
+    setTopicQuestions([]);
+    setSelectedQuestionIds(new Set());
+  };
+
+  const proceedAfterQuestions = () => {
+    if (selectedTopicForQuestions) {
+      // Persist locally for now
+      try {
+        localStorage.setItem(
+          `topic-questions-${selectedTopicForQuestions.id}`,
+          JSON.stringify(Array.from(selectedQuestionIds))
+        );
+      } catch {}
+
+      const topic = selectedTopicForQuestions;
+      closeTopicQuestionsModal();
+      if (topic._count.subtopics > 0) {
+        navigateToSubtopics(topic);
+      }
+    }
+  };
+
   const renderNavbar = () => {
     return (
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -530,70 +604,69 @@ export default function UserDashboard() {
 
   const renderTopics = () => (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Explore Topics</h2>
-        <p className="text-gray-600">Choose a topic to start your learning journey</p>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Choose one topics you are interested in</h2>
       </div>
-      
+
       {topics.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {topics.map((topic, index) => (
-            <motion.div
-              key={topic.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={topic._count.subtopics > 0 ? { y: -4, scale: 1.02 } : {}}
-              className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all ${
-                topic._count.subtopics > 0 
-                  ? 'hover:shadow-lg cursor-pointer' 
-                  : 'opacity-75 cursor-not-allowed'
-              }`}
-              onClick={() => {
-                if (topic._count.subtopics > 0) {
-                  navigateToSubtopics(topic);
-                }
-              }}
-            >
-              {topic.thumbnail ? (
-                <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 relative">
-                  <img 
-                    src={topic.thumbnail} 
-                    alt={topic.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/20"></div>
-                </div>
-              ) : (
-                <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 relative flex items-center justify-center">
-                  <BookOpen className="w-16 h-16 text-white/80" />
-                </div>
-              )}
-              
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{topic.title}</h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">{topic.description}</p>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <BookOpen className="w-4 h-4 mr-1" />
-                    <span>{topic._count.subtopics} Subtopics</span>
+        <>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {(showAllTopics ? topics : topics.slice(0, 6)).map((topic, index) => (
+              <motion.button
+                key={topic.id}
+                type="button"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: (index % 6) * 0.05 }}
+                onClick={() => openTopicQuestions(topic)}
+                className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col items-center justify-center hover:shadow-md active:scale-[0.99] transition`}
+              >
+                {topic.thumbnail ? (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 border border-gray-100 bg-gray-50 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={topic.thumbnail}
+                      alt={topic.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // If image fails to load, fall back to contain to avoid layout break
+                        (e.currentTarget as HTMLImageElement).style.objectFit = 'contain';
+                      }}
+                    />
                   </div>
-                  {topic._count.subtopics > 0 ? (
-                    <ChevronRight className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 mb-1">
-                        Coming Soon
-                      </span>
-                      <div className="text-xs text-gray-400">Content being prepared</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                ) : (
+                  <div
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center mb-2 ${[
+                      'bg-emerald-50 text-emerald-600',
+                      'bg-sky-50 text-sky-700',
+                      'bg-amber-50 text-amber-600',
+                      'bg-rose-50 text-rose-600',
+                      'bg-orange-50 text-orange-600',
+                      'bg-fuchsia-50 text-fuchsia-600'
+                    ][index % 6]}`}
+                  >
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                )}
+                <span className="text-sm font-semibold text-gray-800 text-center leading-tight">
+                  {topic.title}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+
+          {!showAllTopics && topics.length > 6 && (
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setShowAllTopics(true)}
+                className="text-gray-800 underline font-medium"
+              >
+                View More
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-6" />
@@ -877,9 +950,6 @@ export default function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Top Navbar */}
-      {renderNavbar()}
-      
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {navigation.level !== 'topics' && (
@@ -909,6 +979,101 @@ export default function UserDashboard() {
           </motion.div>
         </AnimatePresence>
       </main>
+      
+      {/* Topic Questions Modal */}
+      <AnimatePresence>
+        {showQuestionsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={(e) => e.target === e.currentTarget && closeTopicQuestionsModal()}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-6 h-6 text-green-600" />
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {selectedTopicForQuestions ? `Questions about ${selectedTopicForQuestions.title}` : 'Topic Questions'}
+                  </h2>
+                </div>
+                <button
+                  onClick={closeTopicQuestionsModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                {questionsLoading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  </div>
+                ) : topicQuestions.length > 0 ? (
+                  <div className="space-y-4">
+                    <p className="text-gray-600">Select one or more that match your needs.</p>
+                    <div className="space-y-3">
+                      {topicQuestions.map((q) => (
+                        <label
+                          key={q.id}
+                          className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                            checked={selectedQuestionIds.has(q.id)}
+                            onChange={() => toggleQuestionSelection(q.id)}
+                          />
+                          <span className="text-gray-800">{q.question}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                      <button
+                        type="button"
+                        onClick={closeTopicQuestionsModal}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={proceedAfterQuestions}
+                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Save & Next
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Available</h3>
+                    <p className="text-gray-600 mb-6">You can continue exploring subtopics for this topic.</p>
+                    <button
+                      type="button"
+                      onClick={proceedAfterQuestions}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Package Management Modal */}
       <AnimatePresence>
@@ -1188,55 +1353,6 @@ export default function UserDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-around items-center py-2">
-            {/* Home */}
-            <button 
-              onClick={navigateToTopics}
-              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                navigation.level === 'topics'
-                  ? 'text-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
-              }`}
-            >
-              <Home className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium">Home</span>
-            </button>
-
-            {/* Search */}
-            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
-              <Search className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium">Search</span>
-            </button>
-
-            {/* Courses */}
-            <button 
-              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                navigation.level === 'courses' || navigation.level === 'chapters'
-                  ? 'text-green-600 bg-green-50'
-                  : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
-              }`}
-            >
-              <BookOpen className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium">Courses</span>
-            </button>
-
-            {/* Profile */}
-            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
-              <User className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium">Profile</span>
-            </button>
-
-            {/* Menu */}
-            <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors text-gray-600 hover:text-green-600 hover:bg-gray-50">
-              <Menu className="w-5 h-5 mb-1" />
-              <span className="text-xs font-medium">Menu</span>
-            </button>
-          </div>
-        </div>
-      </nav>
     </div>
   );
 }
