@@ -134,12 +134,6 @@ export default function UserDashboard() {
   const [showAllTopics, setShowAllTopics] = useState(false);
   const router = useRouter();
 
-  // Topic Questions modal state
-  const [showQuestionsModal, setShowQuestionsModal] = useState(false);
-  const [selectedTopicForQuestions, setSelectedTopicForQuestions] = useState<Topic | null>(null);
-  const [topicQuestions, setTopicQuestions] = useState<{ id: string; question: string }[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -423,70 +417,7 @@ export default function UserDashboard() {
     }));
   };
 
-  // Topic Questions handlers
-  const openTopicQuestions = async (topic: Topic) => {
-    try {
-      setSelectedTopicForQuestions(topic);
-      setShowQuestionsModal(true);
-      setQuestionsLoading(true);
-
-      // Preload any saved selections
-      const saved = localStorage.getItem(`topic-questions-${topic.id}`);
-      if (saved) {
-        try {
-          setSelectedQuestionIds(new Set(JSON.parse(saved)));
-        } catch {}
-      } else {
-        setSelectedQuestionIds(new Set());
-      }
-
-      const res = await fetch(`/api/topics/${topic.id}/questions`);
-      if (res.ok) {
-        const data = await res.json();
-        setTopicQuestions((data.questions || []).map((q: any) => ({ id: q.id, question: q.question })));
-      } else {
-        setTopicQuestions([]);
-      }
-    } catch (e) {
-      console.error('Failed to open topic questions:', e);
-      setTopicQuestions([]);
-    } finally {
-      setQuestionsLoading(false);
-    }
-  };
-
-  const toggleQuestionSelection = (id: string) => {
-    setSelectedQuestionIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const closeTopicQuestionsModal = () => {
-    setShowQuestionsModal(false);
-    setSelectedTopicForQuestions(null);
-    setTopicQuestions([]);
-    setSelectedQuestionIds(new Set());
-  };
-
-  const proceedAfterQuestions = () => {
-    if (selectedTopicForQuestions) {
-      // Persist locally for now
-      try {
-        localStorage.setItem(
-          `topic-questions-${selectedTopicForQuestions.id}`,
-          JSON.stringify(Array.from(selectedQuestionIds))
-        );
-      } catch {}
-
-      const topic = selectedTopicForQuestions;
-      closeTopicQuestionsModal();
-      if (topic._count.subtopics > 0) {
-        navigateToSubtopics(topic);
-      }
-    }
-  };
+  // Topic Questions handlers removed in favor of page-based flow
 
   const renderNavbar = () => {
     return (
@@ -618,7 +549,7 @@ export default function UserDashboard() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index % 6) * 0.05 }}
-                onClick={() => openTopicQuestions(topic)}
+                onClick={() => router.push(`/topic/${topic.id}/questions`)}
                 className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col items-center justify-center hover:shadow-md active:scale-[0.99] transition`}
               >
                 {topic.thumbnail ? (
@@ -942,14 +873,14 @@ export default function UserDashboard() {
 
   if (!user || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-amber-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-amber-50 pb-20">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {navigation.level !== 'topics' && (
@@ -980,100 +911,7 @@ export default function UserDashboard() {
         </AnimatePresence>
       </main>
       
-      {/* Topic Questions Modal */}
-      <AnimatePresence>
-        {showQuestionsModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-            onClick={(e) => e.target === e.currentTarget && closeTopicQuestionsModal()}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-green-600" />
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {selectedTopicForQuestions ? `Questions about ${selectedTopicForQuestions.title}` : 'Topic Questions'}
-                  </h2>
-                </div>
-                <button
-                  onClick={closeTopicQuestionsModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-                {questionsLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  </div>
-                ) : topicQuestions.length > 0 ? (
-                  <div className="space-y-4">
-                    <p className="text-gray-600">Select one or more that match your needs.</p>
-                    <div className="space-y-3">
-                      {topicQuestions.map((q) => (
-                        <label
-                          key={q.id}
-                          className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            className="mt-1 w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                            checked={selectedQuestionIds.has(q.id)}
-                            onChange={() => toggleQuestionSelection(q.id)}
-                          />
-                          <span className="text-gray-800">{q.question}</span>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        type="button"
-                        onClick={closeTopicQuestionsModal}
-                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={proceedAfterQuestions}
-                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Save & Next
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Questions Available</h3>
-                    <p className="text-gray-600 mb-6">You can continue exploring subtopics for this topic.</p>
-                    <button
-                      type="button"
-                      onClick={proceedAfterQuestions}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Topic Questions Modal removed - replaced by /topic/[id]/questions page */}
 
       {/* Package Management Modal */}
       <AnimatePresence>

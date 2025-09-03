@@ -66,7 +66,7 @@ export default function Navbar() {
   return (
     <>
       {/* Fixed top navbar */}
-      <div className="fixed top-0 left-0 right-0 z-40 border-b border-gray-200 bg-white">
+      <div className="fixed top-0 left-0 right-0 z-40 border-b border-amber-200 bg-amber-100">
         <div className="mx-auto max-w-5xl px-4 py-1">
           <div className="flex items-center justify-between">
             {/* Back button (circular) */}
