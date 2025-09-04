@@ -367,12 +367,18 @@ export default function QuizFreePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-center gap-4">
+              <div className="flex flex-col items-center justify-center gap-3">
                 <button
                   onClick={() => router.push('/login')}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
                 >
                   Sign In for Full Access
+                </button>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-8 py-3 rounded-lg font-medium border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Return to Home Page
                 </button>
               </div>
             </div>

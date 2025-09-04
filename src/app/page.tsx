@@ -62,16 +62,9 @@ export default function HomePage() {
   const [activeNav, setActiveNav] = useState('home');
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
-
-  const circularMenuItems = [
-    { id: 1, label: 'ENGAGE', color: '#22c55e', icon: '👥' },
-    { id: 2, label: 'FOOD', color: '#eab308', icon: '🍽️' },
-    { id: 3, label: 'TRADE', color: '#f97316', icon: '📊' },
-    { id: 4, label: 'LEARN', color: '#3b82f6', icon: '📚' },
-    { id: 5, label: 'PROFIT', color: '#a855f7', icon: '💰' },
-    { id: 6, label: 'TECH', color: '#ec4899', icon: '💻' },
-  ];
-
+  const [user, setUser] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [selectedShort, setSelectedShort] = useState<Video | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const iframeRef = useRef(null);
@@ -82,6 +75,15 @@ export default function HomePage() {
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
+
+  const circularMenuItems = [
+    { id: 1, label: 'ENGAGE', color: '#22c55e', icon: '👥' },
+    { id: 2, label: 'FOOD', color: '#eab308', icon: '🍽️' },
+    { id: 3, label: 'TRADE', color: '#f97316', icon: '📊' },
+    { id: 4, label: 'LEARN', color: '#3b82f6', icon: '📚' },
+    { id: 5, label: 'PROFIT', color: '#a855f7', icon: '💰' },
+    { id: 6, label: 'TECH', color: '#ec4899', icon: '💻' },
+  ];
 
   // Helper function for next video functionality
   const playNextVideo = (currentVideoId: number) => {
@@ -324,6 +326,32 @@ export default function HomePage() {
     return { x, y };
   };
 
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
   // Fetch topics from database
   useEffect(() => {
     const fetchTopics = async () => {
@@ -409,12 +437,41 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
-          <button 
-            onClick={() => router.push('/login')}
-            className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
-          >
-            LOGIN/ SIGN UP
-          </button>
+          {!authLoading && (
+            isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => {
+                    const dashboardUrl = user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/user';
+                    router.push(dashboardUrl);
+                  }}
+                  className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
+                >
+                  DASHBOARD
+                </button>
+                <span className="text-white text-xs">|</span>
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    setUser(null);
+                    setIsAuthenticated(false);
+                    router.push('/');
+                  }}
+                  className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
+                >
+                  LOGOUT
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => router.push('/login')}
+                className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
+              >
+                LOGIN/ SIGN UP
+              </button>
+            )
+          )}
         
           <div className="bg-yellow-200 rounded-md p-0.5 flex items-center border border-transparent">
             <button 

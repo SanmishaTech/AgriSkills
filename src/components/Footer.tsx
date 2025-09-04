@@ -30,12 +30,39 @@ export default function Footer() {
   useEffect(() => {
     setMounted(true);
     try {
+      const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
-      setUser(userData ? JSON.parse(userData) : null);
+      if (token && userData) {
+        setUser(JSON.parse(userData));
+      } else {
+        if (!token) localStorage.removeItem('user');
+        setUser(null);
+      }
     } catch {
       setUser(null);
     }
   }, [pathname]);
+
+  // Keep in sync across tabs/windows
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === 'token' || e.key === 'user') {
+        try {
+          const token = localStorage.getItem('token');
+          const data = localStorage.getItem('user');
+          if (token && data) {
+            setUser(JSON.parse(data));
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
+        }
+      }
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -55,8 +82,8 @@ export default function Footer() {
   // Check if user is admin with explicit validation
   const isUserAdmin = user && user.role && user.role.toLowerCase().trim() === 'admin';
   
-  // Dynamic destination for Learn
-  const learnHref = user ? '/dashboard/user' : '/login';
+  // Learn should always route to the public learn topics page
+  const learnHref = '/learn';
 
   const menuItems = [
     {
@@ -92,7 +119,7 @@ export default function Footer() {
             {/* Learn */}
             <Link
               href={learnHref}
-              className={`flex flex-col items-center text-xs ${pathname?.startsWith('/dashboard') ? 'text-gray-700' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              className={`flex flex-col items-center text-xs ${pathname?.startsWith('/learn') ? 'text-amber-600' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
               <div className="mb-0.5">{menuItems[1].icon}</div>
               <span>Learn</span>

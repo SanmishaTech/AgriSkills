@@ -27,17 +27,41 @@ export default function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-    const data = localStorage.getItem("user");
-    if (data) {
-      try {
+    try {
+      const token = localStorage.getItem("token");
+      const data = localStorage.getItem("user");
+      if (token && data) {
         setUser(JSON.parse(data));
-      } catch {
+      } else {
+        // Clean up stale user if token is missing
+        if (!token) localStorage.removeItem("user");
         setUser(null);
       }
-    } else {
+    } catch {
       setUser(null);
     }
   }, [pathname]);
+
+  // Keep user state in sync across tabs/windows
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === "token" || e.key === "user") {
+        try {
+          const token = localStorage.getItem("token");
+          const data = localStorage.getItem("user");
+          if (token && data) {
+            setUser(JSON.parse(data));
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
+        }
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {

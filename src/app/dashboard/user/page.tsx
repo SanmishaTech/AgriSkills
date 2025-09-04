@@ -27,7 +27,12 @@ import {
   Edit,
   Trash2,
   X,
-  HelpCircle
+  HelpCircle,
+  Award,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
 
 interface User {
@@ -417,6 +422,7 @@ export default function UserDashboard() {
     }));
   };
 
+
   // Topic Questions handlers removed in favor of page-based flow
 
   const renderNavbar = () => {
@@ -536,6 +542,20 @@ export default function UserDashboard() {
   const renderTopics = () => (
     <div>
       <div className="mb-6">
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome, {user?.name || user?.email?.split('@')[0] || 'User'}! 👋
+          </h1>
+          <div className="mt-4">
+            <button
+              onClick={() => router.push('/certificates')}
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+            >
+              <Award className="w-5 h-5" />
+              Get Certificates
+            </button>
+          </div>
+        </div>
         <h2 className="text-2xl font-bold text-gray-900">Choose one topics you are interested in</h2>
       </div>
 
@@ -1190,6 +1210,7 @@ export default function UserDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
 
     </div>
   );
