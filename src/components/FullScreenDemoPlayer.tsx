@@ -8,6 +8,7 @@ interface FullScreenDemoPlayerProps {
   demoUrls: string[];
   onClose: () => void;
   topicId: string;
+  demoTitles?: string[];
 }
 
 declare global {
@@ -17,12 +18,13 @@ declare global {
   }
 }
 
-const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId }: FullScreenDemoPlayerProps) => {
+const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId, demoTitles }: FullScreenDemoPlayerProps) => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const router = useRouter();
   const playerRef = useRef<any>(null);
 
   const videoId = demoUrls[currentVideoIndex]?.split('v=')[1]?.split('&')[0];
+  const currentTitle = demoTitles?.[currentVideoIndex] || '';
 
   useEffect(() => {
     const loadYouTubeAPI = () => {
@@ -102,6 +104,16 @@ const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId }: FullScreenDemoPlay
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="relative w-full h-full max-w-4xl max-h-screen-80 aspect-video">
         <div id={`youtube-player-${videoId}`} className="w-full h-full"></div>
+
+        {/* Top overlay with demo label and title */}
+        <div className="absolute top-0 left-0 right-0 p-3 md:p-4 bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none">
+          <p className="text-white text-sm md:text-base font-semibold drop-shadow-md line-clamp-2">
+            Demo Video {currentVideoIndex + 1}
+            {currentTitle ? (
+              <span className="font-normal text-white/90">: {currentTitle}</span>
+            ) : null}
+          </p>
+        </div>
 
         <button
           onClick={onClose}

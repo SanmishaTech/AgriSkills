@@ -185,11 +185,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-white py-6 px-4 sm:py-10 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <Card className="shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-gray-900">
+            <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">
               {step === 'register' ? 'Create Account' : 'Verify Email'}
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -211,7 +211,7 @@ export default function RegisterPage() {
             )}
 
             {step === 'register' ? (
-              <form className="space-y-6" onSubmit={handleSendOTP}>
+              <form className="space-y-4 sm:space-y-6" onSubmit={handleSendOTP}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -269,33 +269,38 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full"
-                  variant="default"
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Sending Code...
-                    </div>
-                  ) : (
-                    'Send Verification Code'
-                  )}
-                </Button>
-
-                <div className="text-center pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Already have an account?{' '}
-                    <Link href="/login" className="font-medium text-primary hover:underline">
-                      Sign in here
-                    </Link>
-                  </p>
+                <div className="space-y-0">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-10 sm:h-11"
+                    variant="default"
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Sending Code...
+                      </div>
+                    ) : (
+                      'Send Verification Code'
+                    )}
+                  </Button>
+                  {/* Return to Home Page just below submit */}
+                  <div className="flex items-center justify-center gap-2">
+                    <Button asChild variant="ghost" size="sm" className="text-green-700 text-xs h-auto p-0 leading-none">
+                      <Link href="/">Return to Home Page</Link>
+                    </Button>
+                    <span className="text-muted-foreground text-xs">|</span>
+                    <Button asChild variant="ghost" size="sm" className="text-green-700 text-xs h-auto p-0 leading-none">
+                      <Link href="/login">Sign In</Link>
+                    </Button>
+                  </div>
                 </div>
+
+
               </form>
             ) : (
-              <form className="space-y-6" onSubmit={handleVerifyOTP}>
+              <form className="space-y-4 sm:space-y-6" onSubmit={handleVerifyOTP}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="otp">Verification Code</Label>
@@ -319,7 +324,7 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   disabled={loading || otp.length !== 6}
-                  className="w-full"
+                  className="w-full h-10 sm:h-11"
                   variant="default"
                 >
                   {loading ? (
@@ -353,6 +358,13 @@ export default function RegisterPage() {
                     className="text-sm"
                   >
                     Back to registration
+                  </Button>
+                </div>
+
+                {/* Return to Home Page */}
+                <div className="text-center">
+                  <Button asChild variant="ghost" size="sm" className="text-green-700">
+                    <Link href="/">Return to Home Page</Link>
                   </Button>
                 </div>
               </form>

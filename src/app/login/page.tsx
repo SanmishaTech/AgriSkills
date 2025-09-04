@@ -181,18 +181,18 @@ export default function LoginPage() {
   return (
     <>
       {/* Mobile Layout */}
-      <div className="lg:hidden min-h-screen bg-orange-50 flex flex-col">
+      <div className="lg:hidden min-h-dvh bg-orange-50 flex flex-col">
         {/* Mobile Illustration - Full width from top */}
         <div className="flex-1 flex flex-col justify-start pt-0">
           <img 
             src="/images/login.png" 
             alt="AgriSkills Login Illustration" 
-            className="w-full h-auto object-contain mt-0"
+            className="block w-full h-auto object-contain mt-0"
           />
         </div>
         
         {/* Mobile Form - No card, directly on background */}
-        <div className="bg-orange-50 px-4 pb-8">
+        <div className="bg-orange-50 px-4 pb-4">
           <div className="max-w-sm mx-auto">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{isSignUp ? 'Create Account' : 'Login'}</h1>
@@ -247,21 +247,28 @@ export default function LoginPage() {
                       )}
                     />
                     
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        'LOGIN'
-                      )}
-                    </Button>
-                    
+                    <div className="space-y-0">
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                            Signing in...
+                          </>
+                        ) : (
+                          'LOGIN'
+                        )}
+                      </Button>
+                      <div className="text-center">
+                        <Button asChild variant="ghost" size="sm" className="text-green-700 text-xs h-auto p-0 leading-none">
+                          <Link href="/">Return to Home Page</Link>
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="text-center pt-4">
                       <p className="text-sm text-gray-600">
                         You do not have account ?
@@ -364,33 +371,39 @@ export default function LoginPage() {
                     )}
                   />
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl mt-6"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      'CREATE ACCOUNT'
-                    )}
-                  </Button>
-                  
-                  <div className="text-center pt-4">
-                    <p className="text-sm text-gray-600">
-                      Already have an account ?
-                    </p>
-                    <button
-                      type="button"
-                      onClick={toggleMode}
-                      className="text-green-600 font-medium underline mt-1"
+                  <div className="space-y-0">
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl mt-6"
+                      disabled={loading}
                     >
-                      Sign In Here
-                    </button>
+                      {loading ? (
+                        <>
+                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        'CREATE ACCOUNT'
+                      )}
+                    </Button>
+                    {/* Inline Return | Sign In row */}
+                    <div className="flex items-center justify-center gap-2">
+                      <Button asChild variant="ghost" size="sm" className="text-green-700 text-xs h-auto p-0 leading-none">
+                        <Link href="/">Return to Home Page</Link>
+                      </Button>
+                      <span className="text-muted-foreground text-xs">|</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleMode}
+                        className="text-green-700 text-xs h-auto p-0 leading-none"
+                      >
+                        Sign In
+                      </Button>
+                    </div>
                   </div>
+                  
                 </form>
               </Form>
             )}
@@ -660,6 +673,13 @@ export default function LoginPage() {
               </Form>
             )}
             
+          </div>
+
+          {/* Return to Home Page (Desktop) */}
+          <div className="text-center">
+            <Button asChild variant="ghost" size="sm" className="text-green-700">
+              <Link href="/">Return to Home Page</Link>
+            </Button>
           </div>
           
           {/* Test Credentials - Show only on login */}

@@ -79,7 +79,9 @@ export default function HomePage() {
   // Demo player state
   const [showDemoPlayer, setShowDemoPlayer] = useState(false);
   const [demoUrls, setDemoUrls] = useState<string[]>([]);
+  const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const seeByScrollRef = useRef<HTMLDivElement>(null);
 
   // Helper function for next video functionality
   const playNextVideo = (currentVideoId: number) => {
@@ -101,16 +103,21 @@ export default function HomePage() {
         return;
       }
       const data = await res.json();
-      const urls: string[] = Array.isArray(data?.demoVideos)
+      const demoPairs = Array.isArray(data?.demoVideos)
         ? data.demoVideos
-            .map((v: any) => v?.youtubeId)
-            .filter((id: any) => typeof id === 'string' && id.length === 11)
-            .map((id: string) => `https://www.youtube.com/watch?v=${id}`)
+            .map((v: any) => ({
+              youtubeId: v?.youtubeId,
+              title: typeof v?.title === 'string' ? v.title : ''
+            }))
+            .filter((p: any) => typeof p.youtubeId === 'string' && p.youtubeId.length === 11)
         : [];
+      const urls: string[] = demoPairs.map((p: any) => `https://www.youtube.com/watch?v=${p.youtubeId}`);
+      const titles: string[] = demoPairs.map((p: any) => p.title);
 
       if (urls.length > 0) {
         setSelectedTopicId(topicId);
         setDemoUrls(urls);
+        setDemoTitles(titles);
         setShowDemoPlayer(true);
       } else {
         router.push(`/topic/${topicId}`);
@@ -123,6 +130,7 @@ export default function HomePage() {
   const closeDemo = () => {
     setShowDemoPlayer(false);
     setDemoUrls([]);
+    setDemoTitles([]);
     setSelectedTopicId(null);
   };
 
@@ -347,6 +355,14 @@ export default function HomePage() {
     return icons[index % icons.length];
   };
 
+  // Smoothly scroll the "See By" horizontal list
+  const scrollSeeBy = (direction: 'left' | 'right') => {
+    const el = seeByScrollRef.current;
+    if (!el) return;
+    const amount = Math.round(el.clientWidth * 0.9);
+    el.scrollBy({ left: direction === 'right' ? amount : -amount, behavior: 'smooth' });
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col w-full relative overflow-hidden">
       
@@ -393,25 +409,6 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
-          {/* WhatsApp Icon - Hidden on mobile, shown on larger screens */}
-          <div className="hidden lg:block relative group">
-            <a 
-              href="https://wa.me/?text=I%20want%20to%20learn%20more%20about%20farming%20on%20AgriSkills"
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors flex items-center justify-center shadow-md hover:shadow-lg"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-              </svg>
-            </a>
-            {/* Tooltip */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
-              Learn on WhatsApp
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-l-transparent border-b-4 border-b-gray-900 border-r-4 border-r-transparent"></div>
-            </div>
-          </div>
-          
           <button 
             onClick={() => router.push('/login')}
             className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
@@ -548,34 +545,23 @@ export default function HomePage() {
             )}
           </div>
           
-          {/* Learn on WhatsApp Button - Mobile Only */}
-          <div className="mt-8 mb-4 sm:hidden">
-            <a 
-              href="https://wa.me/?text=I%20want%20to%20learn%20more%20about%20farming%20on%20AgriSkills"
-              className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-4 hover:bg-green-100 transition-colors"
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-2 mr-3">
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                  </svg>
-                </div>
-                <span className="text-gray-800 font-medium text-base">Learn on WhatsApp</span>
-              </div>
-              <div className="bg-white rounded-full p-1.5 shadow-sm">
-                <ArrowRight className="w-5 h-5 text-gray-600" />
-              </div>
-            </a>
-          </div>
-          
           {/* See By Section */}
           <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">See By</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">See By</h3>
+              <button
+                type="button"
+                onClick={() => scrollSeeBy('right')}
+                aria-label="Scroll topics right"
+                title="Scroll"
+                className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 text-gray-700"
+              >
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
             
             {/* Topics Grid */}
-            <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
+            <div ref={seeByScrollRef} className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
               {topicsLoading ? (
                 <div className="flex items-center justify-center w-full py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
@@ -588,12 +574,12 @@ export default function HomePage() {
                 topics.map((topic, index) => (
                   <div
                     key={topic.id}
-                    className="bg-white rounded-xl overflow-hidden min-w-[140px] cursor-pointer hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl overflow-hidden min-w-[78px] cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => openTopicDemo(topic.id)}
                   >
                     {/* Topic Thumbnail */}
                     {topic.thumbnail ? (
-                      <div className="relative h-24 w-full">
+                      <div className="relative h-[54px] w-full">
                         <Image
                           src={topic.thumbnail}
                           alt={topic.title}
@@ -603,13 +589,13 @@ export default function HomePage() {
                         />
                       </div>
                     ) : (
-                      <div className={`${getTopicColor(index)} h-24 w-full flex items-center justify-center`}>
-                        <div className="text-3xl">{getTopicIcon(index)}</div>
+                      <div className={`${getTopicColor(index)} h-[54px] w-full flex items-center justify-center`}>
+                        <div className="text-2xl">{getTopicIcon(index)}</div>
                       </div>
                     )}
                     {/* Topic Title */}
-                    <div className="p-3">
-                      <h4 className="text-sm font-medium text-gray-700 text-center">{topic.title}</h4>
+                    <div className="p-1.5">
+                      <h4 className="text-[10px] font-medium text-gray-700 text-center">{topic.title}</h4>
                     </div>
                   </div>
                 ))
@@ -957,6 +943,7 @@ export default function HomePage() {
       {showDemoPlayer && selectedTopicId && (
         <FullScreenDemoPlayer
           demoUrls={demoUrls}
+          demoTitles={demoTitles}
           onClose={closeDemo}
           topicId={selectedTopicId}
         />

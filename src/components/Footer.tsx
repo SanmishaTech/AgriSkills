@@ -43,8 +43,8 @@ export default function Footer() {
     router.push('/login');
   };
 
-  // Hide footer for: auth pages, any dashboard route (SSR-safe), any admin route, and any logged-in user
-  if (shouldHideFooter || isDashboardRoute || isAdminRoute || !!user || !mounted) {
+  // Hide footer for: auth pages and any dashboard/admin route. Keep visible for logged-in users on non-dashboard pages.
+  if (shouldHideFooter || isDashboardRoute || isAdminRoute || !mounted) {
     return null;
   }
 
