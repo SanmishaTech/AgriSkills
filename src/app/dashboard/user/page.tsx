@@ -549,14 +549,18 @@ export default function UserDashboard() {
           <div className="mt-4">
             <button
               onClick={() => router.push('/certificates')}
-              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              className="group flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 active:bg-green-700 text-white px-5 py-3 rounded-full font-semibold shadow-md hover:shadow-lg active:shadow-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 w-full ring-1 ring-black/5"
             >
-              <Award className="w-5 h-5" />
-              Get Certificates
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/15 ring-1 ring-white/20">
+                <Award className="w-4 h-4 text-white" />
+              </span>
+              <span>Get Certificates</span>
             </button>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">Choose one topics you are interested in</h2>
+        <div className="bg-amber-50 rounded-md py-3 px-4">
+          <h2 className="text-2xl font-bold text-gray-900 text-center">What topics are you interested in?</h2>
+        </div>
       </div>
 
       {topics.length > 0 ? (
@@ -570,24 +574,25 @@ export default function UserDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index % 6) * 0.05 }}
                 onClick={() => router.push(`/topic/${topic.id}/questions`)}
-                className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col items-center justify-center hover:shadow-md active:scale-[0.99] transition`}
+                className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md active:scale-[0.99] transition text-left`}
               >
+                {/* Image area */}
                 {topic.thumbnail ? (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden mb-2 border border-gray-100 bg-gray-50 flex items-center justify-center">
+                  <div className="w-full h-24 md:h-28 bg-gray-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={topic.thumbnail}
                       alt={topic.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // If image fails to load, fall back to contain to avoid layout break
                         (e.currentTarget as HTMLImageElement).style.objectFit = 'contain';
+                        (e.currentTarget as HTMLImageElement).style.background = '#f3f4f6';
                       }}
                     />
                   </div>
                 ) : (
                   <div
-                    className={`w-12 h-12 rounded-lg flex items-center justify-center mb-2 ${[
+                    className={`w-full h-24 md:h-28 flex items-center justify-center ${[
                       'bg-emerald-50 text-emerald-600',
                       'bg-sky-50 text-sky-700',
                       'bg-amber-50 text-amber-600',
@@ -596,12 +601,16 @@ export default function UserDashboard() {
                       'bg-fuchsia-50 text-fuchsia-600'
                     ][index % 6]}`}
                   >
-                    <BookOpen className="w-6 h-6" />
+                    <BookOpen className="w-8 h-8" />
                   </div>
                 )}
-                <span className="text-sm font-semibold text-gray-800 text-center leading-tight">
-                  {topic.title}
-                </span>
+
+                {/* Caption */}
+                <div className="p-3">
+                  <div className="text-sm font-semibold text-gray-800 text-center leading-tight">
+                    {topic.title}
+                  </div>
+                </div>
               </motion.button>
             ))}
           </div>
