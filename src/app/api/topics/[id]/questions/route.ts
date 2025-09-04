@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const topicId = params.id;
+    const { id: topicId } = await params;
 
     // Fetch active questions for the topic, ordered by orderIndex
     const questions = await prisma.topicQuestion.findMany({

@@ -146,6 +146,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           id: course.id,
           title: course.title,
           description: course.description || '',
+          thumbnail: course.thumbnail || null,
           duration: '2h 30m', // Mock duration - you might want to calculate this
           difficulty: 'Beginner', // Mock difficulty - you might want to add this field
           enrolledCount: 100 // Mock enrolled count - you might want to add this field

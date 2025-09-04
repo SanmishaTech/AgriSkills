@@ -21,11 +21,14 @@ export default function Footer() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Don't show footer on auth pages only
-  const hideOnPages = ['/login', '/register'];
+  // Don't show footer on auth pages, topic pages, and learning pages
+  const hideOnPages = ['/register', '/login'];
   const shouldHideFooter = hideOnPages.includes(pathname);
   const isAdminRoute = pathname?.startsWith('/dashboard/admin');
   const isDashboardRoute = pathname?.startsWith('/dashboard');
+  const isTopicRoute = pathname?.startsWith('/topic/');
+  const isLearnRoute = pathname?.startsWith('/learn');
+  const isQuizRoute = pathname?.includes('/questions');
 
   useEffect(() => {
     setMounted(true);
@@ -70,9 +73,14 @@ export default function Footer() {
     router.push('/login');
   };
 
-  // Hide footer for: auth pages and any dashboard/admin route. Keep visible for logged-in users on non-dashboard pages.
-  if (shouldHideFooter || isDashboardRoute || isAdminRoute || !mounted) {
+  // Hide footer for: auth pages, dashboard routes, topic pages, learning pages, and quiz pages
+  if (shouldHideFooter || isDashboardRoute || isAdminRoute || isTopicRoute || isLearnRoute || isQuizRoute) {
     return null;
+  }
+  
+  // Don't render footer until component is mounted to avoid hydration issues
+  if (!mounted) {
+    return <div className="h-16" />; // Placeholder to maintain layout
   }
 
   // Removed login-specific footer; login should not show any footer

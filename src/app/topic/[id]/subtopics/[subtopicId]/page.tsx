@@ -28,6 +28,19 @@ export default function SubtopicCoursesPage() {
   const [subtopic, setSubtopic] = useState<any>(null)
   const [topicTitle, setTopicTitle] = useState('')
 
+  // Emoji fallback helper for course thumbnails
+  const getCourseEmoji = (title?: string) => {
+    const t = (title || '').toLowerCase()
+    if (t.includes('soil')) return '🪴'
+    if (t.includes('crop')) return '🌾'
+    if (t.includes('sustain')) return '🌍'
+    if (t.includes('organic')) return '🥕'
+    if (t.includes('tech') || t.includes('technology')) return '💻'
+    if (t.includes('water') || t.includes('irrig')) return '💧'
+    if (t.includes('pest')) return '🐛'
+    return '🎓'
+  }
+
   useEffect(() => {
     if (!topicId || !subtopicId) return
     const load = async () => {
@@ -77,9 +90,21 @@ export default function SubtopicCoursesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {subtopic.courses.map((course: any) => (
                 <div key={course.id} className="bg-white rounded-lg shadow-sm hover:shadow-lg border border-gray-200 overflow-hidden transition-all">
-                  <div className="h-32 bg-gradient-to-br from-blue-400 to-blue-600 relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Play className="w-8 h-8 text-white" />
+                  {/* Thumbnail / Emoji Fallback */}
+                  <div className="h-32 relative">
+                    <div className="relative w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      {/* Emoji shown by default; image overlays when valid */}
+                      <span className="text-4xl select-none">{getCourseEmoji(course?.title)}</span>
+                      {course?.thumbnail ? (
+                        <img
+                          src={course.thumbnail}
+                          alt={course.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).remove()
+                          }}
+                        />
+                      ) : null}
                     </div>
                   </div>
                   <div className="p-6">

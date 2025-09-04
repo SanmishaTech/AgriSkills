@@ -18,15 +18,45 @@ export default function TopicQuestionsPage() {
   const [loading, setLoading] = useState(true)
   const [questions, setQuestions] = useState<QuestionItem[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!topicId) return
 
-    // Load saved selections
-    try {
-      const saved = localStorage.getItem(`topic-questions-${topicId}`)
-      if (saved) setSelected(new Set(JSON.parse(saved)))
-    } catch {}
+    // Get user ID from localStorage
+    const userData = localStorage.getItem('user')
+    let currentUserId = null
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        currentUserId = user.id
+        setUserId(user.id)
+        console.log('✅ User ID loaded:', currentUserId)
+      } catch (error) {
+        console.error('❌ Failed to parse user data:', error)
+      }
+    } else {
+      console.log('⚠️ No user data found in localStorage')
+    }
+
+    // Load saved selections for this user
+    if (currentUserId) {
+      try {
+        const storageKey = `topic-questions-${topicId}-${currentUserId}`
+        const saved = localStorage.getItem(storageKey)
+        console.log('🔍 Loading from key:', storageKey)
+        console.log('📦 Saved data:', saved)
+        if (saved) {
+          const selections = JSON.parse(saved)
+          setSelected(new Set(selections))
+          console.log('✅ Loaded selections:', selections)
+        } else {
+          console.log('ℹ️ No saved selections found')
+        }
+      } catch (error) {
+        console.error('❌ Failed to load saved selections:', error)
+      }
+    }
 
     const load = async () => {
       try {
@@ -58,9 +88,25 @@ export default function TopicQuestionsPage() {
   }
 
   const onNext = () => {
-    try {
-      localStorage.setItem(`topic-questions-${topicId}` , JSON.stringify(Array.from(selected)))
-    } catch {}
+    // Save selections with user-specific key
+    if (userId) {
+      try {
+        const storageKey = `topic-questions-${topicId}-${userId}`
+        const selectionsArray = Array.from(selected)
+        console.log('💾 Saving selections:', selectionsArray)
+        console.log('🔑 Storage key:', storageKey)
+        localStorage.setItem(storageKey, JSON.stringify(selectionsArray))
+        console.log('✅ Data saved successfully')
+        
+        // Verify the save worked
+        const saved = localStorage.getItem(storageKey)
+        console.log('🔍 Verification - saved data:', saved)
+      } catch (error) {
+        console.error('❌ Error saving data:', error)
+      }
+    } else {
+      console.error('❌ No user ID available for saving')
+    }
     router.push(`/topic/${topicId}/subtopics`)
   }
 

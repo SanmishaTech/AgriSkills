@@ -36,7 +36,7 @@ interface Chapter {
   };
 }
 
-export default function LearnPage() {
+export default function ChapterPage() {
   const params = useParams();
   const router = useRouter();
   const [chapter, setChapter] = useState<Chapter | null>(null);
@@ -103,10 +103,10 @@ export default function LearnPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Chapter Not Found</h2>
           <p className="text-gray-600 mb-4">The chapter you're looking for doesn't exist.</p>
           <button
-            onClick={() => router.push('/dashboard/user')}
+            onClick={() => router.push('/learn')}
             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
           >
-            Back to Dashboard
+            Back to Learn
           </button>
         </div>
       </div>
@@ -116,27 +116,7 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => router.push('/dashboard/user')}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mr-6"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
-              </button>
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">{chapter.course.title}</h1>
-                  <p className="text-xs text-gray-500">Learning Mode</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Chapter Header with Details */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 text-white">
@@ -316,11 +296,11 @@ export default function LearnPage() {
         {/* Navigation Buttons */}
         <div className="mt-8 flex items-center justify-between">
           <button
-            onClick={() => router.push('/dashboard/user')}
+            onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Courses
+            Back
           </button>
           
           <button

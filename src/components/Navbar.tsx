@@ -17,13 +17,15 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // Hide on auth pages and the home route
+  // Hide on auth pages, the home route, and preview pages
   const hideOnPages = ["/", "/login", "/register"];
-  const shouldHide = hideOnPages.includes(pathname);
+  const isPreviewPage = pathname?.includes('/preview');
+  const shouldHide = hideOnPages.includes(pathname) || isPreviewPage;
 
   useEffect(() => {
     setMounted(true);
@@ -63,6 +65,11 @@ export default function Navbar() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // Reset image error state if the profile photo URL changes
+  useEffect(() => {
+    setImgError(false);
+  }, [user?.profilePhoto]);
+
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -76,6 +83,7 @@ export default function Navbar() {
   }, [menuOpen]);
 
   const handleLogout = () => {
+    // Only clear authentication data, preserve user-specific data for when they log back in
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setMenuOpen(false);
@@ -86,6 +94,11 @@ export default function Navbar() {
   if (shouldHide || !mounted || !user) return null;
 
   const initial = (user.name || user.email || "?").charAt(0).toUpperCase();
+  const hasPhoto = !!(
+    user.profilePhoto &&
+    typeof user.profilePhoto === "string" &&
+    user.profilePhoto.trim().length > 0
+  );
 
   return (
     <>
@@ -123,12 +136,14 @@ export default function Navbar() {
                   className="w-8 h-8 rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center text-gray-700 font-semibold"
                   title={user.name || user.email}
                 >
-                  {user.profilePhoto ? (
+                  {hasPhoto && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.profilePhoto}
                       alt="Profile"
                       className="w-8 h-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={() => setImgError(true)}
                     />
                   ) : (
                     <span className="text-xs">{initial}</span>

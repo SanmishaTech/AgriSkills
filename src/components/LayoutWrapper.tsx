@@ -6,10 +6,14 @@ import React from 'react';
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   // Footer is hidden on these paths (as implemented in Footer.tsx)
-  const hideOnPages = ['/login', '/register'];
+  const hideOnPages = ['/register', '/login'];
+  const shouldHideFooter = hideOnPages.includes(pathname || '');
   const isDashboardRoute = pathname?.startsWith('/dashboard');
   const isAdminRoute = pathname?.startsWith('/dashboard/admin');
-  const footerIsHidden = hideOnPages.includes(pathname || '') || isDashboardRoute || isAdminRoute;
+  const isTopicRoute = pathname?.startsWith('/topic/');
+  const isLearnRoute = pathname?.startsWith('/learn');
+  const isQuizRoute = pathname?.includes('/questions');
+  const footerIsHidden = shouldHideFooter || isDashboardRoute || isAdminRoute || isTopicRoute || isLearnRoute || isQuizRoute;
 
   // Apply bottom padding only when footer is visible
   return (

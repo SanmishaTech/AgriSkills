@@ -21,6 +21,7 @@ export default function TopicQuestions({ topicId }: TopicQuestionsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Fetch questions for the topic
   useEffect(() => {
@@ -42,15 +43,31 @@ export default function TopicQuestions({ topicId }: TopicQuestionsProps) {
     fetchQuestions();
   }, [topicId]);
 
-  // Load user's previous selections (from localStorage for now)
+  // Get user ID and load user's previous selections
   useEffect(() => {
-    const savedSelections = localStorage.getItem(`topic-questions-${topicId}`);
-    if (savedSelections) {
+    // Get user ID from localStorage
+    const userData = localStorage.getItem('user');
+    let currentUserId = null;
+    if (userData) {
       try {
-        const selections = JSON.parse(savedSelections);
-        setSelectedQuestions(new Set(selections));
+        const user = JSON.parse(userData);
+        currentUserId = user.id;
+        setUserId(user.id);
       } catch (error) {
-        console.error('Failed to load saved selections:', error);
+        console.error('Failed to parse user data:', error);
+      }
+    }
+
+    // Load saved selections for this user
+    if (currentUserId) {
+      const savedSelections = localStorage.getItem(`topic-questions-${topicId}-${currentUserId}`);
+      if (savedSelections) {
+        try {
+          const selections = JSON.parse(savedSelections);
+          setSelectedQuestions(new Set(selections));
+        } catch (error) {
+          console.error('Failed to load saved selections:', error);
+        }
       }
     }
   }, [topicId]);
@@ -72,8 +89,10 @@ export default function TopicQuestions({ topicId }: TopicQuestionsProps) {
     setMessage(null);
     
     try {
-      // Save to localStorage (in a real app, this would save to the database)
-      localStorage.setItem(`topic-questions-${topicId}`, JSON.stringify([...selectedQuestions]));
+      // Save to localStorage with user-specific key
+      if (userId) {
+        localStorage.setItem(`topic-questions-${topicId}-${userId}`, JSON.stringify([...selectedQuestions]));
+      }
       
       // Show success message
       setMessage({ type: 'success', text: 'Your question selections have been saved!' });

@@ -392,7 +392,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col w-full relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex flex-col w-full relative">
       
       <header className="text-white py-2 px-3 md:py-4 md:px-6 lg:py-5 lg:px-8 flex items-center justify-between flex-shrink-0"
         style={{
@@ -493,7 +493,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto scrollbar-hide">
+      <main className="flex-1">
          
 
         <motion.div 
@@ -846,7 +846,7 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">Success Stories</h3>
               <button 
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/success-stories')}
                 className="text-green-600 text-sm md:text-base font-medium hover:text-green-700 transition-colors"
               >
                 View All

@@ -93,6 +93,12 @@ export default function EditQuizPage() {
   const params = useParams();
   const quizId = params.id as string;
 
+  // Helper to clamp numbers within a range
+  const clamp = (value: number, min: number, max: number) => {
+    if (Number.isNaN(value)) return min;
+    return Math.min(max, Math.max(min, value));
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -311,6 +317,7 @@ export default function EditQuizPage() {
       setError(null);
       
       const token = localStorage.getItem('token');
+      const safePassingScore = clamp(formData.passingScore, 1, 100);
       const response = await fetch(`/api/admin/quizzes/${quizId}`, {
         method: 'PUT',
         headers: {
@@ -319,6 +326,7 @@ export default function EditQuizPage() {
         },
         body: JSON.stringify({
           ...formData,
+          passingScore: safePassingScore,
           timeLimit: formData.hasTimeLimit ? formData.timeLimit : null,
           questions: questions.map(q => ({
             text: q.text,
@@ -466,10 +474,13 @@ export default function EditQuizPage() {
                 </label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
                   max="100"
                   value={formData.passingScore}
-                  onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    setFormData({ ...formData, passingScore: clamp(Number.isNaN(n) ? 1 : n, 1, 100) });
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>

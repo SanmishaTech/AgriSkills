@@ -85,6 +85,12 @@ export default function ChapterQuizPage() {
 
   const [questions, setQuestions] = useState<Question[]>([]);
 
+  // Helper to clamp numeric values to a range
+  const clamp = (value: number, min: number, max: number) => {
+    if (Number.isNaN(value)) return min;
+    return Math.min(max, Math.max(min, value));
+  };
+
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -286,11 +292,13 @@ export default function ChapterQuizPage() {
     try {
       setSaving(true);
       setError(null);
-      
+
       const token = localStorage.getItem('token');
       const method = chapter?.quiz ? 'PUT' : 'POST';
       const url = `/api/admin/chapters/${chapterId}/quiz`;
-      
+
+      const safePassingScore = clamp(formData.passingScore, 1, 100);
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -299,6 +307,7 @@ export default function ChapterQuizPage() {
         },
         body: JSON.stringify({
           ...formData,
+          passingScore: safePassingScore,
           timeLimit: formData.hasTimeLimit ? formData.timeLimit : null,
           questions: questions.map(q => ({
             text: q.text,
@@ -444,7 +453,13 @@ export default function ChapterQuizPage() {
                   min="1"
                   max="100"
                   value={formData.passingScore}
-                  onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    setFormData(prev => ({
+                      ...prev,
+                      passingScore: clamp(Number.isNaN(n) ? 1 : n, 1, 100)
+                    }));
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 />
               </div>

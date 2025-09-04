@@ -702,11 +702,7 @@ export default function UserDashboard() {
               className="bg-white rounded-lg shadow-sm hover:shadow-lg border border-gray-200 overflow-hidden cursor-pointer transition-all"
               onClick={() => navigateToChapters(course)}
             >
-              <div className="h-32 bg-gradient-to-br from-blue-400 to-blue-600 relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Play className="w-8 h-8 text-white" />
-                </div>
-              </div>
+              <div className="h-32 bg-gradient-to-br from-blue-400 to-blue-600" />
               
               <div className="p-6">
                 <div className="flex items-start justify-between mb-2">

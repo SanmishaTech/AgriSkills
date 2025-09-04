@@ -409,21 +409,7 @@ export default function QuizPage() {
   if (!hasStarted && quiz) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <button
-                onClick={() => router.back()}
-                className="flex items-center text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Back
-              </button>
-              <h1 className="text-xl font-semibold">Quiz</h1>
-              <div className="w-20" /> {/* Spacer for centering */}
-            </div>
-          </div>
-        </header>
+         
         
         {/* Show error if user has already passed */}
         {error && error.includes('already passed') && (

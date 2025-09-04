@@ -31,6 +31,19 @@ export default function CertificatesPage() {
   });
   const router = useRouter();
 
+  // Pick an emoji based on certificate title keywords as a friendly fallback
+  const getCourseEmoji = (title?: string) => {
+    const t = (title || '').toLowerCase();
+    if (t.includes('soil')) return '🪴';
+    if (t.includes('crop')) return '🌾';
+    if (t.includes('sustain')) return '🌍';
+    if (t.includes('organic')) return '🥕';
+    if (t.includes('tech') || t.includes('technology')) return '💻';
+    if (t.includes('water') || t.includes('irrig')) return '💧';
+    if (t.includes('pest')) return '🐛';
+    return '🎓';
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -247,6 +260,25 @@ export default function CertificatesPage() {
                   transition={{ delay: 0.1 + index * 0.1 }}
                   className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300"
                 >
+                  {/* Thumbnail / Emoji Fallback */}
+                  <div className="mb-4">
+                    <div className="relative w-full h-32 rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 overflow-hidden flex items-center justify-center">
+                      {/* Emoji fallback (default visible; image overlays when available) */}
+                      <span className="text-4xl select-none">{getCourseEmoji(cert?.title)}</span>
+                      {/* If a thumbnail gets added to certificate data in future, this will show and overlay the emoji. */}
+                      {cert?.thumbnail ? (
+                        <img
+                          src={cert.thumbnail}
+                          alt={cert.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            // Remove broken image to reveal the emoji underneath
+                            (e.currentTarget as HTMLImageElement).remove();
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
                   {/* Certificate Badge */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -342,6 +374,22 @@ export default function CertificatesPage() {
                   transition={{ delay: 0.2 + index * 0.1 }}
                   className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
                 >
+                  {/* Thumbnail / Emoji Fallback */}
+                  <div className="mb-4">
+                    <div className="relative w-full h-32 rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 overflow-hidden flex items-center justify-center">
+                      <span className="text-4xl select-none">{getCourseEmoji(prog?.title)}</span>
+                      {prog?.thumbnail ? (
+                        <img
+                          src={prog.thumbnail}
+                          alt={prog.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).remove();
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
                   {/* Progress Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
