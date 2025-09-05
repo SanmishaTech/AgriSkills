@@ -45,6 +45,12 @@ export default function LearnFreePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [redirectInfo, setRedirectInfo] = useState<{
+    redirected: boolean;
+    originalCourseId: string;
+    newCourseId: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchFreeChapters();
@@ -66,6 +72,23 @@ export default function LearnFreePage() {
         if (data.chapters && data.chapters.length > 0) {
           setChapters(data.chapters);
           setCurrentChapter(data.chapters[0]);
+          
+          // Check if the course was redirected
+          if (data.redirected) {
+            setRedirectInfo({
+              redirected: data.redirected,
+              originalCourseId: data.originalCourseId,
+              newCourseId: data.newCourseId,
+              message: data.message
+            });
+            
+            // Update the URL to reflect the new course ID without page reload
+            window.history.replaceState(
+              {},
+              '',
+              `/learn-free/${data.newCourseId}`
+            );
+          }
         } else {
           setError('No free chapters available for this course');
         }
@@ -168,6 +191,37 @@ export default function LearnFreePage() {
         </div>
       </header>
 
+      {/* Redirect Notification */}
+      {redirectInfo && (
+        <div className="bg-blue-50 border-l-4 border-blue-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>Course Updated:</strong> The requested course was not found. You're now viewing an alternative course with similar content.
+                </p>
+              </div>
+              <div className="ml-auto pl-3">
+                <div className="-mx-1.5 -my-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setRedirectInfo(null)}
+                    className="inline-flex bg-blue-50 rounded-md p-1.5 text-blue-400 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-50 focus:ring-blue-600"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Chapter Navigation */}
       {chapters.length > 1 && (

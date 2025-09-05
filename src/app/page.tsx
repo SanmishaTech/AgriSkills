@@ -942,7 +942,7 @@ export default function HomePage() {
                   className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group flex-shrink-0 w-80 sm:w-72 md:w-80 lg:w-72 xl:w-80 snap-start"
                   whileHover={{ y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/login')}
+                  onClick={() => router.push('/success-stories')}
                 >
                   <div className="relative h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-5xl">
                     <span>{story.emoji}</span>
@@ -968,7 +968,13 @@ export default function HomePage() {
                     </p>
                     
                     {/* Read More Button */}
-                    <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition-colors flex items-center gap-1">
+                    <button
+                      className="text-green-600 text-sm font-semibold hover:text-green-700 transition-colors flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push('/success-stories');
+                      }}
+                    >
                       <span>Read Full Story</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
