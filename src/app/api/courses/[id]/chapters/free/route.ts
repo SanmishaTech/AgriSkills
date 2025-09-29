@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const courseId = params.id;
+    const { id: courseId } = await params;
 
     // Check if this course exists and is the first course in the first subtopic of a topic
     let course = await prisma.course.findUnique({

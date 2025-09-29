@@ -129,7 +129,7 @@ export default function QuizResultsPage() {
 
   const handleContinueLearning = () => {
     if (result?.quiz.chapter.course.id) {
-      router.push(`/courses/${result.quiz.chapter.course.id}`);
+      router.push(`/course/${result.quiz.chapter.course.id}/chapters`);
     }
   };
 

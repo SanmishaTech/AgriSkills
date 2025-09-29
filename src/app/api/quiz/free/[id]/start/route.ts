@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const chapterId = params.id;
+    const { id: chapterId } = await params;
 
     // First, check if this chapter belongs to the first course of the first subtopic
     const chapter = await prisma.chapter.findUnique({

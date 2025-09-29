@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the token from the Authorization header
@@ -30,8 +30,9 @@ export async function GET(
       );
     }
 
+    const { id } = await params;
     const subtopic = await prisma.subtopic.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         courses: {
           orderBy: {
@@ -65,7 +66,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the token from the Authorization header
@@ -97,9 +98,10 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
     // Check if subtopic exists
     const existingSubtopic = await prisma.subtopic.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingSubtopic) {
@@ -111,7 +113,7 @@ export async function PUT(
 
     // Update the subtopic
     const subtopic = await prisma.subtopic.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: title.trim(),
         description: description?.trim() || null,
@@ -143,7 +145,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the token from the Authorization header
@@ -166,9 +168,10 @@ export async function DELETE(
       );
     }
 
+    const { id } = await params;
     // Check if subtopic exists
     const existingSubtopic = await prisma.subtopic.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         courses: true
       }
@@ -184,13 +187,13 @@ export async function DELETE(
     // Delete all courses associated with this subtopic
     if (existingSubtopic.courses.length > 0) {
       await prisma.course.deleteMany({
-        where: { subtopicId: params.id }
+        where: { subtopicId: id }
       });
     }
 
     // Delete the subtopic
     await prisma.subtopic.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ 

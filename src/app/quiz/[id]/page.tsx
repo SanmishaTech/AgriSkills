@@ -92,7 +92,7 @@ export default function QuizPage() {
       const user = JSON.parse(userData);
       setUser(user);
       
-      // Check if user has already passed this quiz
+      // Check if user has already passed this quiz (for informational purposes)
       try {
         const statusResponse = await fetch('/api/quiz/check-status', {
           method: 'POST',
@@ -106,12 +106,8 @@ export default function QuizPage() {
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
           if (statusData.statusMap[quizId]?.passed) {
-            // User has already passed this quiz, redirect back
-            setError('You have already passed this quiz!');
-            setTimeout(() => {
-              router.back();
-            }, 2000);
-            return;
+            // User has already passed this quiz - show info but allow retake
+            setError('You have already passed this quiz! You can retake it to improve your score.');
           }
         }
       } catch (error) {
@@ -411,7 +407,7 @@ export default function QuizPage() {
       <div className="min-h-screen bg-gray-50">
          
         
-        {/* Show error if user has already passed */}
+        {/* Show info if user has already passed */}
         {error && error.includes('already passed') && (
           <div className="max-w-3xl mx-auto mt-8 px-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
@@ -422,9 +418,9 @@ export default function QuizPage() {
                   </svg>
                 </div>
               </div>
-              <h2 className="text-xl font-semibold text-green-800 mb-2">Quiz Already Completed!</h2>
-              <p className="text-green-600 mb-4">You have successfully passed this quiz. No need to retake it.</p>
-              <p className="text-sm text-gray-600">Redirecting you back...</p>
+              <h2 className="text-xl font-semibold text-green-800 mb-2">Quiz Already Passed!</h2>
+              <p className="text-green-600 mb-4">Great job! You have successfully passed this quiz.</p>
+              <p className="text-sm text-gray-600">You can retake it below to practice or improve your score.</p>
             </div>
           </div>
         )}

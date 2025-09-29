@@ -42,10 +42,8 @@ async function verifyAdminToken(request: NextRequest) {
 }
 
 // PUT - Update YouTube short
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     // Verify admin authentication
     const user = await verifyAdminToken(request);
@@ -110,10 +108,8 @@ export async function PUT(
 }
 
 // DELETE - Delete YouTube short
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     // Verify admin authentication
     const user = await verifyAdminToken(request);
@@ -145,10 +141,8 @@ export async function DELETE(
 }
 
 // GET - Get single YouTube short (optional, for debugging)
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     // Verify admin authentication
     const user = await verifyAdminToken(request);

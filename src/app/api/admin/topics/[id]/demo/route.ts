@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET - Fetch demo data for a topic
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -34,7 +34,7 @@ export async function GET(
       );
     }
 
-    const topicId = params.id;
+    const { id: topicId } = await params;
 
     // Check if topic exists
     const topic = await prisma.topic.findUnique({
@@ -73,7 +73,7 @@ export async function GET(
 // PUT - Save/Update demo data for a topic
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -100,7 +100,7 @@ export async function PUT(
       );
     }
 
-    const topicId = params.id;
+    const { id: topicId } = await params;
     const { demoUrls, content } = await request.json();
 
     // Validate input

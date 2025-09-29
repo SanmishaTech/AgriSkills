@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Play, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Clock, Play } from 'lucide-react';
 
 interface DemoVideo {
   id: string;
@@ -13,13 +13,6 @@ interface DemoVideo {
   thumbnailUrl?: string;
 }
 
-interface Section {
-  id: string;
-  title: string;
-  content: string;
-  orderIndex: number;
-}
-
 interface Chapter {
   id: string;
   title: string;
@@ -28,7 +21,6 @@ interface Chapter {
   youtubeUrl?: string;
   orderIndex: number;
   demoVideos: DemoVideo[];
-  sections: Section[];
   course: {
     id: string;
     title: string;
@@ -41,8 +33,6 @@ export default function ChapterPage() {
   const router = useRouter();
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'content' | 'videos'>('content');
 
   useEffect(() => {
     fetchChapterDetails();
@@ -56,10 +46,6 @@ export default function ChapterPage() {
       if (response.ok) {
         const data = await response.json();
         setChapter(data.chapter);
-        // Expand all sections by default
-        if (data.chapter.sections) {
-          setExpandedSections(new Set(data.chapter.sections.map((s: Section) => s.id)));
-        }
       } else {
         console.error('Failed to fetch chapter details');
       }
@@ -70,17 +56,6 @@ export default function ChapterPage() {
     }
   };
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId);
-      } else {
-        newSet.add(sectionId);
-      }
-      return newSet;
-    });
-  };
 
   const extractYouTubeId = (url: string) => {
     if (!url) return null;
@@ -127,10 +102,6 @@ export default function ChapterPage() {
           )}
           
           <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-1">
-              <FileText className="w-4 h-4" />
-              <span>{chapter.sections?.length || 0} Sections</span>
-            </div>
             {chapter.demoVideos?.length > 0 && (
               <div className="flex items-center gap-1">
                 <Play className="w-4 h-4" />
@@ -171,127 +142,52 @@ export default function ChapterPage() {
           </div>
         )}
 
-        {/* Sections and Demo Videos */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex">
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`px-6 py-3 font-medium text-sm transition-colors ${
-                  activeTab === 'content'
-                    ? 'border-b-2 border-green-600 text-green-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Sections
-              </button>
-              {chapter.demoVideos?.length > 0 && (
-                <button
-                  onClick={() => setActiveTab('videos')}
-                  className={`px-6 py-3 font-medium text-sm transition-colors ${
-                    activeTab === 'videos'
-                      ? 'border-b-2 border-green-600 text-green-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Demo Videos ({chapter.demoVideos.length})
-                </button>
-              )}
-            </nav>
-          </div>
-
-          {/* Tab Content */}
-          <div className="p-6">
-            {activeTab === 'content' ? (
-              <div>
-                {/* Sections */}
-                {chapter.sections?.length > 0 ? (
-                  <div>
-                    <h2 className="text-lg font-semibold mb-3">Chapter Sections</h2>
-                    <div className="space-y-3">
-                      {chapter.sections.map((section: any) => (
-                        <div key={section.id} className="border border-gray-200 rounded-lg">
-                          <button
-                            onClick={() => toggleSection(section.id)}
-                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                          >
-                            <span className="font-medium text-left">{section.title}</span>
-                            {expandedSections.has(section.id) ? (
-                              <ChevronUp className="w-5 h-5 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5 text-gray-500" />
-                            )}
-                          </button>
-                          {expandedSections.has(section.id) && (
-                            <div className="px-4 pb-3 border-t border-gray-100">
-                              <div 
-                                className="prose prose-green max-w-none mt-3"
-                                dangerouslySetInnerHTML={{ __html: section.content }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">No sections available for this chapter.</p>
-                )}
-              </div>
-            ) : (
-              /* Demo Videos Tab */
+        {/* Demo Videos */}
+        {chapter.demoVideos?.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6">
+              <h2 className="text-lg font-semibold mb-6">Demo Videos</h2>
               <div className="space-y-6">
-                {chapter.demoVideos && chapter.demoVideos.length > 0 ? (
-                  chapter.demoVideos.map((video, index) => (
-                    <div
-                      key={video.id}
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                              {index + 1}. {video.title}
-                            </h3>
-                            {video.description && (
-                              <p className="text-gray-600">{video.description}</p>
-                            )}
-                          </div>
-                          {video.duration && (
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
-                              <Clock className="w-4 h-4" />
-                              <span>{Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}</span>
-                            </div>
+                {chapter.demoVideos.map((video, index) => (
+                  <div
+                    key={video.id}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {index + 1}. {video.title}
+                          </h3>
+                          {video.description && (
+                            <p className="text-gray-600">{video.description}</p>
                           )}
                         </div>
-                        
-                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${extractYouTubeId(video.videoUrl)}?rel=0&modestbranding=1`}
-                            title={video.title}
-                            className="w-full h-full"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          ></iframe>
-                        </div>
+                        {video.duration && (
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <Clock className="w-4 h-4" />
+                            <span>{Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${extractYouTubeId(video.videoUrl)}?rel=0&modestbranding=1`}
+                          title={video.title}
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Play className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Demo Videos</h3>
-                    <p className="text-gray-600">
-                      This chapter doesn't have any demo videos yet.
-                    </p>
                   </div>
-                )}
+                ))}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Navigation Buttons */}
         <div className="mt-8 flex items-center justify-between">
