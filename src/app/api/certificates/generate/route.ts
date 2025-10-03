@@ -76,7 +76,19 @@ export async function POST(request: NextRequest) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(20);
     pdf.setTextColor(secondaryColor);
-    pdf.text(certificateData.courseName || 'Course Name', pageWidth / 2, 145, { align: 'center' });
+    
+    // Handle long course names by wrapping text
+    const courseName = certificateData.courseName || 'Course Name';
+    const lines = pdf.splitTextToSize(courseName, pageWidth - 80);
+    if (lines.length > 1) {
+      // Multiple lines
+      lines.forEach((line: string, index: number) => {
+        pdf.text(line.trim(), pageWidth / 2, 140 + (index * 8), { align: 'center' });
+      });
+    } else {
+      // Single line
+      pdf.text(courseName, pageWidth / 2, 145, { align: 'center' });
+    }
 
     // Achievement details
     pdf.setFont('helvetica', 'normal');

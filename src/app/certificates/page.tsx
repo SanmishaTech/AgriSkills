@@ -60,71 +60,46 @@ export default function CertificatesPage() {
   const loadCertificateData = async () => {
     try {
       setLoading(true);
-      // Mock data - in a real app, this would fetch from an API
-      const mockCertificateData = {
-        overallProgress: 75, // 75% overall completion
-        completed: [
-          {
-            id: '1',
-            title: 'Agricultural Fundamentals Certificate',
-            completedDate: 'March 15, 2024',
-            score: 92,
-            description: 'Comprehensive understanding of basic agricultural principles and practices.',
-            issuer: 'AgriSkills Academy',
-            validUntil: 'March 15, 2026'
-          },
-          {
-            id: '2', 
-            title: 'Crop Management Certificate',
-            completedDate: 'February 28, 2024',
-            score: 88,
-            description: 'Advanced knowledge in crop planning, cultivation, and harvest management.',
-            issuer: 'AgriSkills Academy',
-            validUntil: 'February 28, 2026'
-          },
-          {
-            id: '3',
-            title: 'Soil Health & Nutrition Certificate',
-            completedDate: 'January 20, 2024',
-            score: 95,
-            description: 'Expert understanding of soil composition, health assessment, and nutrition management.',
-            issuer: 'AgriSkills Academy',
-            validUntil: 'January 20, 2026'
-          }
-        ],
-        inProgress: [
-          {
-            id: '4',
-            title: 'Sustainable Farming Certificate',
-            progress: 60,
-            chaptersCompleted: 6,
-            totalChapters: 10,
-            description: 'Learn eco-friendly farming practices and sustainable agriculture techniques.',
-            estimatedCompletion: 'April 2024'
-          },
-          {
-            id: '5',
-            title: 'Modern Agricultural Technology Certificate', 
-            progress: 30,
-            chaptersCompleted: 3,
-            totalChapters: 10,
-            description: 'Master the latest agricultural technologies, IoT, and precision farming tools.',
-            estimatedCompletion: 'May 2024'
-          },
-          {
-            id: '6',
-            title: 'Organic Farming Certification',
-            progress: 15,
-            chaptersCompleted: 2,
-            totalChapters: 12,
-            description: 'Complete certification in organic farming methods and certification processes.',
-            estimatedCompletion: 'June 2024'
-          }
-        ]
-      };
-      setCertificateData(mockCertificateData);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch('/api/certificates', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+          return;
+        }
+        throw new Error('Failed to load certificate data');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setCertificateData(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to load certificate data');
+      }
     } catch (error) {
       console.error('Failed to load certificate data:', error);
+      // Show empty state on error
+      setCertificateData({
+        overallProgress: 0,
+        completed: [],
+        inProgress: []
+      });
     } finally {
       setLoading(false);
     }

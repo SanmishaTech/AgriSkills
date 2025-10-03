@@ -299,59 +299,146 @@ export async function PUT(
               question: true
             }
           },
-          quiz: true
+          quiz: {
+            include: {
+              chapter: {
+                include: {
+                  course: true
+                }
+              }
+            }
+          }
         }
       });
 
-      // Create certificate if passed
+      // Create certificate only if ALL course quizzes are completed
       if (isPassed) {
-        await tx.certificate.create({
-          data: {
-            userId: user.id,
-            attemptId: attempt.id,
-            issuedAt: new Date()
-          }
-        });
-
-        // Mark course as completed
         // First, get the course ID from the quiz's chapter
         const quizWithChapter = await tx.quiz.findUnique({
           where: { id: attempt.quizId },
           include: {
             chapter: {
               include: {
-                course: true
+                course: {
+                  include: {
+                    chapters: {
+                      include: {
+                        quiz: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
         });
 
         if (quizWithChapter?.chapter?.course) {
-          // Check if course is already completed
-          const existingCompletion = await tx.courseCompletion.findUnique({
+          const course = quizWithChapter.chapter.course;
+          
+          // Get all quizzes in this course
+          const courseQuizzes = course.chapters
+            .filter(chapter => chapter.quiz)
+            .map(chapter => chapter.quiz!);
+
+          // Check if user has passed ALL quizzes in this course
+          const userPassedAttempts = await tx.quizAttempt.findMany({
             where: {
-              userId_courseId: {
-                userId: user.id,
-                courseId: quizWithChapter.chapter.course.id
-              }
-            }
+              userId: user.id,
+              quizId: { in: courseQuizzes.map(q => q.id) },
+              isPassed: true,
+              completedAt: { not: null }
+            },
+            distinct: ['quizId'] // Get one passed attempt per quiz
           });
 
-          // Create course completion if not already completed
-          if (!existingCompletion) {
-            await tx.courseCompletion.create({
-              data: {
+          const allQuizzesPassed = userPassedAttempts.length === courseQuizzes.length;
+
+          // Only create certificate if ALL course quizzes are passed
+          if (allQuizzesPassed) {
+            // Check if certificate already exists for this course
+            const existingCertificate = await tx.certificate.findFirst({
+              where: {
                 userId: user.id,
-                courseId: quizWithChapter.chapter.course.id,
-                quizAttemptId: attempt.id
+                attempt: {
+                  quiz: {
+                    chapter: {
+                      courseId: course.id
+                    }
+                  }
+                }
               }
             });
+
+            // Create certificate if doesn't exist
+            if (!existingCertificate) {
+              await tx.certificate.create({
+                data: {
+                  userId: user.id,
+                  attemptId: attempt.id,
+                  issuedAt: new Date()
+                }
+              });
+            }
+
+            // Mark course as completed
+            const existingCompletion = await tx.courseCompletion.findUnique({
+              where: {
+                userId_courseId: {
+                  userId: user.id,
+                  courseId: course.id
+                }
+              }
+            });
+
+            // Create course completion if not already completed
+            if (!existingCompletion) {
+              await tx.courseCompletion.create({
+                data: {
+                  userId: user.id,
+                  courseId: course.id,
+                  quizAttemptId: attempt.id
+                }
+              });
+            }
           }
         }
       }
 
       return updated;
     });
+
+    // Check if certificate was actually generated (all course quizzes completed)
+    let certificateGenerated = false;
+    let courseCompleted = false;
+    
+    if (isPassed) {
+      // Check if course is now completed
+      const courseCompletion = await prisma.courseCompletion.findUnique({
+        where: {
+          userId_courseId: {
+            userId: user.id,
+            courseId: updatedAttempt.quiz.chapter?.course?.id || ''
+          }
+        }
+      });
+      courseCompleted = !!courseCompletion;
+      
+      // Check if certificate exists
+      const certificate = await prisma.certificate.findFirst({
+        where: {
+          userId: user.id,
+          attempt: {
+            quiz: {
+              chapter: {
+                courseId: updatedAttempt.quiz.chapter?.course?.id || ''
+              }
+            }
+          }
+        }
+      });
+      certificateGenerated = !!certificate;
+    }
 
     return NextResponse.json({
       success: true,
@@ -363,7 +450,8 @@ export async function PUT(
         passingScore: updatedAttempt.quiz.passingScore,
         timeSpent: updatedAttempt.timeSpent,
         completedAt: updatedAttempt.completedAt,
-        certificateGenerated: isPassed
+        certificateGenerated,
+        courseCompleted
       }
     });
   } catch (error) {
