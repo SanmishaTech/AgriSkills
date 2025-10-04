@@ -23,7 +23,7 @@ interface User {
 export default function CertificatesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [certificateData, setCertificateData] = useState({
     overallProgress: 0,
     completed: [],
@@ -105,9 +105,9 @@ export default function CertificatesPage() {
     }
   };
 
-  const handleDownloadCertificate = async (certificate: any) => {
+  const handleViewCertificate = async (certificate: any) => {
     try {
-      setDownloadingId(certificate.id);
+      setGeneratingId(certificate.id);
       const certificateData = {
         studentName: user?.name || 'Student Name',
         courseName: certificate.title,
@@ -115,6 +115,8 @@ export default function CertificatesPage() {
         date: certificate.completedDate,
         issuer: certificate.issuer
       };
+
+      console.log('Generating certificate for:', certificateData);
 
       const response = await fetch('/api/certificates/generate', {
         method: 'POST',
@@ -127,22 +129,45 @@ export default function CertificatesPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Create download link
-        const link = document.createElement('a');
-        link.href = result.pdf;
-        link.download = `${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Open PDF in new tab/window instead of downloading
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>Certificate - ${certificate.title}</title>
+                <style>
+                  body { margin: 0; padding: 0; background: #f0f0f0; }
+                  iframe { width: 100%; height: 100vh; border: none; }
+                  .loading { text-align: center; padding: 50px; font-family: Arial, sans-serif; }
+                </style>
+              </head>
+              <body>
+                <div class="loading">Loading certificate...</div>
+                <iframe src="${result.pdf}" type="application/pdf"></iframe>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        } else {
+          // Fallback if popup blocked
+          const link = document.createElement('a');
+          link.href = result.pdf;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       } else {
         console.error('Failed to generate certificate:', result.error);
         alert('Failed to generate certificate. Please try again.');
       }
     } catch (error) {
-      console.error('Error downloading certificate:', error);
-      alert('Error downloading certificate. Please try again.');
+      console.error('Error generating certificate:', error);
+      alert('Error generating certificate. Please try again.');
     } finally {
-      setDownloadingId(null);
+      setGeneratingId(null);
     }
   };
 
@@ -289,24 +314,58 @@ export default function CertificatesPage() {
                     </div>
                   </div>
 
-                  {/* Download Button */}
-                  <button
-                    onClick={() => handleDownloadCertificate(cert)}
-                    disabled={downloadingId === cert.id}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    {downloadingId === cert.id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Download Certificate
-                      </>
-                    )}
-                  </button>
+                  {/* View Certificate Button */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleViewCertificate(cert)}
+                      disabled={generatingId === cert.id}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      {generatingId === cert.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Certificate
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const certificateData = {
+                          studentName: user?.name || 'Student Name',
+                          courseName: cert.title,
+                          score: cert.score,
+                          date: cert.completedDate,
+                          issuer: cert.issuer
+                        };
+                        const response = await fetch('/api/certificates/generate', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ certificateData })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                          const link = document.createElement('a');
+                          link.href = result.pdf;
+                          link.download = `${cert.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download PDF
+                    </button>
+                  </div>
                 </motion.div>
               ))}
             </div>

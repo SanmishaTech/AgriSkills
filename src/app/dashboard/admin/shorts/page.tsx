@@ -174,19 +174,33 @@ export default function ShortsManager() {
 
     setIsSubmitting(true);
     try {
-      const videoId = extractVideoId(shortForm.url);
-      if (!videoId) {
-        throw new Error('Could not extract video ID');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required');
+        return;
       }
 
-      const updatedShort: Short = {
-        ...selectedShort,
-        url: shortForm.url,
-        title: shortForm.title,
-        videoId,
-        thumbnailUrl: generateThumbnailUrl(videoId)
-      };
+      const response = await fetch(`/api/admin/youtube-shorts/${selectedShort.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: shortForm.url,
+          title: shortForm.title,
+          description: '' // Optional description field
+        })
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update short: ${response.status}`);
+      }
+
+      const updatedShort = await response.json();
+      
+      // Update local state with the response from server
       setShorts(prev => prev.map(short => 
         short.id === selectedShort.id ? updatedShort : short
       ));
@@ -196,7 +210,7 @@ export default function ShortsManager() {
       resetForm();
       setError(null);
       
-      alert('Short updated successfully! Note: To persist this change, update the youtube-videos.js config file.');
+      alert('Short updated successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update short');
     } finally {
@@ -204,10 +218,36 @@ export default function ShortsManager() {
     }
   };
 
-  const handleDeleteShort = (short: Short) => {
+  const handleDeleteShort = async (short: Short) => {
     if (confirm(`Are you sure you want to delete "${short.title}"?`)) {
-      setShorts(prev => prev.filter(s => s.id !== short.id));
-      alert('Short deleted successfully! Note: To persist this change, update the youtube-videos.js config file.');
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication required');
+          return;
+        }
+
+        const response = await fetch(`/api/admin/youtube-shorts/${short.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to delete short: ${response.status}`);
+        }
+
+        // Remove from local state only after successful API call
+        setShorts(prev => prev.filter(s => s.id !== short.id));
+        setError(null);
+        alert('Short deleted successfully!');
+      } catch (err) {
+        console.error('Error deleting short:', err);
+        setError(err instanceof Error ? err.message : 'Failed to delete short');
+      }
     }
   };
 
