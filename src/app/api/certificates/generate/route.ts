@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jsPDF from 'jspdf';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+// Register Unicode font for Marathi text (loaded once at module init)
+const unicodeFont = {
+  name: 'NotoSansDevanagari',
+  file: 'NotoSansDevanagari-Regular.ttf',
+  data: readFileSync(
+    path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf')
+  ).toString('base64')
+};
 
 // Helper function to detect if text contains Devanagari characters (Marathi, Hindi, etc.)
 function containsDevanagari(text: string): boolean {
@@ -125,6 +136,12 @@ export async function POST(request: NextRequest) {
     let hasMarathiText = containsDevanagari(courseName);
     
     if (hasMarathiText) {
+      // Use embedded Unicode font for Marathi text
+      pdf.addFileToVFS(unicodeFont.file, unicodeFont.data);
+      pdf.addFont(unicodeFont.file, unicodeFont.name, 'normal');
+      pdf.setFont(unicodeFont.name, 'normal');
+      pdf.setTextColor(secondaryColor);
+      pdf.setFontSize(22);
       console.log('🔍 Detected Marathi text in course name:', courseName);
       console.log('🔤 Character analysis:', [...courseName].map((char, i) => ({
         char,
@@ -184,30 +201,64 @@ export async function POST(request: NextRequest) {
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(12);
     pdf.setTextColor(textColor);
-    
-    if (certificateData.score) {
-      pdf.text(`with a score of ${certificateData.score}%`, pageWidth / 2, 160, { align: 'center' });
-    }
 
-    // Date and issuer section
-    const leftX = 60;
-    const rightX = pageWidth - 60;
     const bottomY = pageHeight - 50;
+    const footerBaseline = bottomY;
 
-    // Date
+    // Date block
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
-    pdf.text('Date:', leftX, bottomY);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(certificateData.date || new Date().toLocaleDateString(), leftX, bottomY + 10);
+    const dateLabel = 'Date:';
+    const dateValue = certificateData.date || new Date().toLocaleDateString();
+    const dateLabelWidth = pdf.getTextWidth(dateLabel);
+    const dateValueWidth = pdf.getTextWidth(dateValue);
+    const dateBlockWidth = dateLabelWidth + 6 + dateValueWidth;
 
-    // Issuer
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Issued by:', rightX - 30, bottomY, { align: 'right' });
+    // Score block
     pdf.setFont('helvetica', 'normal');
-    pdf.text(certificateData.issuer || 'AgriSkills Academy', rightX - 30, bottomY + 10, { align: 'right' });
+    const scoreText = certificateData.score ? `with a score of ${certificateData.score}%` : '';
+    const scoreTextWidth = scoreText ? pdf.getTextWidth(scoreText) : 0;
+
+    // Issuer block
+    pdf.setFont('helvetica', 'bold');
+    const issuerLabel = 'Issued by:';
+    const issuerLabelWidth = pdf.getTextWidth(issuerLabel);
+    pdf.setFont('helvetica', 'normal');
+    const issuerValue = certificateData.issuer || 'AgriSkills Academy';
+    const issuerValueWidth = pdf.getTextWidth(issuerValue);
+    const issuerBlockWidth = issuerLabelWidth + 6 + issuerValueWidth;
+
+    const horizontalPadding = 20;
+    const totalFooterWidth = dateBlockWidth + (scoreText ? horizontalPadding + scoreTextWidth : 0) + horizontalPadding + issuerBlockWidth;
+    const footerStartX = (pageWidth - totalFooterWidth) / 2;
+
+    // Render date block
+    let cursorX = footerStartX;
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(dateLabel, cursorX, footerBaseline);
+    cursorX += dateLabelWidth + 6;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(dateValue, cursorX, footerBaseline);
+
+    // Render score block (if present)
+    if (scoreText) {
+      cursorX += dateValueWidth + horizontalPadding;
+      pdf.text(scoreText, cursorX, footerBaseline);
+      cursorX += scoreTextWidth;
+    } else {
+      cursorX += dateValueWidth;
+    }
+
+    // Render issuer block
+    cursorX += horizontalPadding;
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(issuerLabel, cursorX, footerBaseline);
+    cursorX += issuerLabelWidth + 6;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(issuerValue, cursorX, footerBaseline);
 
     // Add signature line
+    const rightX = pageWidth - 60;
     pdf.setDrawColor(textColor);
     pdf.setLineWidth(0.5);
     pdf.line(rightX - 60, bottomY + 20, rightX - 5, bottomY + 20);
@@ -223,6 +274,13 @@ export async function POST(request: NextRequest) {
     pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 
     // Generate PDF as base64
+    const fileSafeCourseName = courseName
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const pdfFileName = `${fileSafeCourseName || 'Certificate'}.pdf`;
+
     const pdfBase64 = pdf.output('datauristring');
     
     console.log('✅ Certificate generated successfully');
@@ -230,6 +288,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       pdf: pdfBase64,
+      fileName: pdfFileName,
       debug: {
         hasMarathi: hasMarathiText,
         originalText: courseName,

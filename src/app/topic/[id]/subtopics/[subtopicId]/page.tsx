@@ -1,9 +1,9 @@
 'use client'
 
 // @ts-nocheck
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Clock, FileText, Play } from 'lucide-react'
+import { Clock, FileText, Play, CheckCircle2 } from 'lucide-react'
 
 interface TopicPayload {
   topic: {
@@ -27,6 +27,8 @@ export default function SubtopicCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [subtopic, setSubtopic] = useState<any>(null)
   const [topicTitle, setTopicTitle] = useState('')
+  const [courseQuizProgress, setCourseQuizProgress] = useState<Record<string, { passed: number; total: number }>>({})
+  const [progressLoading, setProgressLoading] = useState(false)
 
   // Emoji fallback helper for course thumbnails
   const getCourseEmoji = (title?: string) => {
@@ -52,6 +54,13 @@ export default function SubtopicCoursesPage() {
           setTopicTitle(json.topic.title)
           const st = json.topic.subtopics.find(s => s.id === subtopicId)
           setSubtopic(st || null)
+
+          const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+          if (token && st?.courses?.length) {
+            loadCourseQuizProgress(st.courses, token)
+          } else {
+            setCourseQuizProgress({})
+          }
         } else {
           setSubtopic(null)
         }
@@ -64,6 +73,84 @@ export default function SubtopicCoursesPage() {
     }
     load()
   }, [topicId, subtopicId])
+
+  const loadCourseQuizProgress = async (courses: any[], token: string) => {
+    try {
+      setProgressLoading(true)
+
+      const courseDetails = await Promise.all(
+        courses.map(async (course) => {
+          try {
+            const headers: HeadersInit = {
+              Authorization: `Bearer ${token}`
+            }
+            const res = await fetch(`/api/courses/${course.id}`, { headers })
+            if (!res.ok) {
+              return { id: course.id, chapters: [] }
+            }
+            const json = await res.json()
+            return {
+              id: course.id,
+              chapters: json?.course?.chapters || []
+            }
+          } catch (error) {
+            console.warn('Unable to load course details for progress', course.id, error)
+            return { id: course.id, chapters: [] }
+          }
+        })
+      )
+
+      const chapterToCourse: Record<string, string> = {}
+      const chapterIds: string[] = []
+
+      courseDetails.forEach((detail) => {
+        detail.chapters
+          ?.filter((chapter: any) => chapter?.quiz)
+          ?.forEach((chapter: any) => {
+            chapterIds.push(chapter.id)
+            chapterToCourse[chapter.id] = detail.id
+          })
+      })
+
+      let statusMap: Record<string, { passed: boolean }> = {}
+      if (chapterIds.length) {
+        try {
+          const statusRes = await fetch('/api/quiz/check-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ chapterIds })
+          })
+          if (statusRes.ok) {
+            const statusJson = await statusRes.json()
+            statusMap = statusJson.statusMap || {}
+          }
+        } catch (error) {
+          console.warn('Unable to load quiz status summary', error)
+        }
+      }
+
+      const progress: Record<string, { passed: number; total: number }> = {}
+      courseDetails.forEach((detail) => {
+        const total = detail.chapters?.filter((chapter: any) => !!chapter?.quiz).length || 0
+        let passed = 0
+        detail.chapters?.forEach((chapter: any) => {
+          if (chapter?.quiz && statusMap?.[chapter.id]?.passed) {
+            passed += 1
+          }
+        })
+        progress[detail.id] = { passed, total }
+      })
+
+      setCourseQuizProgress(progress)
+    } finally {
+      setProgressLoading(false)
+    }
+  }
+
+  const getCourseProgress = (courseId: string) => courseQuizProgress?.[courseId]
 
   return (
     <div className="min-h-screen bg-amber-50 flex flex-col">
@@ -110,12 +197,48 @@ export default function SubtopicCoursesPage() {
                   <div className="p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-2">{course.title}</h3>
                     <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                    <button
-                      onClick={() => router.push(`/course/${course.id}/chapters`)}
-                      className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                      View Chapters
-                    </button>
+
+                    {(() => {
+                      const progress = getCourseProgress(course.id)
+                      if (!progress) {
+                        return null
+                      }
+                      const { passed, total } = progress
+                      return (
+                        <div className="mb-4 text-sm text-gray-700 flex items-center gap-2">
+                          <CheckCircle2 className={`w-4 h-4 ${passed === total && total > 0 ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span>
+                            {passed} / {total} quiz{total === 1 ? '' : 'zes'} passed
+                          </span>
+                          {progressLoading && <span className="text-xs text-gray-400">Updating…</span>}
+                        </div>
+                      )
+                    })()}
+
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => router.push(`/course/${course.id}/chapters`)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        View Chapters
+                      </button>
+                      {(() => {
+                        const progress = getCourseProgress(course.id)
+                        if (!progress) return null
+                        const { passed, total } = progress
+                        if (total > 0 && passed === total) {
+                          return (
+                            <button
+                              onClick={() => router.push('/certificates')}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                            >
+                              View Certificate
+                            </button>
+                          )
+                        }
+                        return null
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}

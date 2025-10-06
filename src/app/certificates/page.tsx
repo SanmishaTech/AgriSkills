@@ -129,13 +129,14 @@ export default function CertificatesPage() {
       const result = await response.json();
 
       if (result.success) {
+        const suggestedFileName = result.fileName || `${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
         // Open PDF in new tab/window instead of downloading
         const newWindow = window.open();
         if (newWindow) {
           newWindow.document.write(`
             <html>
               <head>
-                <title>Certificate - ${certificate.title}</title>
+                <title>${suggestedFileName}</title>
                 <style>
                   body { margin: 0; padding: 0; background: #f0f0f0; }
                   iframe { width: 100%; height: 100vh; border: none; }
@@ -155,6 +156,7 @@ export default function CertificatesPage() {
           link.href = result.pdf;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
+          link.download = suggestedFileName;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -352,9 +354,10 @@ export default function CertificatesPage() {
                         });
                         const result = await response.json();
                         if (result.success) {
+                          const suggestedFileName = result.fileName || `${cert.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
                           const link = document.createElement('a');
                           link.href = result.pdf;
-                          link.download = `${cert.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
+                          link.download = suggestedFileName;
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);

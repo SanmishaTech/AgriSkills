@@ -49,6 +49,7 @@ export default function CourseChaptersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<APICourseResponse["course"] | null>(null)
+  const [quizStatus, setQuizStatus] = useState<Record<string, { passed: boolean; score?: number }>>({})
 
   useEffect(() => {
     if (!courseId) return
@@ -69,6 +70,33 @@ export default function CourseChaptersPage() {
         }
         const json: APICourseResponse = await res.json()
         setData(json.course)
+
+        // Reset quiz status each time
+        setQuizStatus({})
+
+        if (token && json.course?.chapters?.length) {
+          try {
+            const statusResponse = await fetch('/api/quiz/check-status', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                chapterIds: json.course.chapters
+                  .filter((chapter) => chapter.quiz)
+                  .map((chapter) => chapter.id)
+              })
+            })
+
+            if (statusResponse.ok) {
+              const statusJson = await statusResponse.json()
+              setQuizStatus(statusJson.statusMap || {})
+            }
+          } catch (statusError) {
+            console.warn('Unable to load quiz status map', statusError)
+          }
+        }
       } catch (e: any) {
         console.error("Failed to load course", e)
         setError(e?.message || "Failed to load course")
@@ -157,6 +185,12 @@ export default function CourseChaptersPage() {
                           <h3 className="text-lg font-semibold text-gray-900">{chapter.title}</h3>
                           {chapter.description && (
                             <p className="text-gray-600 text-sm mt-1 line-clamp-2">{chapter.description}</p>
+                          )}
+                          {quizStatus?.[chapter.id]?.passed && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full mt-2">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Quiz Passed
+                            </span>
                           )}
                         </div>
                         <div className="w-10 h-10 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
