@@ -12,19 +12,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [step, setStep] = useState<'register' | 'verify'>('register'); // Two-step process
-  const [resendCooldown, setResendCooldown] = useState(0);
   const router = useRouter();
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -50,7 +47,7 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
+          phone: formData.phone,
           password: formData.password
         }),
       });
@@ -58,105 +55,31 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('Verification code sent to your email!');
-        setStep('verify');
-        startResendCooldown();
-      } else {
-        setError(data.error || 'Failed to send verification code');
-      }
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+        const loginResponse = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: formData.phone,
+            password: formData.password,
+          }),
+        });
 
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+        const loginData = await loginResponse.json();
 
-    if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit verification code');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: otp
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store token in localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        setSuccess('Email verified successfully! Redirecting to dashboard...');
-        
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
-      } else {
-        setError(data.error || 'Invalid verification code');
-      }
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const startResendCooldown = () => {
-    setResendCooldown(60); // 60 seconds cooldown
-    const interval = setInterval(() => {
-      setResendCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
+        if (loginResponse.ok) {
+          localStorage.setItem('token', loginData.token);
+          localStorage.setItem('user', JSON.stringify(loginData.user));
+          setSuccess('Account created successfully! Redirecting to dashboard...');
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 800);
+        } else {
+          setSuccess('Account created successfully!');
         }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleResendOTP = async () => {
-    if (resendCooldown > 0) return;
-    
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess('New verification code sent to your email!');
-        startResendCooldown();
       } else {
-        setError(data.error || 'Failed to resend verification code');
+        setError(data.error || 'Failed to create account');
       }
     } catch {
       setError('Network error. Please try again.');
@@ -166,22 +89,18 @@ export default function RegisterPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === 'phone') {
+      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+      setFormData({
+        ...formData,
+        phone: digitsOnly,
+      });
+      return;
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
-
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6); // Only digits, max 6
-    setOtp(value);
-  };
-
-  const handleBackToRegister = () => {
-    setStep('register');
-    setOtp('');
-    setError('');
-    setSuccess('');
   };
 
   return (
@@ -190,10 +109,10 @@ export default function RegisterPage() {
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">
-              {step === 'register' ? 'Create Account' : 'Verify Email'}
+              Create Account
             </CardTitle>
             <CardDescription className="text-gray-600">
-              {step === 'register' ? 'Join us today' : `Enter the code sent to ${formData.email}`}
+              Join us today
             </CardDescription>
           </CardHeader>
 
@@ -210,8 +129,7 @@ export default function RegisterPage() {
               </Alert>
             )}
 
-            {step === 'register' ? (
-              <form className="space-y-4 sm:space-y-6" onSubmit={handleSendOTP}>
+            <form className="space-y-4 sm:space-y-6" onSubmit={handleRegister}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -227,17 +145,26 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Enter your email"
-                      disabled={loading}
-                    />
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                        +91
+                      </span>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="\\d*"
+                        maxLength={10}
+                        required
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="XXXXXXXXXX"
+                        className="pl-12"
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -279,10 +206,10 @@ export default function RegisterPage() {
                     {loading ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Sending Code...
+                        Creating account...
                       </div>
                     ) : (
-                      'Send Verification Code'
+                      'Create Account'
                     )}
                   </Button>
                   {/* Return to Home Page just below submit */}
@@ -296,79 +223,7 @@ export default function RegisterPage() {
                     </Button>
                   </div>
                 </div>
-
-
               </form>
-            ) : (
-              <form className="space-y-4 sm:space-y-6" onSubmit={handleVerifyOTP}>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">Verification Code</Label>
-                    <Input
-                      id="otp"
-                      name="otp"
-                      type="text"
-                      value={otp}
-                      onChange={handleOtpChange}
-                      placeholder="Enter 6-digit code"
-                      maxLength={6}
-                      className="text-center text-lg tracking-widest font-mono"
-                      disabled={loading}
-                    />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Check your email for the verification code
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading || otp.length !== 6}
-                  className="w-full h-10 sm:h-11"
-                  variant="default"
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Verifying...
-                    </div>
-                  ) : (
-                    'Verify & Create Account'
-                  )}
-                </Button>
-
-                <div className="flex flex-col space-y-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleResendOTP}
-                    disabled={resendCooldown > 0 || loading}
-                    className="text-sm"
-                  >
-                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend verification code'}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBackToRegister}
-                    disabled={loading}
-                    className="text-sm"
-                  >
-                    Back to registration
-                  </Button>
-                </div>
-
-                {/* Return to Home Page */}
-                <div className="text-center">
-                  <Button asChild variant="ghost" size="sm" className="text-green-700">
-                    <Link href="/">Return to Home Page</Link>
-                  </Button>
-                </div>
-              </form>
-            )}
           </CardContent>
         </Card>
       </div>

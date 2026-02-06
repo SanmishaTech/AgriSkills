@@ -37,6 +37,7 @@ export async function GET(
       },
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,
@@ -88,7 +89,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { email, password } = await request.json();
+    const { phone, password } = await request.json();
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -102,22 +103,29 @@ export async function PUT(
       );
     }
 
-    // Check if email is already taken by another user
-    if (email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email }
+    if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
+      return NextResponse.json(
+        { error: 'Valid phone number is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if phone is already taken by another user
+    if (phone.trim() !== existingUser.phone) {
+      const phoneExists = await prisma.user.findUnique({
+        where: { phone: phone.trim() }
       });
 
-      if (emailExists) {
+      if (phoneExists) {
         return NextResponse.json(
-          { error: 'Email already exists' },
+          { error: 'Phone number already exists' },
           { status: 400 }
         );
       }
     }
 
     // Prepare update data
-    const updateData: { email: string; password?: string } = { email };
+    const updateData: { phone: string; password?: string } = { phone: phone.trim() };
 
     // Hash password if provided
     if (password && password.trim() !== '') {
@@ -131,6 +139,7 @@ export async function PUT(
       data: updateData,
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,

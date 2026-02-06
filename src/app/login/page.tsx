@@ -19,13 +19,13 @@ import {
 } from '@/components/ui/form';
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  phone: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
   password: z.string().min(1, "Password is required"),
 });
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  phone: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -45,7 +45,7 @@ export default function LoginPage() {
   const loginForm = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      phone: "",
       password: "",
     },
   });
@@ -55,7 +55,7 @@ export default function LoginPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
-      email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
     },
@@ -88,7 +88,7 @@ export default function LoginPage() {
           result.errors.forEach((fieldError: any) => {
             if (fieldError.path && fieldError.message && Array.isArray(fieldError.path)) {
               const fieldName = fieldError.path[fieldError.path.length - 1] || fieldError.path[0];
-              if (typeof fieldName === 'string' && (fieldName === 'email' || fieldName === 'password')) {
+              if (typeof fieldName === 'string' && (fieldName === 'phone' || fieldName === 'password')) {
                 loginForm.setError(fieldName as keyof LoginFormInputs, {
                   type: 'server',
                   message: fieldError.message
@@ -125,7 +125,7 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           name: data.name,
-          email: data.email,
+          phone: data.phone,
           password: data.password,
         }),
       });
@@ -133,19 +133,36 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // Store token in localStorage
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
+        const loginResponse = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: data.phone,
+            password: data.password,
+          }),
+        });
+
+        const loginResult = await loginResponse.json();
+
+        if (loginResponse.ok) {
+          localStorage.setItem('token', loginResult.token);
+          localStorage.setItem('user', JSON.stringify(loginResult.user));
+          router.push('/dashboard');
+        } else {
+          registerForm.setError('root', {
+            type: 'server',
+            message: loginResult.error || 'Registration succeeded but login failed'
+          });
+        }
       } else {
         // Handle field-specific errors
         if (result.errors && Array.isArray(result.errors)) {
           result.errors.forEach((fieldError: any) => {
             if (fieldError.path && fieldError.message && Array.isArray(fieldError.path)) {
               const fieldName = fieldError.path[fieldError.path.length - 1] || fieldError.path[0];
-              if (typeof fieldName === 'string' && ['name', 'email', 'password'].includes(fieldName)) {
+              if (typeof fieldName === 'string' && ['name', 'phone', 'password'].includes(fieldName)) {
                 registerForm.setError(fieldName as keyof RegisterFormInputs, {
                   type: 'server',
                   message: fieldError.message
@@ -211,17 +228,36 @@ export default function LoginPage() {
                     
                     <FormField
                       control={loginForm.control}
-                      name="email"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Email"
-                              className="h-12 bg-white border-gray-200 rounded-xl"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                                +91
+                              </span>
+                              <Input
+                                type="tel"
+                                placeholder="XXXXXXXXXX"
+                                className="h-12 bg-white border-gray-200 rounded-xl pl-12"
+                                inputMode="numeric"
+                                pattern="\d*"
+                                maxLength={10}
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                onInput={(e) => {
+                                  const value = (e.currentTarget as HTMLInputElement).value;
+                                  const sanitized = value.replace(/\D/g, '').slice(0, 10);
+                                  if (sanitized !== value) field.onChange(sanitized);
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pasted = e.clipboardData.getData('text');
+                                  field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
+                                }}
+                                disabled={loading}
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -316,17 +352,36 @@ export default function LoginPage() {
                   
                   <FormField
                     control={registerForm.control}
-                    name="email"
+                    name="phone"
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="Email"
-                            className="h-12 bg-white border-gray-200 rounded-xl"
-                            {...field}
-                            disabled={loading}
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                              +91
+                            </span>
+                            <Input
+                              type="tel"
+                              placeholder="XXXXXXXXXX"
+                              className="h-12 bg-white border-gray-200 rounded-xl pl-12"
+                              inputMode="numeric"
+                              pattern="\d*"
+                              maxLength={10}
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                              onInput={(e) => {
+                                const value = (e.currentTarget as HTMLInputElement).value;
+                                const sanitized = value.replace(/\D/g, '').slice(0, 10);
+                                if (sanitized !== value) field.onChange(sanitized);
+                              }}
+                              onPaste={(e) => {
+                                e.preventDefault();
+                                const pasted = e.clipboardData.getData('text');
+                                field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
+                              }}
+                              disabled={loading}
+                            />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -492,19 +547,39 @@ export default function LoginPage() {
                     {/* Email Field */}
                     <FormField
                       control={loginForm.control}
-                      name="email"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem className="grid gap-2">
-                          <FormLabel htmlFor="email">Email</FormLabel>
+                          <FormLabel htmlFor="phone">Phone</FormLabel>
                           <FormControl>
-                            <Input
-                              id="email"
-                              type="email"
-                              placeholder="name@example.com"
-                              autoComplete="email"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                                +91
+                              </span>
+                              <Input
+                                id="phone"
+                                type="tel"
+                                placeholder="XXXXXXXXXX"
+                                autoComplete="tel"
+                                inputMode="numeric"
+                                pattern="\d*"
+                                maxLength={10}
+                                className="pl-12"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                onInput={(e) => {
+                                  const value = (e.currentTarget as HTMLInputElement).value;
+                                  const sanitized = value.replace(/\D/g, '').slice(0, 10);
+                                  if (sanitized !== value) field.onChange(sanitized);
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pasted = e.clipboardData.getData('text');
+                                  field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
+                                }}
+                                disabled={loading}
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -594,19 +669,39 @@ export default function LoginPage() {
                     {/* Email Field */}
                     <FormField
                       control={registerForm.control}
-                      name="email"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem className="grid gap-2">
-                          <FormLabel htmlFor="signup-email">Email</FormLabel>
+                          <FormLabel htmlFor="signup-phone">Phone</FormLabel>
                           <FormControl>
-                            <Input
-                              id="signup-email"
-                              type="email"
-                              placeholder="name@example.com"
-                              autoComplete="email"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                                +91
+                              </span>
+                              <Input
+                                id="signup-phone"
+                                type="tel"
+                                placeholder="XXXXXXXXXX"
+                                autoComplete="tel"
+                                inputMode="numeric"
+                                pattern="\d*"
+                                maxLength={10}
+                                className="pl-12"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                onInput={(e) => {
+                                  const value = (e.currentTarget as HTMLInputElement).value;
+                                  const sanitized = value.replace(/\D/g, '').slice(0, 10);
+                                  if (sanitized !== value) field.onChange(sanitized);
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                  const pasted = e.clipboardData.getData('text');
+                                  field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
+                                }}
+                                disabled={loading}
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -686,7 +781,7 @@ export default function LoginPage() {
           {!isSignUp && (
             <div className="text-center pt-4 border-t">
               <p className="text-xs text-muted-foreground">
-                Test Credentials: admin@gmail.com / abcd123@
+                Test Credentials: (update after you seed a phone-based admin)
               </p>
             </div>
           )}

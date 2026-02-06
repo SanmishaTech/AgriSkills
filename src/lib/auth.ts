@@ -16,12 +16,17 @@ export async function comparePasswords(plainPassword: string, hashedPassword: st
   return await bcrypt.compare(plainPassword, hashedPassword);
 }
 
-export function generateToken(userId: string, email: string, role: string): string {
+export function generateToken(
+  userId: string,
+  identifier: { email?: string | null; phone?: string | null },
+  role: string
+): string {
   return jwt.sign(
     { 
       sub: userId,  // Standard JWT claim for subject (user ID)
       userId,       // Keep both for backward compatibility
-      email,
+      email: identifier.email ?? undefined,
+      phone: identifier.phone ?? undefined,
       role
     },
     JWT_SECRET,

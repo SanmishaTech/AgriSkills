@@ -8,18 +8,33 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { phone, password } = body;
 
-    if (!email || !password) {
+    if (!phone || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Phone and password are required' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof phone !== 'string') {
+      return NextResponse.json(
+        { error: 'Phone and password are required' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (normalizedPhone.length !== 10) {
+      return NextResponse.json(
+        { error: 'Phone number must be exactly 10 digits' },
         { status: 400 }
       );
     }
 
     // Find the user
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { phone: normalizedPhone },
     });
 
     if (!user) {
@@ -39,11 +54,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate JWT token
-    const token = generateToken(user.id, user.email, user.role);
+    const token = generateToken(user.id, { phone: user.phone, email: user.email }, user.role);
 
     return NextResponse.json({
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         name: user.name,
         role: user.role,

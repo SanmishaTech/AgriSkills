@@ -13,14 +13,12 @@ datasource db {
 
 model User {
   id                       String              @id @default(uuid())
-  email                    String              @unique
+  phone                    String              @unique
+  email                    String?             @unique
   password                 String
   name                     String?
   role                     String              @default("user")
   profilePhoto             String?
-  emailVerified            DateTime?
-  verificationToken        String?
-  verificationTokenExpiry  DateTime?
   createdAt                DateTime            @default(now())
   updatedAt                DateTime            @updatedAt
   quizAttempts             QuizAttempt[]       // User's quiz attempts

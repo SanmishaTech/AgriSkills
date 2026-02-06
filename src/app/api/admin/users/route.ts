@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,
@@ -90,21 +91,19 @@ export async function POST(request: NextRequest) {
 
     // Parse the request body
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, phone, password, role } = body;
 
     // Validate required fields
-    if (!name || !email || !password) {
+    if (!name || !phone || !password) {
       return NextResponse.json(
-        { error: 'Name, email, and password are required' },
+        { error: 'Name, phone, and password are required' },
         { status: 400 }
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (typeof phone !== 'string' || phone.trim().length < 8) {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { error: 'Valid phone number is required' },
         { status: 400 }
       );
     }
@@ -119,12 +118,12 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { phone }
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'User with this phone number already exists' },
         { status: 409 }
       );
     }
@@ -136,12 +135,13 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name,
-        email,
+        phone: phone.trim(),
         password: hashedPassword,
         role: role || 'user'
       },
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,

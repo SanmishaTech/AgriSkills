@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   // Create user Vipul
   const existingUser = await prisma.user.findUnique({
-    where: { email: 'vipul@gmail.com' },
+    where: { phone: '9000000001' },
   });
 
   if (!existingUser) {
@@ -14,6 +14,7 @@ async function main() {
 
     const user = await prisma.user.create({
       data: {
+        phone: '9000000001',
         email: 'vipul@gmail.com',
         password: hashedPassword,
         name: 'Vipul',
@@ -21,13 +22,13 @@ async function main() {
       },
     });
 
-    console.log(`Created user: ${user.email}`);
+    console.log(`Created user: ${user.phone}`);
   } else {
     console.log('User Vipul already exists');
   }
   // Check if admin user already exists
   const existingAdmin = await prisma.user.findUnique({
-    where: { email: 'admin@gmail.com' },
+    where: { phone: '9000000000' },
   });
 
   if (!existingAdmin) {
@@ -36,6 +37,7 @@ async function main() {
     
     const admin = await prisma.user.create({
       data: {
+        phone: '9000000000',
         email: 'admin@gmail.com',
         password: hashedPassword,
         name: 'Admin User',
@@ -43,7 +45,7 @@ async function main() {
       },
     });
     
-    console.log(`Created admin user: ${admin.email}`);
+    console.log(`Created admin user: ${admin.phone}`);
   } else {
     console.log('Admin user already exists');
   }

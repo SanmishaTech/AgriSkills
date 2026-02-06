@@ -33,15 +33,23 @@ export async function PUT(request: NextRequest) {
 
     // Get request body (FormData)
     const formData = await request.formData();
-    const email = formData.get('email') as string;
+    const phone = formData.get('phone') as string;
     const currentPassword = formData.get('currentPassword') as string;
     const newPassword = formData.get('newPassword') as string;
     const profilePhotoFile = formData.get('profilePhoto') as File;
 
-    // Validate email
-    if (!email || typeof email !== 'string') {
+    // Validate phone
+    if (!phone || typeof phone !== 'string') {
       return NextResponse.json(
-        { message: 'Valid email is required' },
+        { message: 'Valid phone number is required' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (normalizedPhone.length !== 10) {
+      return NextResponse.json(
+        { message: 'Phone number must be exactly 10 digits' },
         { status: 400 }
       );
     }
@@ -59,14 +67,14 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if email is already taken by another user
-    if (email !== user.email) {
+    if (normalizedPhone !== user.phone) {
       const existingUser = await prisma.user.findUnique({
-        where: { email }
+        where: { phone: normalizedPhone }
       });
 
       if (existingUser && existingUser.id !== userId) {
         return NextResponse.json(
-          { message: 'Email is already in use' },
+          { message: 'Phone number is already in use' },
           { status: 400 }
         );
       }
@@ -95,12 +103,12 @@ export async function PUT(request: NextRequest) {
 
     // Prepare update data
     interface UpdateData {
-      email: string;
+      phone: string;
       profilePhoto?: string;
       password?: string;
     }
     const updateData: UpdateData = {
-      email,
+      phone: normalizedPhone,
     };
     
     if (profilePhotoUrl) {
@@ -144,6 +152,7 @@ export async function PUT(request: NextRequest) {
       data: updateData,
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,

@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       where: { id: decoded.sub },
       select: {
         id: true,
+        phone: true,
         email: true,
         name: true,
         role: true,
