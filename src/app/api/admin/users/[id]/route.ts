@@ -89,7 +89,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { phone, password } = await request.json();
+    const { phone, password, email } = await request.json();
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -103,17 +103,28 @@ export async function PUT(
       );
     }
 
-    if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
+    if (!phone || typeof phone !== 'string') {
       return NextResponse.json(
         { error: 'Valid phone number is required' },
         { status: 400 }
       );
     }
 
+    let normalizedPhone = phone.replace(/\D/g, '');
+    if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
+      normalizedPhone = normalizedPhone.slice(2);
+    }
+    if (normalizedPhone.length !== 10) {
+      return NextResponse.json(
+        { error: 'Phone number must be exactly 10 digits' },
+        { status: 400 }
+      );
+    }
+
     // Check if phone is already taken by another user
-    if (phone.trim() !== existingUser.phone) {
+    if (normalizedPhone !== existingUser.phone) {
       const phoneExists = await prisma.user.findUnique({
-        where: { phone: phone.trim() }
+        where: { phone: normalizedPhone }
       });
 
       if (phoneExists) {
@@ -125,7 +136,42 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: { phone: string; password?: string } = { phone: phone.trim() };
+    const updateData: { phone: string; email?: string | null; password?: string } = { phone: normalizedPhone };
+
+    if (email !== undefined) {
+      if (email === null || (typeof email === 'string' && email.trim() === '')) {
+        updateData.email = null;
+      } else if (typeof email !== 'string') {
+        return NextResponse.json(
+          { error: 'Valid email is required' },
+          { status: 400 }
+        );
+      } else {
+        const normalizedEmail = email.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedEmail)) {
+          return NextResponse.json(
+            { error: 'Valid email is required' },
+            { status: 400 }
+          );
+        }
+
+        if (normalizedEmail !== (existingUser.email ?? '').toLowerCase()) {
+          const emailExists = await prisma.user.findUnique({
+            where: { email: normalizedEmail }
+          });
+
+          if (emailExists && emailExists.id !== id) {
+            return NextResponse.json(
+              { error: 'Email already exists' },
+              { status: 400 }
+            );
+          }
+        }
+
+        updateData.email = normalizedEmail;
+      }
+    }
 
     // Hash password if provided
     if (password && password.trim() !== '') {

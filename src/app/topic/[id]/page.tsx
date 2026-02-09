@@ -56,6 +56,10 @@ export default function TopicDetailPage() {
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
+  const handleGetStarted = () => {
+    router.push(isLoggedIn ? '/dashboard/user' : '/register');
+  };
+
   const handleTryFirstCourse = async (courseId: string) => {
     if (!isLoggedIn) {
       router.push(`/learn-free/${courseId}`);
@@ -376,7 +380,7 @@ export default function TopicDetailPage() {
                                   </button>
                                   {!isLoggedIn && (
                                     <button 
-                                      onClick={() => router.push('/login')} 
+                                      onClick={handleGetStarted}
                                       className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
                                     >
                                       Enroll for Full Access
@@ -385,7 +389,7 @@ export default function TopicDetailPage() {
                                 </div>
                               ) : (
                                 <button 
-                                  onClick={() => router.push('/login')} 
+                                  onClick={handleGetStarted}
                                   className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
                                 >
                                   Enroll Now
@@ -414,7 +418,7 @@ export default function TopicDetailPage() {
             with our comprehensive courses.
           </p>
           <button
-            onClick={() => router.push('/login')}
+            onClick={handleGetStarted}
             className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-medium transition-colors"
           >
             Get Started Today

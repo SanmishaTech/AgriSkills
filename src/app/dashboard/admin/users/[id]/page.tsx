@@ -20,7 +20,7 @@ export default function UserDetails() {
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editForm, setEditForm] = useState({ phone: '', password: '' });
+  const [editForm, setEditForm] = useState({ phone: '', email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const params = useParams();
@@ -77,7 +77,7 @@ export default function UserDetails() {
   const handleEditUser = () => {
     if (user) {
       const normalizedPhone = (user.phone ?? '').replace(/\D/g, '').slice(-10);
-      setEditForm({ phone: normalizedPhone, password: '' });
+      setEditForm({ phone: normalizedPhone, email: user.email || '', password: '' });
       setShowEditModal(true);
     }
   };
@@ -106,9 +106,9 @@ export default function UserDetails() {
       }
 
       const data = await response.json();
-      setUser({ ...user, phone: data.user.phone });
+      setUser({ ...user, phone: data.user.phone, email: data.user.email });
       setShowEditModal(false);
-      setEditForm({ phone: '', password: '' });
+      setEditForm({ phone: '', email: '', password: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -260,6 +260,11 @@ export default function UserDetails() {
                 <label className="text-sm font-medium text-gray-500">Full Name</label>
                 <p className="text-gray-900">{user.name || 'Not provided'}</p>
               </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">Email</label>
+                <p className="text-gray-900">{user.email || 'Not provided'}</p>
+              </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-500">Phone Number</label>
@@ -346,6 +351,17 @@ export default function UserDetails() {
               <h3 className="text-xl font-bold text-gray-900 mb-4">Edit User</h3>
               
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                   <div className="relative">

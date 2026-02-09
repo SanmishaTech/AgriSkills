@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest) {
 
     // Get request body (FormData)
     const formData = await request.formData();
+    const email = formData.get('email');
     const phone = formData.get('phone') as string;
     const currentPassword = formData.get('currentPassword') as string;
     const newPassword = formData.get('newPassword') as string;
@@ -64,6 +65,45 @@ export async function PUT(request: NextRequest) {
         { message: 'User not found' },
         { status: 404 }
       );
+    }
+
+    // Validate & handle email update (optional)
+    let emailToSet: string | null | undefined = undefined;
+    if (email !== null) {
+      if (email === undefined) {
+        emailToSet = undefined;
+      } else if (typeof email !== 'string') {
+        return NextResponse.json(
+          { message: 'Valid email is required' },
+          { status: 400 }
+        );
+      } else if (email.trim() === '') {
+        emailToSet = null;
+      } else {
+        const normalizedEmail = email.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedEmail)) {
+          return NextResponse.json(
+            { message: 'Valid email is required' },
+            { status: 400 }
+          );
+        }
+
+        if (normalizedEmail !== (user.email ?? '').toLowerCase()) {
+          const existingEmailUser = await prisma.user.findUnique({
+            where: { email: normalizedEmail }
+          });
+
+          if (existingEmailUser && existingEmailUser.id !== userId) {
+            return NextResponse.json(
+              { message: 'Email is already in use' },
+              { status: 400 }
+            );
+          }
+        }
+
+        emailToSet = normalizedEmail;
+      }
     }
 
     // Check if email is already taken by another user
@@ -104,12 +144,17 @@ export async function PUT(request: NextRequest) {
     // Prepare update data
     interface UpdateData {
       phone: string;
+      email?: string | null;
       profilePhoto?: string;
       password?: string;
     }
     const updateData: UpdateData = {
       phone: normalizedPhone,
     };
+
+    if (emailToSet !== undefined) {
+      updateData.email = emailToSet;
+    }
     
     if (profilePhotoUrl) {
       updateData.profilePhoto = profilePhotoUrl;

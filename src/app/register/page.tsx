@@ -61,7 +61,7 @@ export default function RegisterPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            phone: formData.phone,
+            identifier: formData.phone,
             password: formData.password,
           }),
         });

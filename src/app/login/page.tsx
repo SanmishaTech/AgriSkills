@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/form';
 
 const loginSchema = z.object({
-  phone: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
+  identifier: z.string().min(1, 'Email or mobile number is required'),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
   const loginForm = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      phone: "",
+      identifier: "",
       password: "",
     },
   });
@@ -88,7 +88,7 @@ export default function LoginPage() {
           result.errors.forEach((fieldError: any) => {
             if (fieldError.path && fieldError.message && Array.isArray(fieldError.path)) {
               const fieldName = fieldError.path[fieldError.path.length - 1] || fieldError.path[0];
-              if (typeof fieldName === 'string' && (fieldName === 'phone' || fieldName === 'password')) {
+              if (typeof fieldName === 'string' && (fieldName === 'identifier' || fieldName === 'password')) {
                 loginForm.setError(fieldName as keyof LoginFormInputs, {
                   type: 'server',
                   message: fieldError.message
@@ -139,7 +139,7 @@ export default function LoginPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            phone: data.phone,
+            identifier: data.phone,
             password: data.password,
           }),
         });
@@ -228,33 +228,16 @@ export default function LoginPage() {
                     
                     <FormField
                       control={loginForm.control}
-                      name="phone"
+                      name="identifier"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
-                                +91
-                              </span>
                               <Input
-                                type="tel"
-                                placeholder="XXXXXXXXXX"
-                                className="h-12 bg-white border-gray-200 rounded-xl pl-12"
-                                inputMode="numeric"
-                                pattern="\d*"
-                                maxLength={10}
+                                type="text"
+                                placeholder="Email or mobile number"
+                                className="h-12 bg-white border-gray-200 rounded-xl"
                                 {...field}
-                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                onInput={(e) => {
-                                  const value = (e.currentTarget as HTMLInputElement).value;
-                                  const sanitized = value.replace(/\D/g, '').slice(0, 10);
-                                  if (sanitized !== value) field.onChange(sanitized);
-                                }}
-                                onPaste={(e) => {
-                                  e.preventDefault();
-                                  const pasted = e.clipboardData.getData('text');
-                                  field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
-                                }}
                                 disabled={loading}
                               />
                             </div>
@@ -547,36 +530,18 @@ export default function LoginPage() {
                     {/* Email Field */}
                     <FormField
                       control={loginForm.control}
-                      name="phone"
+                      name="identifier"
                       render={({ field }) => (
                         <FormItem className="grid gap-2">
-                          <FormLabel htmlFor="phone">Phone</FormLabel>
+                          <FormLabel htmlFor="identifier">Email or Mobile</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
-                                +91
-                              </span>
                               <Input
-                                id="phone"
-                                type="tel"
-                                placeholder="XXXXXXXXXX"
-                                autoComplete="tel"
-                                inputMode="numeric"
-                                pattern="\d*"
-                                maxLength={10}
-                                className="pl-12"
+                                id="identifier"
+                                type="text"
+                                placeholder="Email or mobile number"
+                                autoComplete="username"
                                 {...field}
-                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                onInput={(e) => {
-                                  const value = (e.currentTarget as HTMLInputElement).value;
-                                  const sanitized = value.replace(/\D/g, '').slice(0, 10);
-                                  if (sanitized !== value) field.onChange(sanitized);
-                                }}
-                                onPaste={(e) => {
-                                  e.preventDefault();
-                                  const pasted = e.clipboardData.getData('text');
-                                  field.onChange(pasted.replace(/\D/g, '').slice(0, 10));
-                                }}
                                 disabled={loading}
                               />
                             </div>
@@ -777,14 +742,6 @@ export default function LoginPage() {
             </Button>
           </div>
           
-          {/* Test Credentials - Show only on login */}
-          {!isSignUp && (
-            <div className="text-center pt-4 border-t">
-              <p className="text-xs text-muted-foreground">
-                Test Credentials: (update after you seed a phone-based admin)
-              </p>
-            </div>
-          )}
             </div>
           </div>
         </div>

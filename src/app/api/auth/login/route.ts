@@ -8,34 +8,44 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, password } = body;
+    const { password } = body;
+    const identifier = body?.identifier ?? body?.phone ?? body?.email;
 
-    if (!phone || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: 'Phone and password are required' },
+        { error: 'Email or phone and password are required' },
         { status: 400 }
       );
     }
 
-    if (typeof phone !== 'string') {
+    if (typeof identifier !== 'string') {
       return NextResponse.json(
-        { error: 'Phone and password are required' },
+        { error: 'Email or phone and password are required' },
         { status: 400 }
       );
     }
 
-    const normalizedPhone = phone.replace(/\D/g, '');
-    if (normalizedPhone.length !== 10) {
-      return NextResponse.json(
-        { error: 'Phone number must be exactly 10 digits' },
-        { status: 400 }
-      );
-    }
+    const trimmedIdentifier = identifier.trim();
 
     // Find the user
-    const user = await prisma.user.findUnique({
-      where: { phone: normalizedPhone },
-    });
+    const user = trimmedIdentifier.includes('@')
+      ? await prisma.user.findUnique({
+          where: { email: trimmedIdentifier.toLowerCase() },
+        })
+      : await (async () => {
+          let normalizedPhone = trimmedIdentifier.replace(/\D/g, '');
+          if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
+            normalizedPhone = normalizedPhone.slice(2);
+          }
+
+          if (normalizedPhone.length !== 10) {
+            return null;
+          }
+
+          return prisma.user.findUnique({
+            where: { phone: normalizedPhone },
+          });
+        })();
 
     if (!user) {
       return NextResponse.json(
