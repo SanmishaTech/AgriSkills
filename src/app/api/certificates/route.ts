@@ -192,9 +192,10 @@ export async function GET(request: NextRequest) {
           month: 'long',
           day: 'numeric'
         }),
+        issuedAt: cert.issuedAt,
         score: Math.round(cert.attempt.score),
         description: `Comprehensive certification in ${course.title}${topic ? ` - ${topic.title}` : ''}`,
-        issuer: 'AgriSkills Academy',
+        issuer: `${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} Academy`,
         validUntil: new Date(cert.issuedAt.getTime() + (2 * 365 * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',

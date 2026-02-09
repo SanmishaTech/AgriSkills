@@ -203,7 +203,7 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col justify-start pt-0">
           <img 
             src="/images/login.png" 
-            alt="AgriSkills Login Illustration" 
+            alt="Gram Kushal Login Illustration" 
             className="block w-full h-auto object-contain mt-0"
           />
         </div>
@@ -484,7 +484,7 @@ export default function LoginPage() {
                 <path d="M12 2L2 7v10c0 5.55 3.84 10 9 11 1.16.21 2.34.21 3.5 0 5.16-1 9-5.45 9-11V7l-10-5z" />
                 <path d="m9 12 2 2 4-4" />
               </svg>
-              AgriSkills
+              {process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}
             </div>
             <div className="relative z-20 mt-auto">
               <blockquote className="space-y-2">
@@ -494,7 +494,7 @@ export default function LoginPage() {
                     : "Empowering farmers with knowledge and skills for sustainable agriculture. Transform your farming practices with expert guidance."
                   }
                 </p>
-                <footer className="text-sm">AgriSkills Team</footer>
+                <footer className="text-sm">{(process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal') + ' Team'}</footer>
               </blockquote>
             </div>
           </div>
@@ -508,7 +508,7 @@ export default function LoginPage() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {isSignUp 
-                ? 'Enter your details to create your AgriSkills account'
+                ? `Enter your details to create your ${(process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal')} account`
                 : 'Enter your credentials to access your account'
               }
             </p>

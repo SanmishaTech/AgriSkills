@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgriSkills",
+  title: process.env.NEXT_PUBLIC_APP_NAME || "Gram Kushal",
   description: "Learn modern agricultural skills and techniques",
   icons: {
     icon: '/favicon.ico',

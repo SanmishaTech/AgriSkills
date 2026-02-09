@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       youtubeId: short.videoId,
       title: short.title,
       duration: "Short", // YouTube shorts are typically under 60 seconds
-      instructor: "AgriSkills", // Default instructor name
+      instructor: "Gram Kushal", // Default instructor name
       views: `${Math.floor(Math.random() * 50) + 1}K`, // Mock view count
       timeAgo: getTimeAgo(short.createdAt),
       shortsUrl: short.url,

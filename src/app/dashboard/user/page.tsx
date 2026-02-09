@@ -476,7 +476,7 @@ export default function UserDashboard() {
             <div className="flex items-center">
               <BookOpen className="w-8 h-8 text-green-600 mr-3" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">AgriSkills</h1>
+                <h1 className="text-xl font-bold text-gray-900">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}</h1>
                 <p className="text-xs text-gray-500">Learning Platform</p>
               </div>
             </div>

@@ -424,7 +424,7 @@ export default function Footer() {
                     ref={speakInputRef}
                     value={speakText}
                     onChange={(e) => setSpeakText(e.target.value)}
-                    placeholder="Message AgriSkills..."
+                    placeholder={`Message ${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}...`}
                     className="h-11 rounded-full"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {

@@ -466,12 +466,12 @@ export default function HomePage() {
         <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
           <Image 
             src="/images/logo.png" 
-            alt="AgriSkills Logo" 
+            alt="Gram Kushal Logo" 
             width={52}
             height={52}
             className="object-contain [filter:drop-shadow(0_10px_8px_rgba(0,0,0,0.4))] md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 2xl:w-11 2xl:h-11"
           />
-          <h1 className="hidden md:block md:text-sm lg:text-base xl:text-lg 2xl:text-xl font-bold whitespace-nowrap">AgriSkills</h1>
+          <h1 className="hidden md:block md:text-sm lg:text-base xl:text-lg 2xl:text-xl font-bold whitespace-nowrap">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}</h1>
         </div>
         
         {/* Navigation items for floating navbar on larger screens */}

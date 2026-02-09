@@ -22,13 +22,42 @@ function containsDevanagari(text: string): boolean {
 // Helper function to transliterate Marathi text to Roman script as fallback
 function transliterateMarathi(text: string): string {
   const marathiToRoman: { [key: string]: string } = {
-    'व': 'v', 'ि': 'i', 'ष': 'sh', 'म': 'm', 'ु': 'u', 'क': 'k', 'त': 't',
-    'श': 'sh', 'े': 'e', 'त': 't', 'क': 'k', 'ऱ': 'r', 'य': 'y', 'ा': 'aa',
-    'ं': 'n', 'च': 'ch', 'य': 'y', 'ा': 'aa', ' ': ' ', 'छ': 'chh',
-    'ी': 'ee', 'ो': 'o', 'ळ': 'l', 'ख': 'kh', 'ू': 'oo', 'भ': 'bh',
-    'ूत': 'oot', 'ौ': 'au', 'ध': 'dh', 'ग': 'g', 'ज': 'j', 'प': 'p',
-    'न': 'n', 'ह': 'h', 'र': 'r', 'स': 's', 'द': 'd', 'ट': 'T',
-    'ल': 'l', 'ब': 'b', 'फ': 'ph', 'ड': 'D', 'थ': 'th', 'ण': 'N'
+    ' ': ' ',
+    'ा': 'aa',
+    'ि': 'i',
+    'ी': 'ee',
+    'ु': 'u',
+    'ू': 'oo',
+    'े': 'e',
+    'ो': 'o',
+    'ौ': 'au',
+    'ं': 'n',
+    'क': 'k',
+    'ख': 'kh',
+    'ग': 'g',
+    'ज': 'j',
+    'ट': 'T',
+    'ड': 'D',
+    'त': 't',
+    'थ': 'th',
+    'ध': 'dh',
+    'न': 'n',
+    'ण': 'N',
+    'प': 'p',
+    'फ': 'ph',
+    'ब': 'b',
+    'भ': 'bh',
+    'म': 'm',
+    'य': 'y',
+    'र': 'r',
+    'ऱ': 'r',
+    'ल': 'l',
+    'ळ': 'l',
+    'व': 'v',
+    'श': 'sh',
+    'ष': 'sh',
+    'स': 's',
+    'ह': 'h'
   };
 
   let romanText = '';
@@ -224,7 +253,7 @@ export async function POST(request: NextRequest) {
     const issuerLabel = 'Issued by:';
     const issuerLabelWidth = pdf.getTextWidth(issuerLabel);
     pdf.setFont('helvetica', 'normal');
-    const issuerValue = certificateData.issuer || 'AgriSkills Academy';
+    const issuerValue = certificateData.issuer || `${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} Academy`;
     const issuerValueWidth = pdf.getTextWidth(issuerValue);
     const issuerBlockWidth = issuerLabelWidth + 6 + issuerValueWidth;
 
