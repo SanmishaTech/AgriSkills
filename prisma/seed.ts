@@ -5,8 +5,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create user Vipul
-  const existingUser = await prisma.user.findUnique({
-    where: { phone: '9000000001' },
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ phone: '9000000001' }, { email: 'vipul@gmail.com' }],
+    },
   });
 
   if (!existingUser) {
@@ -27,8 +29,10 @@ async function main() {
     console.log('User Vipul already exists');
   }
   // Check if admin user already exists
-  const existingAdmin = await prisma.user.findUnique({
-    where: { phone: '9000000000' },
+  const existingAdmin = await prisma.user.findFirst({
+    where: {
+      OR: [{ phone: '9000000000' }, { email: 'admin@gmail.com' }],
+    },
   });
 
   if (!existingAdmin) {

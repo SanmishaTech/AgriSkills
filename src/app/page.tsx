@@ -51,6 +51,16 @@ interface Course {
   };
 }
 
+interface SuccessStory {
+  id: number;
+  title: string;
+  description: string;
+  emoji: string;
+  category: string;
+  impact: string;
+  fullStory: string;
+}
+
 declare global {
   interface Window {
     YT: any;
@@ -74,7 +84,28 @@ export default function HomePage() {
   const [demoUrls, setDemoUrls] = useState<string[]>([]);
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
+
+  const smoothScrollTo = (top: number) => {
+    if (typeof window === 'undefined') return;
+    const scroller = (document.scrollingElement || document.documentElement) as HTMLElement;
+    const start = scroller.scrollTop || 0;
+    const change = top - start;
+    const duration = 520;
+    const startTime = performance.now();
+    const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = easeInOutCubic(progress);
+      scroller.scrollTop = start + change * eased;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+  };
 
   const circularMenuItems = [
     { id: 1, label: 'ENGAGE', color: '#22c55e', icon: '👥' },
@@ -371,6 +402,38 @@ export default function HomePage() {
     fetchTopics();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let shouldScroll = false;
+
+    try {
+      shouldScroll = sessionStorage.getItem('scrollToSearch') === '1';
+      if (shouldScroll) sessionStorage.removeItem('scrollToSearch');
+    } catch {
+      shouldScroll = false;
+    }
+
+    if (!shouldScroll) return;
+
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      const run = () => {
+        if (cancelled) return;
+        const el = document.getElementById('search');
+        if (!el) return;
+        const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
+        smoothScrollTo(top);
+      };
+
+      requestAnimationFrame(() => requestAnimationFrame(run));
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, []);
+
   // Generate colors for topics
   const getTopicColor = (index: number) => {
     const colors = ['bg-green-100', 'bg-amber-100', 'bg-red-100', 'bg-blue-100', 'bg-yellow-100', 'bg-purple-100'];
@@ -414,21 +477,50 @@ export default function HomePage() {
         {/* Navigation items for floating navbar on larger screens */}
         <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
           <button
-            onClick={() => setActiveNav('home')}
+            onClick={() => {
+              setActiveNav('home');
+              router.push('/');
+              if (typeof window !== 'undefined') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
             className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'home' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
           >
             <Home className="w-4 h-4" />
             <span className="text-sm font-medium">Home</span>
           </button>
           <button
-            onClick={() => setActiveNav('search')}
+            onClick={() => {
+              setActiveNav('search');
+              if (typeof window !== 'undefined') {
+                const el = document.getElementById('search');
+                if (el) {
+                  const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
+                  smoothScrollTo(top);
+                  return;
+                }
+              }
+              try {
+                sessionStorage.setItem('scrollToSearch', '1');
+              } catch {
+                // ignore
+              }
+              router.push('/');
+            }}
             className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'search' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
           >
             <Search className="w-4 h-4" />
             <span className="text-sm font-medium">Search</span>
           </button>
           <button
-            onClick={() => setActiveNav('learn')}
+            onClick={() => {
+              setActiveNav('learn');
+              if (isAuthenticated) {
+                router.push('/dashboard/user');
+              } else {
+                router.push('/learn');
+              }
+            }}
             className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'learn' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
           >
             <BookOpen className="w-4 h-4" />
@@ -500,7 +592,7 @@ export default function HomePage() {
           className="relative group cursor-pointer mx-4 md:mx-6 lg:mx-8 xl:mx-12 2xl:mx-16 mt-6 md:mt-8 lg:mt-6 h-60 md:h-72 lg:h-96 xl:h-[28rem] 2xl:h-[32rem] rounded-xl overflow-hidden shadow-lg bg-gray-900"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => router.push('/learn-more')}
+          onClick={() => router.push('/dashboard/user')}
         >
           <Image
             src="/images/image1.png"
@@ -519,6 +611,15 @@ export default function HomePage() {
             </div>
           </div>
         </motion.div>
+
+        <section className="mx-4 md:mx-6 lg:mx-8 xl:mx-12 2xl:mx-16 mt-4 md:mt-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 mb-2">About Us</h2>
+            <p className="text-gray-600 text-sm md:text-base leading-7 [text-wrap:pretty]">
+              Shop for Change Fair Trade exists to build a future where rural and tribal communities shape India’s economy through ownership, innovation, and cultural pride. We help farmers and producers move from the margins to the marketplace by strengthening direct market linkages, promoting agroforestry, delivering training in natural/regenerative farming and business skills, and enabling digital inclusion—including support to use mobile tools, e-commerce, and AI for better decisions. Women’s empowerment is central to our approach because women’s leadership uplifts entire families and communities.
+            </p>
+          </div>
+        </section>
 
         <div className="px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-24">
           <div className="flex justify-between items-center mt-3 mb-4 md:mb-5 lg:mb-6 xl:mb-8">
@@ -661,7 +762,7 @@ export default function HomePage() {
           </div>
           
           {/* Search Section */}
-          <div className="mt-8">
+          <div className="mt-8 scroll-mt-24" id="search">
             <div className="relative">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -703,14 +804,31 @@ export default function HomePage() {
                             onClick={() => openTopicDemo(topic.id)}
                           >
                             {/* Topic Image */}
-                            <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                              <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                              {index % 3 === 1 && (
-                                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  BEST
-                                </div>
-                              )}
-                            </div>
+                            {topic.thumbnail ? (
+                              <div className="relative h-24 w-full">
+                                <Image
+                                  src={topic.thumbnail}
+                                  alt={topic.title}
+                                  layout="fill"
+                                  objectFit="cover"
+                                  className="object-cover"
+                                />
+                                {index % 3 === 1 && (
+                                  <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                    BEST
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                                <div className="text-white text-2xl">{getTopicIcon(index)}</div>
+                                {index % 3 === 1 && (
+                                  <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                    BEST
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             
                             {/* Topic Content */}
                             <div className="p-3">
@@ -862,7 +980,8 @@ export default function HomePage() {
                   description: "Rekha started a small training center in her village after completing our tailoring course.",
                   emoji: "✂️",
                   category: "Tailoring",
-                  impact: "12 women trained"
+                  impact: "12 women trained",
+                  fullStory: "Rekha Sharma, a 34-year-old mother of two from Rajasthan, transformed her life through our tailoring skills program. Starting with basic stitching knowledge, she mastered advanced tailoring techniques through our comprehensive course. Within six months, she established a small training center in her village, providing employment opportunities for local women. Today, she has trained over 12 women who are now earning independently, creating a ripple effect of empowerment in her community. Her center has become a hub for women's skill development, and she plans to expand to neighboring villages."
                 },
                 {
                   id: 2,
@@ -870,7 +989,8 @@ export default function HomePage() {
                   description: "After learning organic farming techniques, Raju converted his 5-acre farm to profitable organic cultivation.",
                   emoji: "🌱",
                   category: "Organic Farming",
-                  impact: "5-acre farm converted"
+                  impact: "5-acre farm converted",
+                  fullStory: "Raju Kumar's journey from conventional to organic farming began when he enrolled in our sustainable agriculture program. Initially skeptical about organic methods, he gradually learned about soil health, natural pest control, and sustainable water management. The transformation of his 5-acre farm took two years, but the results were remarkable. His organic vegetables and grains now fetch premium prices in local markets. He has reduced his input costs by 60% and increased his profit margins by 40%. Raju now mentors other farmers in his district, helping them transition to organic farming practices."
                 },
                 {
                   id: 3,
@@ -878,7 +998,8 @@ export default function HomePage() {
                   description: "Meera expanded her dairy from 2 cows to 15 cows, increasing her monthly income by 400%.",
                   emoji: "🥛",
                   category: "Dairy Farming",
-                  impact: "400% income increase"
+                  impact: "400% income increase",
+                  fullStory: "Meera Patel started with just two local cows and a dream to become financially independent. Through our dairy management program, she learned about cattle nutrition, breeding techniques, and modern milking practices. She implemented scientific feeding schedules and proper healthcare for her cattle. Over 18 months, she gradually expanded her herd to 15 high-yielding crossbred cows. Her daily milk production increased from 20 liters to 180 liters. She now supplies milk to a local cooperative and has started producing paneer and ghee. Her monthly income has grown from ₹8,000 to ₹40,000, making her one of the most successful dairy entrepreneurs in her district."
                 },
                 {
                   id: 4,
@@ -886,7 +1007,8 @@ export default function HomePage() {
                   description: "Starting with 50 chickens, Suresh now manages 1000+ birds and supplies to local markets.",
                   emoji: "🐔",
                   category: "Poultry Farming",
-                  impact: "1000+ birds managed"
+                  impact: "1000+ birds managed",
+                  fullStory: "Suresh Reddy's poultry venture began as a small backyard operation with 50 country chickens. After joining our poultry management course, he learned about modern housing systems, vaccination schedules, and feed management. He gradually upgraded his facilities and introduced improved breeds. His systematic approach to poultry farming, including proper biosecurity measures and record-keeping, helped him scale operations rapidly. Today, his farm houses over 1000 birds across different batches. He supplies eggs and meat to local markets, restaurants, and wholesalers. His monthly turnover has crossed ₹1.5 lakhs, and he employs three local youth in his operations."
                 },
                 {
                   id: 5,
@@ -894,7 +1016,8 @@ export default function HomePage() {
                   description: "Priya transformed her backyard into a profitable vegetable garden earning ₹8000 monthly.",
                   emoji: "🥬",
                   category: "Kitchen Gardening",
-                  impact: "₹8000 monthly income"
+                  impact: "₹8000 monthly income",
+                  fullStory: "Priya Singh utilized her small backyard space to create a thriving kitchen garden after completing our urban farming course. She learned about vertical gardening, container farming, and seasonal crop planning. Using innovative techniques like grow bags, trellises, and drip irrigation, she maximized her limited space. She grows a variety of vegetables including tomatoes, peppers, leafy greens, and herbs. Her produce is pesticide-free and freshly harvested, which attracts customers willing to pay premium prices. She sells directly to neighbors, local restaurants, and through online platforms. What started as a hobby has become a sustainable business earning her ₹8,000 monthly while providing fresh, healthy food for her family."
                 },
                 {
                   id: 6,
@@ -902,7 +1025,8 @@ export default function HomePage() {
                   description: "Ramesh started with 5 hives and now harvests 200kg of honey annually.",
                   emoji: "🐝",
                   category: "Bee Keeping",
-                  impact: "200kg honey annually"
+                  impact: "200kg honey annually",
+                  fullStory: "Ramesh Kumar's apiary journey began with our beekeeping fundamentals course. Initially apprehensive about handling bees, he gained confidence through hands-on training and mentorship. He started with 5 traditional hives in his mango orchard. Learning about bee behavior, hive management, and honey extraction techniques, he gradually modernized his approach. He introduced improved hive designs and scientific management practices. His bee colonies thrived, and he expanded to 25 hives across different locations. He now harvests 200kg of pure honey annually, which he sells under his own brand. Additionally, he produces beeswax and offers pollination services to fruit growers. His success has inspired 10 other farmers in his area to start beekeeping."
                 },
                 {
                   id: 7,
@@ -910,7 +1034,8 @@ export default function HomePage() {
                   description: "Sunita's mushroom farm produces 50kg daily, supplying to restaurants and hotels.",
                   emoji: "🍄",
                   category: "Mushroom Farming",
-                  impact: "50kg daily production"
+                  impact: "50kg daily production",
+                  fullStory: "Sunita Devi entered mushroom cultivation through our specialized training program on oyster mushroom production. She converted a small room in her house into a controlled environment for mushroom growing. Learning about substrate preparation, spawning, and environmental control, she achieved consistent production cycles. Her quality mushrooms gained recognition among local restaurants and hotels for their freshness and taste. She now operates multiple growing chambers and produces 50kg of mushrooms daily. Her product range includes oyster, shiitake, and button mushrooms. She has trained her two daughters in the business, making it a family enterprise. Her annual turnover exceeds ₹10 lakhs, and she has become a model entrepreneur in her district."
                 },
                 {
                   id: 8,
@@ -918,7 +1043,8 @@ export default function HomePage() {
                   description: "Vikram converted his 2-acre pond into a thriving fish farm with multiple species.",
                   emoji: "🐟",
                   category: "Fish Farming",
-                  impact: "2-acre fish farm"
+                  impact: "2-acre fish farm",
+                  fullStory: "Vikram Yadav transformed his ancestral pond into a modern aquaculture facility through our fish farming program. He learned about pond preparation, water quality management, and integrated fish farming systems. Initially focusing on common carp and rohu, he gradually diversified to include catla, grass carp, and silver carp in a polyculture system. His scientific approach to feeding, aeration, and disease management resulted in excellent fish growth rates. He harvests 4 tonnes of fish every 8 months from his 2-acre pond. His fish are supplied to local markets, restaurants, and wholesalers across three districts. He has also started fish seed production, selling fingerlings to other fish farmers. His success has motivated many farmers to convert their unused ponds into productive aquaculture systems."
                 },
                 {
                   id: 9,
@@ -926,7 +1052,8 @@ export default function HomePage() {
                   description: "Kavita processes and packages spices, supplying to 20+ retail stores in her district.",
                   emoji: "🌶️",
                   category: "Food Processing",
-                  impact: "20+ stores supplied"
+                  impact: "20+ stores supplied",
+                  fullStory: "Kavita Sharma established her spice processing unit after completing our food processing and entrepreneurship program. She started by processing turmeric and chili powder using traditional methods, then gradually invested in modern grinding and packaging equipment. Her focus on quality control, hygienic processing, and attractive packaging helped her build a loyal customer base. She sources raw materials directly from farmers, ensuring quality and fair prices. Her product range now includes 15 different spices and spice blends. She supplies to over 20 retail stores across her district and has started online sales. Her branded spices have gained recognition for their purity and authentic taste. She employs 8 women from her village, providing them with steady income and skill development opportunities."
                 },
                 {
                   id: 10,
@@ -934,7 +1061,8 @@ export default function HomePage() {
                   description: "Ankit's soilless farming setup produces fresh vegetables year-round in controlled environment.",
                   emoji: "💧",
                   category: "Hydroponic Farming",
-                  impact: "Year-round production"
+                  impact: "Year-round production",
+                  fullStory: "Ankit Verma pioneered hydroponic farming in his region after attending our advanced agricultural technology program. Initially investing in a small NFT (Nutrient Film Technique) system, he learned about nutrient solutions, pH management, and climate control. His soilless cultivation method allows year-round production of high-quality vegetables in controlled conditions. He specializes in growing lettuce, spinach, herbs, and cherry tomatoes. His produce is pesticide-free and has superior taste and nutritional value. He supplies to premium restaurants, health-conscious consumers, and organic stores in nearby cities. His 1000 sq ft hydroponic setup generates monthly revenue of ₹50,000. He has become a consultant for other farmers interested in adopting hydroponic technology and has trained over 50 farmers in the past year."
                 }
               ].map((story, index) => (
                 <motion.div
@@ -972,7 +1100,7 @@ export default function HomePage() {
                       className="text-green-600 text-sm font-semibold hover:text-green-700 transition-colors flex items-center gap-1"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push('/success-stories');
+                        setSelectedSuccessStory(story);
                       }}
                     >
                       <span>Read Full Story</span>
@@ -983,6 +1111,53 @@ export default function HomePage() {
               ))}
             </div>
           </div>
+
+          {selectedSuccessStory && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+              onClick={() => setSelectedSuccessStory(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative h-32 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-4xl">
+                  <span>{selectedSuccessStory.emoji}</span>
+                  <button
+                    onClick={() => setSelectedSuccessStory(null)}
+                    className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-128px)]">
+                  <div className="flex items-center gap-2 text-sm text-green-600 font-semibold mb-2">
+                    <span>{selectedSuccessStory.category}</span>
+                    <span>•</span>
+                    <span>{selectedSuccessStory.impact}</span>
+                  </div>
+
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    {selectedSuccessStory.title}
+                  </h2>
+
+                  <div className="prose prose-gray max-w-none">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                      {selectedSuccessStory.fullStory}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
           
           {/* Certificates Section */}
           <div className="mt-3">

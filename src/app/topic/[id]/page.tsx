@@ -49,11 +49,45 @@ export default function TopicDetailPage() {
   const router = useRouter();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedSubtopic, setSelectedSubtopic] = useState<string | null>(null);
   const [demoVideos, setDemoVideos] = useState<DemoVideo[]>([]);
   const [demoContent, setDemoContent] = useState<string>('');
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
+
+  const handleTryFirstCourse = async (courseId: string) => {
+    if (!isLoggedIn) {
+      router.push(`/learn-free/${courseId}`);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/courses/${courseId}/chapters`);
+      if (!res.ok) {
+        router.push(`/learn-free/${courseId}`);
+        return;
+      }
+      const data = await res.json();
+      const chapters = Array.isArray(data?.course?.chapters) ? data.course.chapters : [];
+      if (chapters.length === 0) {
+        router.push(`/learn-free/${courseId}`);
+        return;
+      }
+
+      const sorted = [...chapters].sort((a: any, b: any) => (a?.orderIndex ?? 0) - (b?.orderIndex ?? 0));
+      const firstChapterId = sorted[0]?.id;
+
+      if (typeof firstChapterId === 'string' && firstChapterId.length > 0) {
+        router.push(`/learn/chapter/${firstChapterId}`);
+        return;
+      }
+
+      router.push(`/learn-free/${courseId}`);
+    } catch {
+      router.push(`/learn-free/${courseId}`);
+    }
+  };
 
   useEffect(() => {
     const fetchTopicDetails = async () => {
@@ -75,6 +109,16 @@ export default function TopicDetailPage() {
 
     fetchTopicDetails();
   }, [params.id]);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      setIsLoggedIn(!!(token && user));
+    } catch {
+      setIsLoggedIn(false);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -325,17 +369,19 @@ export default function TopicDetailPage() {
                                subtopic.courses.findIndex(c => c.id === course.id) === 0 ? (
                                 <div className="space-y-2">
                                   <button 
-                                    onClick={() => router.push(`/learn-free/${course.id}`)} 
+                                    onClick={() => handleTryFirstCourse(course.id)} 
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
                                   >
                                     Try First Course (Free)
                                   </button>
-                                  <button 
-                                    onClick={() => router.push('/login')} 
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
-                                  >
-                                    Enroll for Full Access
-                                  </button>
+                                  {!isLoggedIn && (
+                                    <button 
+                                      onClick={() => router.push('/login')} 
+                                      className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-xs font-medium transition-colors"
+                                    >
+                                      Enroll for Full Access
+                                    </button>
+                                  )}
                                 </div>
                               ) : (
                                 <button 

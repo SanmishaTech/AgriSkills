@@ -207,36 +207,6 @@ export default function CertificatesPage() {
           </p>
         </div>
 
-        {/* Overall Progress Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-8 mb-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-green-700" />
-              <h2 className="text-2xl font-semibold text-gray-900">Overall Certification Progress</h2>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">{certificateData.overallProgress}%</div>
-              <div className="text-sm text-gray-600">Complete</div>
-            </div>
-          </div>
-          
-          <div className="w-full h-4 bg-white border border-amber-200 rounded-full overflow-hidden mb-4">
-            <div
-              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-1000 ease-out"
-              style={{ width: `${Math.min(100, Math.max(0, certificateData.overallProgress || 0))}%` }}
-            />
-          </div>
-          
-          <div className="flex justify-between text-sm text-gray-700">
-            <span>{certificateData.completed.length} certificates completed</span>
-            <span>{certificateData.inProgress.length} in progress</span>
-          </div>
-        </motion.div>
-
         {/* Completed Certificates */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}

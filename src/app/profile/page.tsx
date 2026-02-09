@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 interface User {
   id: string;
   email: string;
+  phone: string;
   name: string;
   role: string;
   profilePhoto?: string;
@@ -20,6 +21,7 @@ export default function UpdateProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
+    phone: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -45,7 +47,8 @@ export default function UpdateProfile() {
       setUser(parsedUser);
       setFormData(prev => ({
         ...prev,
-        email: parsedUser.email,
+        email: parsedUser.email || '',
+        phone: parsedUser.phone || '',
       }));
       
       // Set profile photo if it exists
@@ -61,6 +64,15 @@ export default function UpdateProfile() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    if (name === 'phone') {
+      // Only allow digits, max 10
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        [name]: digitsOnly,
+      }));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -111,6 +123,7 @@ export default function UpdateProfile() {
     setIsEditing(false);
     setFormData({
       email: user?.email || '',
+      phone: user?.phone || '',
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
@@ -124,6 +137,9 @@ export default function UpdateProfile() {
     switch (true) {
       case !formData.email:
         return { isValid: false, message: 'Email is required' };
+      
+      case !formData.phone || formData.phone.length !== 10:
+        return { isValid: false, message: 'Phone number must be exactly 10 digits' };
       
       case formData.newPassword && formData.newPassword !== formData.confirmPassword:
         return { isValid: false, message: 'New passwords do not match' };
@@ -151,10 +167,16 @@ export default function UpdateProfile() {
 
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        localStorage.removeItem('user');
+        router.push('/login');
+        return;
+      }
       
       // Create FormData for file upload
       const formDataToSend = new FormData();
       formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
       
       if (formData.newPassword) {
         formDataToSend.append('currentPassword', formData.currentPassword);
@@ -173,11 +195,18 @@ export default function UpdateProfile() {
         body: formDataToSend,
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok) {
         // Update local storage with new user data
-        const updatedUser = { ...user, email: formData.email };
+        const updatedUser = { ...user, email: formData.email, phone: formData.phone };
         if (data.user.profilePhoto) {
           updatedUser.profilePhoto = data.user.profilePhoto;
           setProfilePhotoUrl(`/api/images/${data.user.profilePhoto}`);
@@ -310,6 +339,39 @@ export default function UpdateProfile() {
                   readOnly
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    readOnly={!isEditing}
+                    inputMode="numeric"
+                    pattern="\d*"
+                    maxLength={10}
+                    placeholder="XXXXXXXXXX"
+                    className={`w-full px-3 py-2 border border-gray-200 rounded-lg shadow-sm pl-12 ${
+                      isEditing 
+                        ? 'focus:ring-indigo-500 focus:border-indigo-500' 
+                        : 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                    }`}
+                  />
+                </div>
+                {isEditing && (
+                  <p className="mt-1 text-sm text-gray-500">
+                    Enter 10-digit phone number (India)
+                  </p>
+                )}
               </div>
 
               {/* Email */}

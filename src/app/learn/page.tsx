@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import FullScreenDemoPlayer from '@/components/FullScreenDemoPlayer';
+import { Home } from 'lucide-react';
 
 interface Subtopic {
   id: string;
@@ -100,8 +101,20 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-amber-50 pb-24">
       <div className="max-w-3xl mx-auto px-4 pt-5">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Learn</h1>
-        <p className="text-gray-700 mb-6">Browse topics and watch short demo lessons. Tap a topic to start.</p>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Learn</h1>
+            <p className="text-gray-700 mb-6">Browse topics and watch short demo lessons. Tap a topic to start.</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Home"
+            onClick={() => router.push('/')}
+            className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
+          >
+            <Home className="w-5 h-5" />
+          </button>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-gray-600">Loading topics...</div>

@@ -116,6 +116,11 @@ export default function UserDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [certificateProgress, setCertificateProgress] = useState({
+    overallProgress: 0,
+    completedCount: 0,
+    inProgressCount: 0
+  });
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [navigation, setNavigation] = useState<NavigationState>({
@@ -154,11 +159,48 @@ export default function UserDashboard() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       fetchTopics();
+      loadCertificateProgress();
     } else {
       console.log('Missing auth, redirecting to login');
       router.push('/login');
     }
   }, [router]);
+
+  const loadCertificateProgress = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/certificates', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+        }
+        return;
+      }
+
+      const result = await response.json();
+      if (!result?.success) return;
+
+      const data = result?.data;
+      setCertificateProgress({
+        overallProgress: Number(data?.overallProgress ?? 0),
+        completedCount: Array.isArray(data?.completed) ? data.completed.length : 0,
+        inProgressCount: Array.isArray(data?.inProgress) ? data.inProgress.length : 0
+      });
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchTopics = async () => {
     try {
@@ -558,6 +600,36 @@ export default function UserDashboard() {
             </button>
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-4"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-6 h-6 text-green-700" />
+              <h2 className="text-lg font-semibold text-gray-900">Overall Certification Progress</h2>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-bold text-gray-900">{certificateProgress.overallProgress}%</div>
+              <div className="text-xs text-gray-600">Complete</div>
+            </div>
+          </div>
+
+          <div className="w-full h-3 bg-white border border-amber-200 rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-1000 ease-out"
+              style={{ width: `${Math.min(100, Math.max(0, certificateProgress.overallProgress || 0))}%` }}
+            />
+          </div>
+
+          <div className="flex justify-between text-xs text-gray-700">
+            <span>{certificateProgress.completedCount} certificates completed</span>
+            <span>{certificateProgress.inProgressCount} in progress</span>
+          </div>
+        </motion.div>
+
         <div className="bg-amber-50 rounded-md py-3 px-4">
           <h2 className="text-2xl font-bold text-gray-900 text-center">What topics are you interested in?</h2>
         </div>

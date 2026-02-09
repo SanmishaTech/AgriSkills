@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, User as UserIcon, LogOut } from "lucide-react";
+import { ArrowLeft, Home, User as UserIcon, LogOut } from "lucide-react";
 
 interface User {
   id: string;
   email: string;
   name: string;
   role: string;
+  phone?: string;
   profilePhoto?: string;
 }
 
@@ -100,6 +101,9 @@ export default function Navbar() {
     user.profilePhoto.trim().length > 0
   );
 
+  const displayName = user.name || user.email || "User";
+  const displayPhone = user.phone || "";
+
   return (
     <>
       {/* Fixed top navbar */}
@@ -127,6 +131,16 @@ export default function Navbar() {
                 <span className="text-amber-50 text-[18px] font-bold leading-none">?</span>
               </button>
 
+              {/* Home */}
+              <button
+                type="button"
+                aria-label="Home"
+                onClick={() => router.push("/")}
+                className="w-8 h-8 rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center text-gray-700 active:scale-[0.97] transition"
+              >
+                <Home className="w-[16px] h-[16px]" />
+              </button>
+
               {/* Profile menu */}
               <div className="relative" ref={menuRef}>
                 <button
@@ -151,7 +165,18 @@ export default function Navbar() {
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                    <div className="absolute -top-2 right-3 h-0 w-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-gray-200" />
+                    <div className="absolute -top-[7px] right-3 h-0 w-0 border-l-7 border-l-transparent border-r-7 border-r-transparent border-b-7 border-b-white" />
+
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <div className="text-sm font-semibold text-gray-900 leading-tight line-clamp-1">
+                        {displayName}
+                      </div>
+                      {displayPhone ? (
+                        <div className="text-xs text-gray-600 leading-tight">{displayPhone}</div>
+                      ) : null}
+                    </div>
                     <button
                       className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                       onClick={() => {

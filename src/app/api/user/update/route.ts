@@ -166,14 +166,22 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update profile error:', error);
-    
+    // Expected auth failures
+    if (error instanceof jwt.TokenExpiredError) {
+      return NextResponse.json(
+        { message: 'Token expired' },
+        { status: 401 }
+      );
+    }
+
     if (error instanceof jwt.JsonWebTokenError) {
       return NextResponse.json(
         { message: 'Invalid token' },
         { status: 401 }
       );
     }
+
+    console.error('Update profile error:', error);
 
     return NextResponse.json(
       { message: 'Internal server error' },

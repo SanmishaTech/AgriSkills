@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 
 interface User {
   id: string;
+  phone: string;
   email: string;
   name: string;
   role: string;
@@ -19,7 +20,7 @@ export default function UserDetails() {
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editForm, setEditForm] = useState({ email: '', password: '' });
+  const [editForm, setEditForm] = useState({ phone: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const params = useParams();
@@ -75,7 +76,8 @@ export default function UserDetails() {
 
   const handleEditUser = () => {
     if (user) {
-      setEditForm({ email: user.email, password: '' });
+      const normalizedPhone = (user.phone ?? '').replace(/\D/g, '').slice(-10);
+      setEditForm({ phone: normalizedPhone, password: '' });
       setShowEditModal(true);
     }
   };
@@ -104,9 +106,9 @@ export default function UserDetails() {
       }
 
       const data = await response.json();
-      setUser({ ...user, email: data.user.email });
+      setUser({ ...user, phone: data.user.phone });
       setShowEditModal(false);
-      setEditForm({ email: '', password: '' });
+      setEditForm({ phone: '', password: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -207,12 +209,12 @@ export default function UserDetails() {
             <div className="flex items-center">
               <div className="flex-shrink-0 h-20 w-20">
                 <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl">
-                  {(user.name || user.email).charAt(0).toUpperCase()}
+                  {(user.name || user.phone).charAt(0).toUpperCase()}
                 </div>
               </div>
               <div className="ml-6">
                 <h1 className="text-3xl font-bold">{user.name || 'No Name'}</h1>
-                <p className="text-indigo-100 text-lg">{user.email}</p>
+                <p className="text-indigo-100 text-lg">{user.phone}</p>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mt-2 ${
                   user.role === 'admin' 
                     ? 'bg-purple-200 text-purple-800' 
@@ -260,8 +262,8 @@ export default function UserDetails() {
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-500">Email Address</label>
-                <p className="text-gray-900">{user.email}</p>
+                <label className="text-sm font-medium text-gray-500">Phone Number</label>
+                <p className="text-gray-900">{user.phone}</p>
               </div>
               
               <div>
@@ -339,20 +341,32 @@ export default function UserDetails() {
 
         {/* Edit User Modal */}
         {showEditModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Edit User</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setEditForm({ ...editForm, phone: digitsOnly });
+                      }}
+                      inputMode="numeric"
+                      pattern="\\d*"
+                      maxLength={10}
+                      placeholder="XXXXXXXXXX"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 pl-12"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -377,7 +391,7 @@ export default function UserDetails() {
                 </button>
                 <button
                   onClick={submitEdit}
-                  disabled={isSubmitting || !editForm.email}
+                  disabled={isSubmitting || !editForm.phone}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isSubmitting && (
