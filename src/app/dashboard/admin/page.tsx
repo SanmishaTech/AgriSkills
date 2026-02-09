@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 interface User {
   id: string;
   email: string;
-  phone: string;
+  phone: string | null;
   name: string;
   role: string;
   createdAt: string;
@@ -413,7 +413,9 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <span className="text-sm text-gray-600">+91 {u.phone}</span>
+                              <span className="text-sm text-gray-600">
+                                {u.phone ? `+91 ${u.phone}` : 'A'}
+                              </span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
