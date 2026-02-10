@@ -194,3 +194,14 @@
     scroll-snap-align: start;
   }
 }
+
+/* ── Hide Google Translate injected toolbar ── */
+.goog-te-banner-frame,
+.skiptranslate,
+#goog-gt-tt {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
