@@ -85,10 +85,6 @@ export default function HomePage() {
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
-  const [showTranslate, setShowTranslate] = useState(false);
-  const [isTranslated, setIsTranslated] = useState(false);
-  const [translatedLangName, setTranslatedLangName] = useState('');
-  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
 
   const smoothScrollTo = (top: number) => {
@@ -142,11 +138,11 @@ export default function HomePage() {
       const data = await res.json();
       const demoPairs = Array.isArray(data?.demoVideos)
         ? data.demoVideos
-            .map((v: any) => ({
-              youtubeId: v?.youtubeId,
-              title: typeof v?.title === 'string' ? v.title : ''
-            }))
-            .filter((p: any) => typeof p.youtubeId === 'string' && p.youtubeId.length === 11)
+          .map((v: any) => ({
+            youtubeId: v?.youtubeId,
+            title: typeof v?.title === 'string' ? v.title : ''
+          }))
+          .filter((p: any) => typeof p.youtubeId === 'string' && p.youtubeId.length === 11)
         : [];
       const urls: string[] = demoPairs.map((p: any) => `https://www.youtube.com/watch?v=${p.youtubeId}`);
       const titles: string[] = demoPairs.map((p: any) => p.title);
@@ -209,28 +205,28 @@ export default function HomePage() {
     const [playerState, setPlayerState] = useState('paused');
     const playerRef = useRef<any>(null);
     const iframeId = `youtube-player-${video.id}`;
-    
+
     useEffect(() => {
       // Load YouTube IFrame API
       if (!window.YT) {
         const script = document.createElement('script');
         script.src = 'https://www.youtube.com/iframe_api';
         document.body.appendChild(script);
-        
+
         window.onYouTubeIframeAPIReady = () => {
           initializePlayer();
         };
       } else {
         initializePlayer();
       }
-      
+
       return () => {
         if (playerRef.current) {
           playerRef.current.destroy();
         }
       };
     }, []);
-    
+
     const initializePlayer = () => {
       if (window.YT && window.YT.Player) {
         playerRef.current = new window.YT.Player(iframeId, {
@@ -269,7 +265,7 @@ export default function HomePage() {
         });
       }
     };
-    
+
     const togglePlayPause = () => {
       if (playerRef.current) {
         if (playerState === 'playing') {
@@ -279,18 +275,18 @@ export default function HomePage() {
         }
       }
     };
-    
+
     const restartVideo = () => {
       if (playerRef.current) {
         playerRef.current.seekTo(0);
         playerRef.current.playVideo();
       }
     };
-    
+
     return (
       <div className="relative w-full h-full">
         <div id={iframeId} className="w-full h-full"></div>
-        
+
         {/* Transparent overlay to prevent iframe from capturing events */}
         <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
           {/* Controls container with pointer events enabled */}
@@ -304,7 +300,7 @@ export default function HomePage() {
                   restartVideo();
                 }}
                 className="relative bg-black/60 active:bg-black/80 text-white rounded-full transition-all duration-200 transform active:scale-95"
-                style={{ 
+                style={{
                   padding: '18px',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
@@ -314,7 +310,7 @@ export default function HomePage() {
               >
                 <RotateCcw className="w-8 h-8 pointer-events-none" />
               </button>
-              
+
               {/* Play/Pause Button */}
               <button
                 onClick={(e) => {
@@ -323,7 +319,7 @@ export default function HomePage() {
                   togglePlayPause();
                 }}
                 className="relative bg-black/60 active:bg-black/80 text-white rounded-full transition-all duration-200 transform active:scale-95"
-                style={{ 
+                style={{
                   padding: '24px',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
@@ -361,131 +357,7 @@ export default function HomePage() {
     return { x, y };
   };
 
-  const languageList = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-    { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
-    { code: 'gu', name: 'ગુજરાતી', flag: '🇮🇳' },
-    { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
-    { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
-    { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' },
-    { code: 'ml', name: 'മലയാളം', flag: '🇮🇳' },
-    { code: 'bn', name: 'বাংলা', flag: '🇮🇳' },
-    { code: 'pa', name: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
-    { code: 'ur', name: 'اردو', flag: '🇮🇳' },
-    { code: 'or', name: 'ଓଡ଼ିଆ', flag: '🇮🇳' }
-  ];
 
-  const setGoogTransCookie = (langCode: string) => {
-    if (typeof document === 'undefined') return;
-    const value = `/en/${langCode}`;
-    document.cookie = `googtrans=${value};path=/;max-age=31536000`;
-  };
-
-  const changeLanguage = (langCode: string, langName?: string) => {
-    setShowTranslate(false);
-    setShowFloatingMenu(false);
-    if (typeof window === 'undefined') return;
-
-    if (langCode === 'en') {
-      setIsTranslated(false);
-      setTranslatedLangName('');
-      localStorage.removeItem('googleTranslateLang');
-      // Clear the googtrans cookie
-      document.cookie = 'googtrans=;path=/;max-age=0';
-    } else {
-      setIsTranslated(true);
-      setTranslatedLangName(langName || langCode);
-      localStorage.setItem('googleTranslateLang', langCode);
-    }
-
-    setGoogTransCookie(langCode);
-
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-    if (select) {
-      select.value = langCode;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-      return;
-    }
-
-    window.location.reload();
-  };
-
-  const showOriginal = () => {
-    changeLanguage('en', 'English');
-  };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    (window as any).googleTranslateElementInit = () => {
-      try {
-        if (!(window as any).google?.translate?.TranslateElement) return;
-        const container = document.getElementById('google_translate_element');
-        if (!container) return;
-
-        container.innerHTML = '';
-        new (window as any).google.translate.TranslateElement(
-          {
-            pageLanguage: 'en',
-            includedLanguages: 'en,hi,mr,gu,ta,te,kn,ml,pa,ur,bn,or,as,ne,sd,sa',
-            layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false
-          },
-          'google_translate_element'
-        );
-      } catch (e) {
-        console.error('Google Translate init failed:', e);
-      }
-    };
-
-    const existing = document.querySelector('script[data-google-translate="1"]') as HTMLScriptElement | null;
-    if (existing) {
-      if ((window as any).google?.translate?.TranslateElement) {
-        (window as any).googleTranslateElementInit();
-      }
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.setAttribute('data-google-translate', '1');
-    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    script.async = true;
-    script.onerror = () => console.error('Failed to load Google Translate');
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const storedLang = localStorage.getItem('googleTranslateLang');
-    if (!storedLang) return;
-
-    // Restore translated state from localStorage
-    if (storedLang !== 'en') {
-      setIsTranslated(true);
-      const found = languageList.find(l => l.code === storedLang);
-      setTranslatedLangName(found ? found.name : storedLang);
-    }
-
-    setGoogTransCookie(storedLang);
-
-    let attempts = 0;
-    const interval = window.setInterval(() => {
-      attempts += 1;
-      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
-      if (select) {
-        select.value = storedLang;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-        window.clearInterval(interval);
-      }
-      if (attempts > 20) {
-        window.clearInterval(interval);
-      }
-    }, 400);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   // Check authentication status
   useEffect(() => {
@@ -587,28 +459,16 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col w-full relative">
 
-      {/* Hidden Google Translate Widget - Must be in DOM for translation to work */}
-      <div
-        id="google_translate_element"
-        style={{
-          position: 'fixed',
-          bottom: '-100px',
-          left: '-100px',
-          visibility: 'hidden',
-          pointerEvents: 'none'
-        }}
-      />
-      
       <header className="text-white py-2 px-3 md:py-4 md:px-6 lg:py-5 lg:px-8 flex items-center justify-between flex-shrink-0"
         style={{
           background: 'linear-gradient(to bottom, #008C45 50%, #00B68A 100%)'
         }}
       >
-      
+
         <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
           <h1 className="hidden md:block md:text-sm lg:text-base xl:text-lg 2xl:text-xl font-bold whitespace-nowrap">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}</h1>
         </div>
-        
+
         {/* Navigation items for floating navbar on larger screens */}
         <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
           <button
@@ -667,7 +527,7 @@ export default function HomePage() {
           {!authLoading && (
             isAuthenticated ? (
               <div className="flex items-center space-x-2">
-                <button 
+                <button
                   onClick={() => {
                     const dashboardUrl = user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/user';
                     router.push(dashboardUrl);
@@ -677,7 +537,7 @@ export default function HomePage() {
                   DASHBOARD
                 </button>
                 <span className="text-white text-xs">|</span>
-                <button 
+                <button
                   onClick={() => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
@@ -691,7 +551,7 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => router.push('/login')}
                 className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
               >
@@ -699,17 +559,17 @@ export default function HomePage() {
               </button>
             )
           )}
-        
+
           <div className="bg-yellow-200 rounded-md p-0.5 flex items-center border border-transparent">
-            <button 
+            <button
               className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-l hover:bg-black/10 transition-colors"
               title="Language Translator"
-              onClick={() => setShowTranslate(!showTranslate)}
+              onClick={() => window.dispatchEvent(new Event('open-language-picker'))}
             >
               <LanguageIcon className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
             </button>
             <div className="w-px h-3 md:h-4 lg:h-4 bg-gray-500/50"></div>
-            <button 
+            <button
               className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
               title="Help & Support"
               onClick={() => router.push('/help')}
@@ -721,9 +581,9 @@ export default function HomePage() {
       </header>
 
       <main className="flex-1">
-         
 
-        <motion.div 
+
+        <motion.div
           className="relative group cursor-pointer mx-4 md:mx-6 lg:mx-8 xl:mx-12 2xl:mx-16 mt-6 md:mt-8 lg:mt-6 h-60 md:h-72 lg:h-96 xl:h-[28rem] 2xl:h-[32rem] rounded-xl overflow-hidden shadow-lg bg-gray-900"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
@@ -775,69 +635,69 @@ export default function HomePage() {
               </div>
             ) : (
               videos.map((video) => (
-              <motion.div
-                key={video.id}
-                className="bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 snap-start relative"
-                style={{ aspectRatio: '9/16', height: 'auto' }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => openShort(video)}
-              >
-                {/* YouTube Short Thumbnail - Vertical */}
-                <div className="relative w-full h-full bg-black overflow-hidden">
-                  {/* Thumbnail Image */}
-                  <img
-                    src={video.thumbnailUrl}
-                    alt={video.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
-                    }}
-                  />
-                  
-                  {/* Play button overlay */}
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <div className="bg-white/90 rounded-full p-3 shadow-lg">
-                      <Play className="w-6 h-6 text-black fill-black ml-1" />
+                <motion.div
+                  key={video.id}
+                  className="bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 snap-start relative"
+                  style={{ aspectRatio: '9/16', height: 'auto' }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => openShort(video)}
+                >
+                  {/* YouTube Short Thumbnail - Vertical */}
+                  <div className="relative w-full h-full bg-black overflow-hidden">
+                    {/* Thumbnail Image */}
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
+                      }}
+                    />
+
+                    {/* Play button overlay */}
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                        <Play className="w-6 h-6 text-black fill-black ml-1" />
+                      </div>
+                    </div>
+
+                    {/* Duration badge - YouTube Shorts style */}
+                    <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded font-medium">
+                      {video.duration}
+                    </div>
+
+                    {/* Shorts badge */}
+                    <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
+                      SHORTS
+                    </div>
+
+                    {/* Views count overlay */}
+                    <div className="absolute bottom-3 left-3 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
+                      {video.views}
                     </div>
                   </div>
-                  
-                  {/* Duration badge - YouTube Shorts style */}
-                  <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded font-medium">
-                    {video.duration}
-                  </div>
-                  
-                  {/* Shorts badge */}
-                  <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
-                    SHORTS
-                  </div>
-                  
-                  {/* Views count overlay */}
-                  <div className="absolute bottom-3 left-3 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
-                    {video.views}
-                  </div>
-                </div>
-                
-                {/* Video info overlay - positioned at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white">
-                  <h3 className="font-semibold text-white mb-1 text-sm line-clamp-2 leading-tight">
-                    {video.title}
-                  </h3>
-                  <div className="flex items-center text-gray-200 text-xs mb-1">
-                    <div className="w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
-                      <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
+
+                  {/* Video info overlay - positioned at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white">
+                    <h3 className="font-semibold text-white mb-1 text-sm line-clamp-2 leading-tight">
+                      {video.title}
+                    </h3>
+                    <div className="flex items-center text-gray-200 text-xs mb-1">
+                      <div className="w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                        <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
+                      </div>
+                      <span className="truncate text-xs">{video.instructor}</span>
                     </div>
-                    <span className="truncate text-xs">{video.instructor}</span>
+                    <div className="text-gray-300 text-xs">
+                      <span>{video.timeAgo}</span>
+                    </div>
                   </div>
-                  <div className="text-gray-300 text-xs">
-                    <span>{video.timeAgo}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              ))
             )}
           </div>
-          
+
           {/* See By Section */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
@@ -852,7 +712,7 @@ export default function HomePage() {
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
-            
+
             {/* Topics Grid */}
             <div ref={seeByScrollRef} className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
               {topicsLoading ? (
@@ -895,7 +755,7 @@ export default function HomePage() {
               )}
             </div>
           </div>
-          
+
           {/* Search Section */}
           <div className="mt-8 scroll-mt-24" id="search">
             <div className="relative">
@@ -916,20 +776,20 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-            
+
             {/* Random Topics or Search Results */}
             <div className="mt-6">
               {searchQuery ? (
                 // Show search results in card format with images and details
                 topics
-                  .filter(topic => 
+                  .filter(topic =>
                     topic.title.toLowerCase().includes(searchQuery.toLowerCase())
                   )
                   .length > 0 ? (
                   <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                       {topics
-                        .filter(topic => 
+                        .filter(topic =>
                           topic.title.toLowerCase().includes(searchQuery.toLowerCase())
                         )
                         .map((topic, index) => (
@@ -964,14 +824,14 @@ export default function HomePage() {
                                 )}
                               </div>
                             )}
-                            
+
                             {/* Topic Content */}
                             <div className="p-3">
                               <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
                               <p className="text-gray-600 text-xs mb-2 line-clamp-2">
                                 {topic.description || `Learn essential skills and techniques in ${topic.title.toLowerCase()} with expert guidance and practical applications.`}
                               </p>
-                              
+
                               {/* Subtopic Info */}
                               <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
@@ -987,9 +847,9 @@ export default function HomePage() {
                                   <span>{topic.subtopics?.reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0) || 0} Courses</span>
                                 </div>
                               </div>
-                              
+
                               {/* View More Button */}
-                              <button 
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   router.push(`/topic/${topic.id}`);
@@ -1049,14 +909,14 @@ export default function HomePage() {
                               )}
                             </div>
                           )}
-                          
+
                           {/* Topic Content */}
                           <div className="p-3">
                             <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
                             <p className="text-gray-600 text-xs mb-2 line-clamp-2">
                               {topic.description || `Learn essential skills and techniques in ${topic.title.toLowerCase()} with expert guidance and practical applications.`}
                             </p>
-                            
+
                             {/* Subtopic Info */}
                             <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
                               <div className="flex items-center gap-1">
@@ -1072,9 +932,9 @@ export default function HomePage() {
                                 <span>{topic.subtopics?.reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0) || 0} Courses</span>
                               </div>
                             </div>
-                            
+
                             {/* View More Button */}
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(`/topic/${topic.id}`);
@@ -1092,20 +952,20 @@ export default function HomePage() {
               )}
             </div>
           </div>
-          
-          
+
+
           {/* Success Stories Section */}
           <div className="mt-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">Success Stories</h3>
-              <button 
+              <button
                 onClick={() => router.push('/success-stories')}
                 className="text-green-600 text-sm md:text-base font-medium hover:text-green-700 transition-colors"
               >
                 View All
               </button>
             </div>
-            
+
             {/* Success Stories Horizontal Scroll */}
             <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide snap-x snap-mandatory">
               {[
@@ -1209,18 +1069,18 @@ export default function HomePage() {
                 >
                   <div className="relative h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-5xl">
                     <span>{story.emoji}</span>
-                    
+
                     {/* Category Badge */}
                     <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-3 py-1 rounded-full font-semibold">
                       {story.category}
                     </div>
-                    
+
                     {/* Impact Badge */}
                     <div className="absolute top-3 right-3 bg-green-500/90 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold">
                       {story.impact}
                     </div>
                   </div>
-                  
+
                   {/* Story Content */}
                   <div className="p-4">
                     <h4 className="font-bold text-gray-900 text-base mb-2 line-clamp-2 group-hover:text-green-600 transition-colors">
@@ -1229,7 +1089,7 @@ export default function HomePage() {
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                       {story.description}
                     </p>
-                    
+
                     {/* Read More Button */}
                     <button
                       className="text-green-600 text-sm font-semibold hover:text-green-700 transition-colors flex items-center gap-1"
@@ -1293,12 +1153,12 @@ export default function HomePage() {
               </motion.div>
             </motion.div>
           )}
-          
+
           {/* Certificates Section */}
           <div className="mt-3">
             {/* Single Certificate Image */}
             <div className="flex justify-center">
-              <Image 
+              <Image
                 src="/images/certificate.png"
                 alt="Certificate"
                 width={400}
@@ -1310,7 +1170,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      
+
 
       {/* Fullscreen Demo Player */}
       {showDemoPlayer && selectedTopicId && (
@@ -1340,7 +1200,7 @@ export default function HomePage() {
                 closeShort();
               }}
               className="absolute top-4 left-4 bg-black/60 active:bg-black/80 text-white rounded-full transition-colors"
-              style={{ 
+              style={{
                 padding: '0px',
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation',
@@ -1391,7 +1251,7 @@ export default function HomePage() {
                     <p className="text-white font-semibold text-sm">{selectedShort.instructor}</p>
                     <p className="text-gray-300 text-xs">{selectedShort.views} views · {selectedShort.timeAgo}</p>
                   </div>
-                  
+
                 </div>
                 {/* <h3 className="text-white font-semibold text-sm mb-2 leading-tight">
                   {selectedShort.title}
@@ -1400,89 +1260,6 @@ export default function HomePage() {
             </div>
           </div>
         </motion.div>
-      )}
-
-      {/* ── Language Picker Modal ── */}
-      {showTranslate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowTranslate(false)}
-          />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-lg font-semibold text-gray-900">Select Language</h3>
-              <button
-                onClick={() => setShowTranslate(false)}
-                className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="grid grid-cols-2 gap-2">
-                {languageList.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => changeLanguage(lang.code, lang.name)}
-                    className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                  >
-                    <span className="text-2xl">{lang.flag}</span>
-                    <span className="font-medium">{lang.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Floating Translate Icon ── */}
-      {isTranslated && (
-        <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
-          {/* Popup menu */}
-          {showFloatingMenu && (
-            <div className="mb-3 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden min-w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <button
-                onClick={() => {
-                  setShowFloatingMenu(false);
-                  setShowTranslate(true);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100"
-              >
-                <Globe className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Translate into…</p>
-                  <p className="text-xs text-gray-500">Currently: {translatedLangName}</p>
-                </div>
-              </button>
-              <button
-                onClick={showOriginal}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                <RotateCcw className="w-5 h-5 text-orange-500" />
-                <p className="text-sm font-semibold text-gray-900">Show Original</p>
-              </button>
-            </div>
-          )}
-
-          {/* Floating icon button */}
-          <button
-            onClick={() => setShowFloatingMenu(!showFloatingMenu)}
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
-            title="Translation Options"
-          >
-            <Globe className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
-      {/* Backdrop to close floating menu */}
-      {showFloatingMenu && (
-        <div
-          className="fixed inset-0 z-30"
-          onClick={() => setShowFloatingMenu(false)}
-        />
       )}
     </div>
   );

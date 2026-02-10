@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import React from 'react';
+import FloatingTranslator from '@/components/FloatingTranslator';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   return (
     <div className={`min-h-screen ${footerIsHidden ? '' : 'pb-16'}`}>
       {children}
+      <FloatingTranslator />
     </div>
   );
 }

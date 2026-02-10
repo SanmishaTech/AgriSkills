@@ -7,6 +7,14 @@ function isSafeInternalPath(path: string) {
   return path.startsWith('/') && !path.startsWith('//') && !path.includes('://');
 }
 
+function shouldPersistPath(path: string) {
+  if (!isSafeInternalPath(path)) return false;
+  const blocked = new Set<string>(['/login', '/register']);
+  if (blocked.has(path)) return false;
+  if (path.startsWith('/api')) return false;
+  return true;
+}
+
 async function resolveResumePath(pathname: string): Promise<string> {
   // If user is on a quiz, store the owning course chapters page.
   // Quiz route is /quiz/[chapterId]
@@ -41,7 +49,7 @@ async function resolveResumePath(pathname: string): Promise<string> {
 }
 
 async function persistLastUrl(lastUrl: string, token: string) {
-  if (!isSafeInternalPath(lastUrl)) return;
+  if (!shouldPersistPath(lastUrl)) return;
 
   try {
     await fetch('/api/user/last-url', {
@@ -85,7 +93,9 @@ export default function LastUrlTracker() {
         if (!token) return;
 
         const resolved = lastResolvedRef.current || pathname || '/dashboard';
-        persistLastUrl(resolved, token);
+        if (shouldPersistPath(resolved)) {
+          persistLastUrl(resolved, token);
+        }
       } catch {
         // ignore
       }

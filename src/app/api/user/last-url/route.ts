@@ -12,6 +12,13 @@ function isSafeInternalPath(path: unknown): path is string {
   return true;
 }
 
+function isBlockedLastUrl(path: string) {
+  const blocked = new Set<string>(['/login', '/register']);
+  if (blocked.has(path)) return true;
+  if (path.startsWith('/api')) return true;
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -33,6 +40,10 @@ export async function POST(request: NextRequest) {
 
     if (lastUrl !== null && lastUrl !== undefined && !isSafeInternalPath(lastUrl)) {
       return NextResponse.json({ error: 'Invalid lastUrl' }, { status: 400 });
+    }
+
+    if (typeof lastUrl === 'string' && isBlockedLastUrl(lastUrl)) {
+      return NextResponse.json({ success: true });
     }
 
     await prisma.user.update({

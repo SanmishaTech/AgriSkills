@@ -44,6 +44,14 @@ function isSafeInternalPath(path: unknown): path is string {
   return true;
 }
 
+function isValidPostAuthRedirect(path: unknown): path is string {
+  if (!isSafeInternalPath(path)) return false;
+  const blocked = new Set<string>(['/login', '/register']);
+  if (blocked.has(path)) return false;
+  if (path.startsWith('/api')) return false;
+  return true;
+}
+
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -88,8 +96,10 @@ export default function LoginPage() {
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
 
-        const nextPath = isSafeInternalPath(result?.user?.lastUrl) ? result.user.lastUrl : null;
-        router.push(nextPath || '/dashboard');
+        const role = typeof result?.user?.role === 'string' ? result.user.role : 'user';
+        const fallback = role === 'admin' ? '/dashboard/admin' : '/dashboard/user';
+        const nextPath = isValidPostAuthRedirect(result?.user?.lastUrl) ? result.user.lastUrl : null;
+        router.push(nextPath || fallback);
       } else {
         // Handle field-specific errors
         if (result.errors && Array.isArray(result.errors)) {
@@ -158,8 +168,10 @@ export default function LoginPage() {
           localStorage.setItem('token', loginResult.token);
           localStorage.setItem('user', JSON.stringify(loginResult.user));
 
-          const nextPath = isSafeInternalPath(loginResult?.user?.lastUrl) ? loginResult.user.lastUrl : null;
-          router.push(nextPath || '/dashboard');
+          const role = typeof loginResult?.user?.role === 'string' ? loginResult.user.role : 'user';
+          const fallback = role === 'admin' ? '/dashboard/admin' : '/dashboard/user';
+          const nextPath = isValidPostAuthRedirect(loginResult?.user?.lastUrl) ? loginResult.user.lastUrl : null;
+          router.push(nextPath || fallback);
         } else {
           registerForm.setError('root', {
             type: 'server',
