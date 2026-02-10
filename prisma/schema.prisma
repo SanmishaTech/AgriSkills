@@ -268,3 +268,19 @@ model CourseCompletion {
   @@index([courseId])
   @@index([completedAt])
 }
+
+// Support tickets from help/contact form
+model SupportTicket {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("pending") // pending, in-progress, resolved, closed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}

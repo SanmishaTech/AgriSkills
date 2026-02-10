@@ -464,13 +464,6 @@ export default function HomePage() {
       >
       
         <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
-          <Image 
-            src="/images/logo.png" 
-            alt="Gram Kushal Logo" 
-            width={52}
-            height={52}
-            className="object-contain [filter:drop-shadow(0_10px_8px_rgba(0,0,0,0.4))] md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 2xl:w-11 2xl:h-11"
-          />
           <h1 className="hidden md:block md:text-sm lg:text-base xl:text-lg 2xl:text-xl font-bold whitespace-nowrap">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}</h1>
         </div>
         
@@ -577,7 +570,7 @@ export default function HomePage() {
             <button 
               className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
               title="Help & Support"
-              onClick={() => alert('Help & Support section coming soon!')}
+              onClick={() => router.push('/help')}
             >
               <QuestionMarkCircleIcon className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
             </button>
@@ -805,7 +798,7 @@ export default function HomePage() {
                           >
                             {/* Topic Image */}
                             {topic.thumbnail ? (
-                              <div className="relative h-24 w-full">
+                              <div className="relative h-40 md:h-48 w-full">
                                 <Image
                                   src={topic.thumbnail}
                                   alt={topic.title}
@@ -820,7 +813,7 @@ export default function HomePage() {
                                 )}
                               </div>
                             ) : (
-                              <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                              <div className="relative h-40 md:h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
                                 <div className="text-white text-2xl">{getTopicIcon(index)}</div>
                                 {index % 3 === 1 && (
                                   <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
@@ -890,7 +883,7 @@ export default function HomePage() {
                         >
                           {/* Topic Image */}
                           {topic.thumbnail ? (
-                            <div className="relative h-24 w-full">
+                            <div className="relative h-40 md:h-48 w-full">
                               <Image
                                 src={topic.thumbnail}
                                 alt={topic.title}
@@ -905,7 +898,7 @@ export default function HomePage() {
                               )}
                             </div>
                           ) : (
-                            <div className="relative h-24 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                            <div className="relative h-40 md:h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
                               <div className="text-white text-2xl">{getTopicIcon(index)}</div>
                               {index % 3 === 1 && (
                                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">

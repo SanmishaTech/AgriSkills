@@ -145,14 +145,6 @@ export default function TopicDetailPage() {
       {/* Header */}
       <header className="bg-gradient-to-r from-green-600 to-green-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back</span>
-          </button>
-          
           <div className="flex items-start gap-6">
             <div className="text-6xl">{topic.icon}</div>
             <div className="flex-1">

@@ -178,7 +178,7 @@ export default function SubtopicCoursesPage() {
               {subtopic.courses.map((course: any) => (
                 <div key={course.id} className="bg-white rounded-lg shadow-sm hover:shadow-lg border border-gray-200 overflow-hidden transition-all">
                   {/* Thumbnail / Emoji Fallback */}
-                  <div className="h-32 relative">
+                  <div className="h-40 md:h-48 relative">
                     <div className="relative w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                       {/* Emoji shown by default; image overlays when valid */}
                       <span className="text-4xl select-none">{getCourseEmoji(course?.title)}</span>
@@ -186,7 +186,7 @@ export default function SubtopicCoursesPage() {
                         <img
                           src={course.thumbnail}
                           alt={course.title}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-contain"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).remove()
                           }}

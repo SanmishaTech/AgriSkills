@@ -134,6 +134,20 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [menuOpen]);
 
+  const handleBack = () => {
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    if (pathname?.startsWith('/topic/')) {
+      router.push(user ? '/dashboard/user' : '/');
+      return;
+    }
+
+    router.back();
+  };
+
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -150,8 +164,33 @@ export default function Navbar() {
     }
   };
 
-  // Render only after mount to prevent hydration mismatch; and only for logged-in users
-  if (shouldHide || !mounted || !user) return null;
+  // Render only after mount to prevent hydration mismatch
+  if (shouldHide || !mounted) return null;
+
+  if (!user) {
+    return (
+      <>
+        <div className="fixed top-0 left-0 right-0 z-40 border-b border-amber-200 bg-amber-100">
+          <div className="mx-auto max-w-5xl px-4 py-1">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                aria-label="Back"
+                onClick={handleBack}
+                className="w-8 h-8 rounded-full border-2 border-gray-500 text-gray-700 flex items-center justify-center active:scale-[0.97] transition"
+              >
+                <ArrowLeft className="w-[14px] h-[14px]" />
+              </button>
+
+              <div className="w-8 h-8" />
+            </div>
+          </div>
+        </div>
+
+        <div className="h-11" />
+      </>
+    );
+  }
 
   const initial = (user.name || user.email || "?").charAt(0).toUpperCase();
   const hasPhoto = !!(
@@ -173,7 +212,7 @@ export default function Navbar() {
             <button
               type="button"
               aria-label="Back"
-              onClick={() => router.back()}
+              onClick={handleBack}
               className="w-8 h-8 rounded-full border-2 border-gray-500 text-gray-700 flex items-center justify-center active:scale-[0.97] transition"
             >
               <ArrowLeft className="w-[14px] h-[14px]" />
@@ -181,11 +220,12 @@ export default function Navbar() {
 
             {/* Right side actions */}
             <div className="flex items-center gap-3">
-              {/* Help (?) */}
+              {/* Help */}
               <button
                 type="button"
                 aria-label="Help"
-                className="w-8 h-8 rounded-full bg-black flex items-center justify-center active:scale-[0.97] transition"
+                onClick={() => router.push("/help")}
+                className="w-8 h-8 rounded-full bg-black flex items-center justify-center active:scale-[0.97] transition hover:bg-gray-800"
               >
                 <span className="text-amber-50 text-[18px] font-bold leading-none">?</span>
               </button>
@@ -261,7 +301,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Spacer to prevent overlap */}
       <div className="h-11" />
     </>
   );
