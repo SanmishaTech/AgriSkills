@@ -4,6 +4,57 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Home, User as UserIcon, LogOut } from "lucide-react";
 
+function isSafeInternalPath(path: unknown): path is string {
+  if (typeof path !== "string") return false;
+  if (!path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  if (path.includes("://")) return false;
+  return true;
+}
+
+async function resolveResumePath(pathname: string): Promise<string> {
+  if (pathname.startsWith("/quiz/")) {
+    const parts = pathname.split("/").filter(Boolean);
+    const chapterId = parts[1];
+    if (chapterId) {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return pathname;
+
+        const res = await fetch(`/api/quiz/${chapterId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const courseId = data?.quiz?.chapter?.course?.id;
+          if (typeof courseId === "string" && courseId.length > 0) {
+            return `/course/${courseId}/chapters`;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return pathname;
+}
+
+async function persistLastUrl(lastUrl: string, token: string) {
+  if (!isSafeInternalPath(lastUrl)) return;
+  try {
+    await fetch("/api/user/last-url", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ lastUrl }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
 interface User {
   id: string;
   email: string;
@@ -83,12 +134,20 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [menuOpen]);
 
-  const handleLogout = () => {
-    // Only clear authentication data, preserve user-specific data for when they log back in
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setMenuOpen(false);
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token && pathname) {
+        const resumePath = await resolveResumePath(pathname);
+        await persistLastUrl(resumePath, token);
+      }
+    } finally {
+      // Only clear authentication data, preserve user-specific data for when they log back in
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setMenuOpen(false);
+      router.push("/login");
+    }
   };
 
   // Render only after mount to prevent hydration mismatch; and only for logged-in users

@@ -4,6 +4,7 @@ import "./globals.css";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import LastUrlTracker from "@/components/LastUrlTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased mobile-only`}
       >
         <LayoutWrapper>
+          <LastUrlTracker />
           <Navbar />
           <main className="h-full">
             {children}

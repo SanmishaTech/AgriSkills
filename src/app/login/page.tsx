@@ -36,6 +36,14 @@ const registerSchema = z.object({
 type LoginFormInputs = z.infer<typeof loginSchema>;
 type RegisterFormInputs = z.infer<typeof registerSchema>;
 
+function isSafeInternalPath(path: unknown): path is string {
+  if (typeof path !== 'string') return false;
+  if (!path.startsWith('/')) return false;
+  if (path.startsWith('//')) return false;
+  if (path.includes('://')) return false;
+  return true;
+}
+
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -79,9 +87,9 @@ export default function LoginPage() {
         // Store token in localStorage
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
+
+        const nextPath = isSafeInternalPath(result?.user?.lastUrl) ? result.user.lastUrl : null;
+        router.push(nextPath || '/dashboard');
       } else {
         // Handle field-specific errors
         if (result.errors && Array.isArray(result.errors)) {
@@ -149,7 +157,9 @@ export default function LoginPage() {
         if (loginResponse.ok) {
           localStorage.setItem('token', loginResult.token);
           localStorage.setItem('user', JSON.stringify(loginResult.user));
-          router.push('/dashboard');
+
+          const nextPath = isSafeInternalPath(loginResult?.user?.lastUrl) ? loginResult.user.lastUrl : null;
+          router.push(nextPath || '/dashboard');
         } else {
           registerForm.setError('root', {
             type: 'server',

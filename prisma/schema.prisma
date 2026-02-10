@@ -19,6 +19,7 @@ model User {
   name                     String?
   role                     String              @default("user")
   profilePhoto             String?
+  lastUrl                  String?
   createdAt                DateTime            @default(now())
   updatedAt                DateTime            @updatedAt
   quizAttempts             QuizAttempt[]       // User's quiz attempts

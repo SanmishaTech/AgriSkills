@@ -4,6 +4,58 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
+function isSafeInternalPath(path: unknown): path is string {
+  if (typeof path !== 'string') return false;
+  if (!path.startsWith('/')) return false;
+  if (path.startsWith('//')) return false;
+  if (path.includes('://')) return false;
+  return true;
+}
+
+async function resolveResumePath(pathname: string): Promise<string> {
+  if (pathname.startsWith('/quiz/')) {
+    const parts = pathname.split('/').filter(Boolean);
+    const chapterId = parts[1];
+    if (chapterId) {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return pathname;
+
+        const res = await fetch(`/api/quiz/${chapterId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const courseId = data?.quiz?.chapter?.course?.id;
+          if (typeof courseId === 'string' && courseId.length > 0) {
+            return `/course/${courseId}/chapters`;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return pathname;
+}
+
+async function persistLastUrl(lastUrl: string, token: string) {
+  if (!isSafeInternalPath(lastUrl)) return;
+  try {
+    await fetch('/api/user/last-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ lastUrl }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
 interface User {
   id: string;
   email: string;
@@ -37,10 +89,18 @@ export default function Sidebar() {
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token && pathname) {
+        const resumePath = await resolveResumePath(pathname);
+        await persistLastUrl(resumePath, token);
+      }
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
+    }
   };
 
   if (shouldHideSidebar || !user) {
