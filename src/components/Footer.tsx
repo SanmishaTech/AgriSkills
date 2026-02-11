@@ -32,6 +32,7 @@ export default function Footer() {
   const [speakText, setSpeakText] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const speakInputRef = useRef<HTMLInputElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -60,8 +61,14 @@ export default function Footer() {
     requestAnimationFrame(step);
   };
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     setSpeechError(null);
+
+    // Check if we're in a secure context (HTTPS or localhost) — required for mic on mobile
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setSpeechError('Microphone requires HTTPS. Please access the site via HTTPS.');
+      return;
+    }
 
     const SpeechRecognitionCtor =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -78,6 +85,25 @@ export default function Footer() {
         // ignore
       }
       setIsRecording(false);
+      return;
+    }
+
+    try {
+      // Explicitly request microphone permission first — this triggers the browser prompt
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Release the stream immediately — we just needed to trigger the permission prompt
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (micErr: any) {
+      const errName = micErr?.name || '';
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        setSpeechError('Microphone permission denied. Please allow microphone access in your browser settings.');
+      } else if (errName === 'NotFoundError') {
+        setSpeechError('No microphone found. Please connect a microphone and try again.');
+      } else {
+        setSpeechError('Could not access microphone. Make sure the site is loaded over HTTPS.');
+      }
       return;
     }
 
@@ -109,11 +135,15 @@ export default function Footer() {
       recognition.onerror = (event: any) => {
         const err = typeof event?.error === 'string' ? event.error : 'unknown';
         if (err === 'not-allowed' || err === 'service-not-allowed') {
-          setSpeechError('Microphone permission denied.');
+          setSpeechError('Microphone permission denied. Please allow microphone access in your browser settings.');
         } else if (err === 'no-speech') {
-          setSpeechError('No speech detected.');
+          setSpeechError('No speech detected. Please try again.');
+        } else if (err === 'network') {
+          setSpeechError('Network error during speech recognition. Check your internet connection.');
+        } else if (err === 'aborted') {
+          // User or system aborted — not an error to show
         } else {
-          setSpeechError('Voice input failed.');
+          setSpeechError('Voice input failed. Please try again.');
         }
         setIsRecording(false);
       };
@@ -126,7 +156,7 @@ export default function Footer() {
       recognition.start();
       setIsRecording(true);
     } catch {
-      setSpeechError('Voice input failed to start.');
+      setSpeechError('Voice input failed to start. Please try again.');
       setIsRecording(false);
     }
   };
@@ -216,18 +246,47 @@ export default function Footer() {
     chatEndRef.current?.scrollIntoView({ block: 'end' });
   }, [chatMessages, isSpeakOpen]);
 
-  const sendSpeakMessage = () => {
+  const sendSpeakMessage = async () => {
     const text = speakText.trim();
-    if (!text) return;
+    if (!text || isAiLoading) return;
 
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setChatMessages((prev) => [...prev, { id, role: 'user', content: text }]);
+    const newUserMsg: ChatMessage = { id, role: 'user', content: text };
+    setChatMessages((prev) => [...prev, newUserMsg]);
     setSpeakText('');
+    setIsAiLoading(true);
 
-    const replyId = `${Date.now()}-${Math.random().toString(16).slice(2)}-a`;
-    window.setTimeout(() => {
-      setChatMessages((prev) => [...prev, { id: replyId, role: 'assistant', content: 'Thanks! I\'m here to help.' }]);
-    }, 250);
+    try {
+      // Send full conversation history (last 20 messages max) for context
+      const history = [...chatMessages, newUserMsg]
+        .slice(-20)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+
+      const data = await res.json();
+      const replyId = `${Date.now()}-${Math.random().toString(16).slice(2)}-a`;
+      const replyText = res.ok
+        ? data.reply
+        : (data.error || 'Sorry, something went wrong. Please try again.');
+
+      setChatMessages((prev) => [
+        ...prev,
+        { id: replyId, role: 'assistant', content: replyText },
+      ]);
+    } catch {
+      const errId = `${Date.now()}-err`;
+      setChatMessages((prev) => [
+        ...prev,
+        { id: errId, role: 'assistant', content: 'Network error. Please check your connection and try again.' },
+      ]);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -240,7 +299,7 @@ export default function Footer() {
   if (shouldHideFooter || isDashboardRoute || isAdminRoute || isTopicRoute || isLearnRoute || isQuizRoute) {
     return null;
   }
-  
+
   // Don't render footer until component is mounted to avoid hydration issues
   if (!mounted) {
     return <div className="h-16" />; // Placeholder to maintain layout
@@ -252,7 +311,7 @@ export default function Footer() {
 
   // Check if user is admin with explicit validation
   const isUserAdmin = user && user.role && user.role.toLowerCase().trim() === 'admin';
-  
+
   // Learn should always route to the public learn topics page
   const learnHref = '/learn';
   const isLoggedIn = !!user;
@@ -411,6 +470,15 @@ export default function Footer() {
                       </div>
                     </div>
                   ))}
+                  {isAiLoading && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[85%] rounded-2xl bg-gray-100 text-gray-500 px-4 py-3 text-sm shadow-sm flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
                   <div ref={chatEndRef} />
                 </div>
               </div>
@@ -426,6 +494,7 @@ export default function Footer() {
                     onChange={(e) => setSpeakText(e.target.value)}
                     placeholder={`Message ${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}...`}
                     className="h-11 rounded-full"
+                    disabled={isAiLoading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -446,7 +515,8 @@ export default function Footer() {
                   <Button
                     type="button"
                     size="icon"
-                    className="h-11 w-11 rounded-full bg-green-600 hover:bg-green-700"
+                    className={`h-11 w-11 rounded-full ${isAiLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    disabled={isAiLoading}
                     onClick={sendSpeakMessage}
                     aria-label="Send"
                   >
@@ -467,7 +537,7 @@ export default function Footer() {
             className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-all duration-300 ease-in-out"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Slide-up Panel */}
           <div className={`
             fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md rounded-t-2xl shadow-2xl border-t border-gray-200/50
@@ -477,7 +547,7 @@ export default function Footer() {
             <div className="p-4">
               {/* Handle bar */}
               <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4 transform transition-all duration-300 hover:bg-gray-400" />
-              
+
               {/* User Info */}
               <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200/50">
                 <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg transform transition-all duration-300 hover:scale-110">
@@ -490,11 +560,10 @@ export default function Footer() {
                     {user.name || user.email}
                   </p>
                   <p className="text-xs text-gray-600">{user.email}</p>
-                  <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 shadow-sm transform transition-all duration-200 hover:scale-105 ${
-                    user.role === 'admin' 
-                      ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300/50' 
-                      : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300/50'
-                  }`}>
+                  <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 shadow-sm transform transition-all duration-200 hover:scale-105 ${user.role === 'admin'
+                    ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300/50'
+                    : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300/50'
+                    }`}>
                     {user.role}
                   </span>
                 </div>

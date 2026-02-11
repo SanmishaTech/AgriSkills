@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic } from 'lucide-react';
+import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic, Headphones } from 'lucide-react';
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import FullScreenDemoPlayer from '@/components/FullScreenDemoPlayer';
@@ -85,6 +85,7 @@ export default function HomePage() {
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
 
   const smoothScrollTo = (top: number) => {
@@ -571,8 +572,16 @@ export default function HomePage() {
             <div className="w-px h-3 md:h-4 lg:h-4 bg-gray-500/50"></div>
             <button
               className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
-              title="Help & Support"
+              title="Support Center"
               onClick={() => router.push('/help')}
+            >
+              <Headphones className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
+            </button>
+            <div className="w-px h-3 md:h-4 lg:h-4 bg-gray-500/50"></div>
+            <button
+              className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
+              title="Page Help"
+              onClick={() => setShowHelpDialog(true)}
             >
               <QuestionMarkCircleIcon className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
             </button>
@@ -1253,6 +1262,72 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* Help Dialog */}
+      {showHelpDialog && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowHelpDialog(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">About This Page</h2>
+                <button
+                  onClick={() => setShowHelpDialog(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-gray-700">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">What is this page?</h3>
+                  <p className="text-sm leading-relaxed">
+                    This is the Gram Kushal homepage - your gateway to agricultural learning. Here you can explore topics, watch educational videos, and discover success stories from farmers who have transformed their lives through our training programs.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">How to use this page</h3>
+                  <ul className="text-sm space-y-2 list-disc list-inside">
+                    <li><strong>Search Topics:</strong> Use the search bar to find specific agricultural topics you want to learn about.</li>
+                    <li><strong>Watch Videos:</strong> Scroll through the Videos section to watch short educational clips.</li>
+                    <li><strong>Explore Topics:</strong> Click on any topic card to view subtopics and courses.</li>
+                    <li><strong>Learn More:</strong> Click "View More" on any topic to access detailed courses and lessons.</li>
+                    <li><strong>Success Stories:</strong> Read inspiring stories of farmers who succeeded with our programs.</li>
+                  </ul>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    Need more help? Contact our support team or visit your dashboard to start learning.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowHelpDialog(false)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </div>
