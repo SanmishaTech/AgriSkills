@@ -98,281 +98,92 @@ export async function POST(request: NextRequest) {
     // PDF dimensions
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    
-    // Colors
-    const primaryColor = '#1a365d'; // Dark blue
-    const secondaryColor = '#c9a227'; // Golden
-    const textColor = '#1F2937'; // Gray-800
-    const goldColor = '#c9a227'; // Golden for borders
 
-    // Add background
-    pdf.setFillColor(255, 255, 255); // White
-    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-
-    // Helper function to draw laurel/wheat pattern
-    const drawDecorativeBorder = () => {
-      const margin = 8;
-      const patternSize = 6;
-      
-      // Draw outer golden border
-      pdf.setDrawColor(goldColor);
-      pdf.setLineWidth(2);
-      pdf.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2, 'S');
-      
-      // Draw inner golden border
-      pdf.setLineWidth(1);
-      pdf.rect(margin + 3, margin + 3, pageWidth - (margin + 3) * 2, pageHeight - (margin + 3) * 2, 'S');
-      
-      // Draw corner decorations (simulated with small lines)
-      const cornerSize = 12;
-      pdf.setLineWidth(1.5);
-      
-      // Top-left corner
-      for (let i = 0; i < 5; i++) {
-        const offset = i * 2;
-        pdf.line(margin + 5 + offset, margin + 5, margin + 5, margin + 5 + offset);
-      }
-      
-      // Top-right corner
-      for (let i = 0; i < 5; i++) {
-        const offset = i * 2;
-        pdf.line(pageWidth - margin - 5 - offset, margin + 5, pageWidth - margin - 5, margin + 5 + offset);
-      }
-      
-      // Bottom-left corner
-      for (let i = 0; i < 5; i++) {
-        const offset = i * 2;
-        pdf.line(margin + 5 + offset, pageHeight - margin - 5, margin + 5, pageHeight - margin - 5 - offset);
-      }
-      
-      // Bottom-right corner
-      for (let i = 0; i < 5; i++) {
-        const offset = i * 2;
-        pdf.line(pageWidth - margin - 5 - offset, pageHeight - margin - 5, pageWidth - margin - 5, pageHeight - margin - 5 - offset);
-      }
-      
-      // Draw side decorative patterns (small dashes to simulate wheat pattern)
-      pdf.setLineWidth(0.5);
-      const sideMargin = margin + 2;
-      
-      // Top and bottom borders - small decorative dashes
-      for (let x = margin + 20; x < pageWidth - margin - 20; x += 8) {
-        pdf.line(x, sideMargin, x + 3, sideMargin); // Top
-        pdf.line(x, pageHeight - sideMargin, x + 3, pageHeight - sideMargin); // Bottom
-      }
-      
-      // Left and right borders
-      for (let y = margin + 20; y < pageHeight - margin - 20; y += 8) {
-        pdf.line(sideMargin, y, sideMargin, y + 3); // Left
-        pdf.line(pageWidth - sideMargin, y, pageWidth - sideMargin, y + 3); // Right
-      }
-    };
-    
-    drawDecorativeBorder();
-    
-    // Add logo at top
+    // Add certificate template image as background
     try {
-      const logoPath = path.join(process.cwd(), 'public', 'images', 'logo.png');
-      const logoData = readFileSync(logoPath).toString('base64');
-      pdf.addImage(`data:image/png;base64,${logoData}`, 'PNG', pageWidth / 2 - 15, 12, 30, 10);
-    } catch (logoError) {
-      console.log('Logo not found, skipping logo display');
+      const templatePath = path.join(process.cwd(), 'src', 'assets', 'certificates', 'English Certificate.jpeg');
+      const templateData = readFileSync(templatePath).toString('base64');
+      pdf.addImage(`data:image/jpeg;base64,${templateData}`, 'JPEG', 0, 0, pageWidth, pageHeight);
+    } catch (templateError) {
+      console.log('Certificate template not found, using default styling');
+      // Fallback: white background
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
     }
 
-    // Organization header
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
-    pdf.setTextColor(primaryColor);
-    pdf.text('SHOP FOR CHANGE FAIR TRADE, NGO', pageWidth / 2, 25, { align: 'center' });
-
-    // Main title
-    pdf.setFont('times', 'bold');
-    pdf.setFontSize(32);
-    pdf.setTextColor(primaryColor);
-    pdf.text('CERTIFICATE OF COMPLETION', pageWidth / 2, 45, { align: 'center' });
-
-    // Decorative line under title
-    pdf.setDrawColor(goldColor);
-    pdf.setLineWidth(2);
-    pdf.line(60, 52, pageWidth - 60, 52);
-    
-    // Second decorative line
-    pdf.setLineWidth(0.5);
-    pdf.line(70, 55, pageWidth - 70, 55);
+    // Colors
+    const textColor = '#1F2937'; // Gray-800
+    const nameColor = '#1a365d'; // Dark blue
+    const goldColor = '#FFD700'; // Gold
 
     // Certificate body text
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont('times', 'normal');
     pdf.setFontSize(14);
     pdf.setTextColor(textColor);
-    
-    const bodyText = `This certifies that`;
-    pdf.text(bodyText, pageWidth / 2, 85, { align: 'center' });
+    pdf.text('This Certifies That', pageWidth / 2, 80, { align: 'center' });
+    pdf.text('Has Successfully Completed Course', pageWidth / 2, 88, { align: 'center' });
 
-    // Student name
-    pdf.setFont('helvetica', 'bold');
+    // Student name - positioned on the blank line
+    pdf.setFont('times', 'bold');
     pdf.setFontSize(28);
-    pdf.setTextColor(primaryColor);
+    pdf.setTextColor(nameColor);
     pdf.text(certificateData.studentName || 'Student Name', pageWidth / 2, 105, { align: 'center' });
 
-    // Course completion text
-    pdf.setFont('helvetica', 'normal');
+    // Golden line under name
+    pdf.setDrawColor(goldColor);
+    pdf.setLineWidth(1);
+    pdf.line(60, 112, pageWidth - 60, 112);
+
+    // Success message with dates and course title - under the line
+    pdf.setFont('times', 'normal');
     pdf.setFontSize(14);
     pdf.setTextColor(textColor);
-    pdf.text('has successfully completed the course', pageWidth / 2, 125, { align: 'center' });
+    
+    // Get course dates from certificate data (actual quiz attempt dates)
+    const startDate = certificateData.startDate || certificateData.date || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const endDate = certificateData.endDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
+    const courseName = (certificateData.courseName || 'Course Title').replace(/\s*Certificate\s*$/i, '').trim();
+    
+    // Format in 2 lines with course title bold
+    const textStart = 'Successfully completed a course of ';
+    const textEndLine1 = ` from ${startDate} to ${endDate}`;
+    const textLine2 = 'and gained both theoretical and practical knowledge in this field.';
+    
+    // Calculate widths for positioning
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(14);
+    const startWidth = pdf.getTextWidth(textStart);
+    const courseWidth = pdf.getTextWidth(courseName);
+    const spaceWidth = pdf.getTextWidth(' ');
+    const endWidth = pdf.getTextWidth(textEndLine1);
+    
+    // Center the entire line
+    const totalWidth = startWidth + courseWidth + spaceWidth + endWidth;
+    const startX = (pageWidth - totalWidth) / 2;
+    
+    // Render line 1: normal + bold course + space + end text
+    pdf.text(textStart, startX, 125);
+    pdf.setFont('times', 'bold');
+    pdf.text(courseName, startX + startWidth, 125);
+    pdf.setFont('times', 'normal');
+    pdf.text(' ' + textEndLine1, startX + startWidth + courseWidth, 125);
+    
+    // Render line 2 (normal, centered)
+    pdf.text(textLine2, pageWidth / 2, 133, { align: 'center' });
 
-    // Course name - Enhanced Marathi handling
-    const courseName = certificateData.courseName || 'Course Name';
-    
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(20);
-    pdf.setTextColor(secondaryColor);
-    
-    let displayText = courseName;
-    let hasMarathiText = containsDevanagari(courseName);
-    
-    if (hasMarathiText) {
-      // Use embedded Unicode font for Marathi text
-      pdf.addFileToVFS(unicodeFont.file, unicodeFont.data);
-      pdf.addFont(unicodeFont.file, unicodeFont.name, 'normal');
-      pdf.setFont(unicodeFont.name, 'normal');
-      pdf.setTextColor(secondaryColor);
-      pdf.setFontSize(22);
-      console.log('🔍 Detected Marathi text in course name:', courseName);
-      console.log('🔤 Character analysis:', [...courseName].map((char, i) => ({
-        char,
-        code: char.charCodeAt(0),
-        hex: char.charCodeAt(0).toString(16),
-        isDevanagari: char.charCodeAt(0) >= 0x0900 && char.charCodeAt(0) <= 0x097F
-      })));
-      
-      // Try to render original text first, with better handling
-      try {
-        // Use a more permissive approach for Marathi text
-        displayText = courseName;
-        
-        // Create a warning message that will be visible
-        console.log('⚠️ Note: Marathi text may not display correctly in PDF due to font limitations');
-        
-        // Try to render as-is, jsPDF will do its best
-      } catch (error) {
-        console.error('❌ Error with Marathi text, using transliteration:', error);
-        displayText = `${transliterateMarathi(courseName)} (Marathi)`;
-      }
-    }
-    
-    // Handle long course names by wrapping text
-    let fontSize = 20;
-    if (displayText.length > 50) {
-      fontSize = 16;
-    }
-    if (displayText.length > 80) {
-      fontSize = 14;
-    }
-    
-    pdf.setFontSize(fontSize);
-    
-    try {
-      const lines = pdf.splitTextToSize(displayText, pageWidth - 80);
-      if (lines.length > 1) {
-        // Multiple lines
-        lines.forEach((line: string, index: number) => {
-          const cleanLine = line.trim();
-          console.log(`📏 Rendering line ${index + 1}:`, cleanLine);
-          pdf.text(cleanLine, pageWidth / 2, 140 + (index * 8), { align: 'center' });
-        });
-      } else {
-        // Single line
-        console.log('📏 Rendering single line:', displayText);
-        pdf.text(displayText, pageWidth / 2, 145, { align: 'center' });
-      }
-    } catch (renderError) {
-      console.error('❌ Error rendering text, using safe fallback:', renderError);
-      // Ultimate fallback
-      const fallbackText = hasMarathiText ? 'Course Title (Marathi Language)' : 'Course Title';
-      pdf.text(fallbackText, pageWidth / 2, 145, { align: 'center' });
-    }
-
-    // Achievement details
-    pdf.setFont('helvetica', 'normal');
+    // Date at bottom
+    pdf.setFont('times', 'normal');
     pdf.setFontSize(12);
     pdf.setTextColor(textColor);
-
-    const bottomY = pageHeight - 55;
-    
-    // Draw signature line on the left
-    const leftX = 40;
-    pdf.setDrawColor(textColor);
-    pdf.setLineWidth(0.5);
-    pdf.line(leftX, bottomY, leftX + 60, bottomY);
-    
-    // Signature text
-    pdf.setFont('helvetica', 'italic');
-    pdf.setFontSize(10);
-    pdf.setTextColor(primaryColor);
-    pdf.text('Mr.Sameer Ravindra Athavale', leftX + 30, bottomY + 6, { align: 'center' });
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.setTextColor(textColor);
-    pdf.text('CEO', leftX + 30, bottomY + 11, { align: 'center' });
-    pdf.text('Shop For Change Fair Trade', leftX + 30, bottomY + 16, { align: 'center' });
-
-    // Draw badge/star in the center
-    const centerX = pageWidth / 2;
-    const badgeY = bottomY - 5;
-    
-    // Draw outer circle (gold)
-    pdf.setDrawColor(goldColor);
-    pdf.setLineWidth(2);
-    pdf.circle(centerX, badgeY + 10, 15, 'S');
-    
-    // Draw inner circle
-    pdf.setLineWidth(1);
-    pdf.circle(centerX, badgeY + 10, 12, 'S');
-    
-    // Draw star in center (simulated with text)
-    pdf.setFont('times', 'bold');
-    pdf.setFontSize(20);
-    pdf.setTextColor(goldColor);
-    pdf.text('★', centerX, badgeY + 16, { align: 'center' });
-    
-    // Draw ribbon below star
-    pdf.setFillColor(goldColor);
-    // Left ribbon part
-    pdf.triangle(centerX - 8, badgeY + 18, centerX - 3, badgeY + 25, centerX - 3, badgeY + 18, 'F');
-    // Right ribbon part  
-    pdf.triangle(centerX + 3, badgeY + 18, centerX + 3, badgeY + 25, centerX + 8, badgeY + 18, 'F');
-
-    // Proudly Supported By on the right
-    const rightX = pageWidth - 60;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(11);
-    pdf.setTextColor(primaryColor);
-    pdf.text('Proudly Supported By:', rightX, bottomY - 5, { align: 'center' });
-    
-    // Date and Score info centered below the main content
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
-    pdf.setTextColor(textColor);
-    
     const dateValue = certificateData.date || new Date().toLocaleDateString();
-    const scoreText = certificateData.score ? `with a score of ${certificateData.score}%` : '';
-    
-    // Date and score in one line
-    const infoText = `Date: ${dateValue} ${scoreText ? '| ' + scoreText : ''}`;
-    pdf.text(infoText, pageWidth / 2, pageHeight - 25, { align: 'center' });
-    
-    // Issuer info
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    const issuerValue = certificateData.issuer || `${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} Academy`;
-    pdf.text(`Issued by: ${issuerValue}`, pageWidth / 2, pageHeight - 18, { align: 'center' });
+    pdf.text(`Date: ${dateValue}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
 
-    // Add certificate ID at the very bottom
-    pdf.setFont('helvetica', 'normal');
+    // Certificate ID at bottom
     pdf.setFontSize(8);
     pdf.setTextColor(120, 120, 120);
     const certId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
 
     // Generate PDF as base64
     const fileSafeCourseName = courseName
@@ -391,9 +202,9 @@ export async function POST(request: NextRequest) {
       pdf: pdfBase64,
       fileName: pdfFileName,
       debug: {
-        hasMarathi: hasMarathiText,
+        hasMarathi: containsDevanagari(courseName),
         originalText: courseName,
-        displayText: displayText
+        displayText: courseName
       }
     });
 

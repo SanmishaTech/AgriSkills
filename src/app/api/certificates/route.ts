@@ -186,8 +186,13 @@ export async function GET(request: NextRequest) {
       
       return {
         id: cert.id,
-        title: `${course.title} Certificate`,
+        title: `${course.title}`,
         completedDate: cert.issuedAt.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        startedDate: cert.attempt.startedAt.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
           day: 'numeric'

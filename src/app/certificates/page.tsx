@@ -112,7 +112,8 @@ export default function CertificatesPage() {
         studentName: user?.name || 'Student Name',
         courseName: certificate.title,
         score: certificate.score,
-        date: certificate.completedDate,
+        startDate: certificate.startedDate,
+        endDate: certificate.completedDate,
         issuer: certificate.issuer
       };
 
@@ -314,7 +315,8 @@ export default function CertificatesPage() {
                           studentName: user?.name || 'Student Name',
                           courseName: cert.title,
                           score: cert.score,
-                          date: cert.completedDate,
+                          startDate: cert.startedDate,
+                          endDate: cert.completedDate,
                           issuer: cert.issuer
                         };
                         const response = await fetch('/api/certificates/generate', {
