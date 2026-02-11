@@ -357,7 +357,7 @@ export default function CertificatesPage() {
           )}
         </motion.section>
 
-        {/* In-Progress Certificates */}
+        {/* In-Progress Courses */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -365,7 +365,7 @@ export default function CertificatesPage() {
         >
           <div className="flex items-center gap-2 mb-6">
             <Award className="w-6 h-6 text-amber-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Certificates In Progress</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Courses In Progress</h2>
             <span className="bg-amber-100 text-amber-800 text-sm font-medium px-3 py-1 rounded-full">
               {certificateData.inProgress.length}
             </span>
@@ -463,7 +463,7 @@ export default function CertificatesPage() {
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
               <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 mb-2">No certificates in progress</h3>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">No courses in progress</h3>
               <p className="text-gray-600 mb-6">Start a course to begin working towards your next certificate!</p>
               <button
                 onClick={() => router.push('/dashboard/user')}

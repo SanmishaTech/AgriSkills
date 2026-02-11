@@ -828,9 +828,6 @@ export default function HomePage() {
                             {/* Topic Content */}
                             <div className="p-3">
                               <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
-                              <p className="text-gray-600 text-xs mb-2 line-clamp-2">
-                                {topic.description || `Learn essential skills and techniques in ${topic.title.toLowerCase()} with expert guidance and practical applications.`}
-                              </p>
 
                               {/* Subtopic Info */}
                               <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
@@ -913,9 +910,6 @@ export default function HomePage() {
                           {/* Topic Content */}
                           <div className="p-3">
                             <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
-                            <p className="text-gray-600 text-xs mb-2 line-clamp-2">
-                              {topic.description || `Learn essential skills and techniques in ${topic.title.toLowerCase()} with expert guidance and practical applications.`}
-                            </p>
 
                             {/* Subtopic Info */}
                             <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">

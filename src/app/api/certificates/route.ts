@@ -206,10 +206,22 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Calculate overall progress
-    const totalCourses = completedCertificates.length + coursesInProgress.length;
-    const overallProgress = totalCourses > 0 
-      ? Math.round((completedCertificates.length / totalCourses) * 100)
+    // Calculate overall progress based on total available certificates
+    // Count all courses that have at least one quiz (courses that can earn certificates)
+    const totalAvailableCertificates = await prisma.course.count({
+      where: {
+        chapters: {
+          some: {
+            quiz: {
+              isNot: null
+            }
+          }
+        }
+      }
+    });
+
+    const overallProgress = totalAvailableCertificates > 0 
+      ? Math.round((completedCertificates.length / totalAvailableCertificates) * 100)
       : 0;
 
     return NextResponse.json({
