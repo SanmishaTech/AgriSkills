@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Eye, EyeOff } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -25,12 +25,32 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits').optional().or(z.literal('')),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+}).superRefine((data, ctx) => {
+  // Check if at least one of email or phone is provided
+  if (!data.email && !data.phone) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either email or phone number is required",
+      path: ["email"],
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either email or phone number is required",
+      path: ["phone"],
+    });
+  }
+  // Check password match
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    });
+  }
 });
 
 type LoginFormInputs = z.infer<typeof loginSchema>;
@@ -55,6 +75,8 @@ function isValidPostAuthRedirect(path: unknown): path is string {
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   // Initialize login form
@@ -71,6 +93,7 @@ export default function LoginPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
       password: "",
       confirmPassword: "",
@@ -143,6 +166,7 @@ export default function LoginPage() {
         },
         body: JSON.stringify({
           name: data.name,
+          email: data.email,
           phone: data.phone,
           password: data.password,
         }),
@@ -157,7 +181,7 @@ export default function LoginPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            identifier: data.phone,
+            identifier: data.email || data.phone,
             password: data.password,
           }),
         });
@@ -275,13 +299,23 @@ export default function LoginPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Password"
-                              className="h-12 bg-white border-gray-200 rounded-xl"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <Input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Password"
+                                className="h-12 bg-white border-gray-200 rounded-xl pr-10"
+                                {...field}
+                                disabled={loading}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -354,11 +388,30 @@ export default function LoginPage() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={registerForm.control}
+                    name="email"
+                    render={({ field, fieldState }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="Email (optional if phone provided)"
+                            className={`h-12 bg-white rounded-xl ${fieldState.error ? 'border-red-500 focus-visible:ring-red-500' : 'border-gray-200'}`}
+                            {...field}
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <FormField
                     control={registerForm.control}
                     name="phone"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
                         <FormControl>
                           <div className="relative">
@@ -367,8 +420,8 @@ export default function LoginPage() {
                             </span>
                             <Input
                               type="tel"
-                              placeholder="XXXXXXXXXX"
-                              className="h-12 bg-white border-gray-200 rounded-xl pl-12"
+                              placeholder="Phone (optional if email provided)"
+                              className={`h-12 bg-white rounded-xl pl-12 ${fieldState.error ? 'border-red-500 focus-visible:ring-red-500' : 'border-gray-200'}`}
                               inputMode="numeric"
                               pattern="\d*"
                               maxLength={10}
@@ -399,13 +452,23 @@ export default function LoginPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Password"
-                            className="h-12 bg-white border-gray-200 rounded-xl"
-                            {...field}
-                            disabled={loading}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Password"
+                              className="h-12 bg-white border-gray-200 rounded-xl pr-10"
+                              {...field}
+                              disabled={loading}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                              tabIndex={-1}
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -418,13 +481,23 @@ export default function LoginPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Confirm Password"
-                            className="h-12 bg-white border-gray-200 rounded-xl"
-                            {...field}
-                            disabled={loading}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              placeholder="Confirm Password"
+                              className="h-12 bg-white border-gray-200 rounded-xl pr-10"
+                              {...field}
+                              disabled={loading}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -589,14 +662,25 @@ export default function LoginPage() {
                             </Link>
                           </div>
                           <FormControl>
-                            <Input
-                              id="password"
-                              type="password"
-                              placeholder="Enter your password"
-                              autoComplete="current-password"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="password"
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                className="pr-10"
+                                {...field}
+                                disabled={loading}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -656,8 +740,30 @@ export default function LoginPage() {
                     {/* Email Field */}
                     <FormField
                       control={registerForm.control}
-                      name="phone"
+                      name="email"
                       render={({ field }) => (
+                        <FormItem className="grid gap-2">
+                          <FormLabel htmlFor="signup-email">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              id="signup-email"
+                              type="email"
+                              placeholder="Enter your email (optional if phone provided)"
+                              autoComplete="email"
+                              {...field}
+                              disabled={loading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Phone Field */}
+                    <FormField
+                      control={registerForm.control}
+                      name="phone"
+                      render={({ field, fieldState }) => (
                         <FormItem className="grid gap-2">
                           <FormLabel htmlFor="signup-phone">Phone</FormLabel>
                           <FormControl>
@@ -668,12 +774,12 @@ export default function LoginPage() {
                               <Input
                                 id="signup-phone"
                                 type="tel"
-                                placeholder="XXXXXXXXXX"
+                                placeholder="Phone (optional if email provided)"
                                 autoComplete="tel"
                                 inputMode="numeric"
                                 pattern="\d*"
                                 maxLength={10}
-                                className="pl-12"
+                                className={`pl-12 ${fieldState.error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                                 {...field}
                                 onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
                                 onInput={(e) => {
@@ -703,14 +809,25 @@ export default function LoginPage() {
                         <FormItem className="grid gap-2">
                           <FormLabel htmlFor="signup-password">Password</FormLabel>
                           <FormControl>
-                            <Input
-                              id="signup-password"
-                              type="password"
-                              placeholder="Create a password"
-                              autoComplete="new-password"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="signup-password"
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Create a password"
+                                autoComplete="new-password"
+                                className="pr-10"
+                                {...field}
+                                disabled={loading}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                tabIndex={-1}
+                              >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -725,14 +842,25 @@ export default function LoginPage() {
                         <FormItem className="grid gap-2">
                           <FormLabel htmlFor="confirm-password">Confirm Password</FormLabel>
                           <FormControl>
-                            <Input
-                              id="confirm-password"
-                              type="password"
-                              placeholder="Confirm your password"
-                              autoComplete="new-password"
-                              {...field}
-                              disabled={loading}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="confirm-password"
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="Confirm your password"
+                                autoComplete="new-password"
+                                className="pr-10"
+                                {...field}
+                                disabled={loading}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                tabIndex={-1}
+                              >
+                                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>

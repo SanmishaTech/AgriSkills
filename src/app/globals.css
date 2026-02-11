@@ -205,3 +205,31 @@
 body {
   top: 0 !important;
 }
+
+/* ── Hide browser native password toggle ── */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+input[type="text"]::-ms-reveal,
+input[type="text"]::-ms-clear {
+  display: none !important;
+}
+
+/* Chrome/Edge password toggle */
+input[type="password"]::-webkit-textfield-decoration-container,
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+
+input[type="text"]::-webkit-textfield-decoration-container,
+input[type="text"]::-webkit-contacts-auto-fill-button,
+input[type="text"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}

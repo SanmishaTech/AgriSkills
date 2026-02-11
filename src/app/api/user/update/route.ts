@@ -34,28 +34,12 @@ export async function PUT(request: NextRequest) {
     // Get request body (FormData)
     const formData = await request.formData();
     const email = formData.get('email');
-    const phone = formData.get('phone') as string;
+    const phone = formData.get('phone') as string | null;
     const currentPassword = formData.get('currentPassword') as string;
     const newPassword = formData.get('newPassword') as string;
     const profilePhotoFile = formData.get('profilePhoto') as File;
 
-    // Validate phone
-    if (!phone || typeof phone !== 'string') {
-      return NextResponse.json(
-        { message: 'Valid phone number is required' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedPhone = phone.replace(/\D/g, '');
-    if (normalizedPhone.length !== 10) {
-      return NextResponse.json(
-        { message: 'Phone number must be exactly 10 digits' },
-        { status: 400 }
-      );
-    }
-
-    // Get current user
+    // Get current user first (needed for phone validation)
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
@@ -65,6 +49,41 @@ export async function PUT(request: NextRequest) {
         { message: 'User not found' },
         { status: 404 }
       );
+    }
+
+    // Validate phone if provided
+    let normalizedPhone: string | null = user.phone;
+    if (phone !== null && phone !== undefined && phone.trim() !== '') {
+      if (typeof phone !== 'string') {
+        return NextResponse.json(
+          { message: 'Valid phone number is required' },
+          { status: 400 }
+        );
+      }
+
+      normalizedPhone = phone.replace(/\D/g, '');
+      if (normalizedPhone.length !== 10) {
+        return NextResponse.json(
+          { message: 'Phone number must be exactly 10 digits' },
+          { status: 400 }
+        );
+      }
+
+      // Check if phone is already taken by another user
+      if (normalizedPhone !== user.phone) {
+        const existingUser = await prisma.user.findUnique({
+          where: { phone: normalizedPhone }
+        });
+
+        if (existingUser && existingUser.id !== userId) {
+          return NextResponse.json(
+            { message: 'Phone number is already in use' },
+            { status: 400 }
+          );
+        }
+      }
+    } else if (phone !== null && phone.trim() === '') {
+      normalizedPhone = null;
     }
 
     // Validate & handle email update (optional)
@@ -106,20 +125,6 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Check if email is already taken by another user
-    if (normalizedPhone !== user.phone) {
-      const existingUser = await prisma.user.findUnique({
-        where: { phone: normalizedPhone }
-      });
-
-      if (existingUser && existingUser.id !== userId) {
-        return NextResponse.json(
-          { message: 'Phone number is already in use' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Handle profile photo upload
     let profilePhotoUrl = null;
     if (profilePhotoFile && profilePhotoFile.size > 0) {
@@ -143,14 +148,15 @@ export async function PUT(request: NextRequest) {
 
     // Prepare update data
     interface UpdateData {
-      phone: string;
+      phone?: string | null;
       email?: string | null;
       profilePhoto?: string;
       password?: string;
     }
-    const updateData: UpdateData = {
-      phone: normalizedPhone,
-    };
+    const updateData: UpdateData = {};
+    if (normalizedPhone !== user.phone) {
+      updateData.phone = normalizedPhone;
+    }
 
     if (emailToSet !== undefined) {
       updateData.email = emailToSet;

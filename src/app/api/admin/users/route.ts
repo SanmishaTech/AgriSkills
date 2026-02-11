@@ -94,38 +94,34 @@ export async function POST(request: NextRequest) {
     const { name, phone, password, role } = body;
 
     // Validate required fields
-    if (!name || !phone || !password) {
+    if (!name || !password) {
       return NextResponse.json(
-        { error: 'Name, phone, and password are required' },
+        { error: 'Name and password are required' },
         { status: 400 }
       );
     }
 
-    if (typeof phone !== 'string' || phone.trim().length < 8) {
-      return NextResponse.json(
-        { error: 'Valid phone number is required' },
-        { status: 400 }
-      );
-    }
+    let normalizedPhone: string | null = null;
+    if (phone && typeof phone === 'string' && phone.trim().length > 0) {
+      normalizedPhone = phone.replace(/\D/g, '');
+      if (normalizedPhone.length !== 10) {
+        return NextResponse.json(
+          { error: 'Phone number must be exactly 10 digits' },
+          { status: 400 }
+        );
+      }
 
-    // Validate role
-    if (role && !['user', 'admin'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role. Must be "user" or "admin"' },
-        { status: 400 }
-      );
-    }
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { phone: normalizedPhone }
+      });
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { phone }
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this phone number already exists' },
-        { status: 409 }
-      );
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'User with this phone number already exists' },
+          { status: 409 }
+        );
+      }
     }
 
     // Hash the password
@@ -135,7 +131,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name,
-        phone: phone.trim(),
+        phone: normalizedPhone,
         password: hashedPassword,
         role: role || 'user'
       },

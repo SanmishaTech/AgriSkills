@@ -103,40 +103,41 @@ export async function PUT(
       );
     }
 
-    if (!phone || typeof phone !== 'string') {
-      return NextResponse.json(
-        { error: 'Valid phone number is required' },
-        { status: 400 }
-      );
-    }
-
-    let normalizedPhone = phone.replace(/\D/g, '');
-    if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
-      normalizedPhone = normalizedPhone.slice(2);
-    }
-    if (normalizedPhone.length !== 10) {
-      return NextResponse.json(
-        { error: 'Phone number must be exactly 10 digits' },
-        { status: 400 }
-      );
-    }
-
-    // Check if phone is already taken by another user
-    if (normalizedPhone !== existingUser.phone) {
-      const phoneExists = await prisma.user.findUnique({
-        where: { phone: normalizedPhone }
-      });
-
-      if (phoneExists) {
+    let normalizedPhone: string | null = existingUser.phone;
+    if (phone !== undefined && phone !== null && phone.trim() !== '') {
+      normalizedPhone = phone.replace(/\D/g, '');
+      if (normalizedPhone.length === 12 && normalizedPhone.startsWith('91')) {
+        normalizedPhone = normalizedPhone.slice(2);
+      }
+      if (normalizedPhone.length !== 10) {
         return NextResponse.json(
-          { error: 'Phone number already exists' },
+          { error: 'Phone number must be exactly 10 digits' },
           { status: 400 }
         );
       }
+
+      // Check if phone is already taken by another user
+      if (normalizedPhone !== existingUser.phone) {
+        const phoneExists = await prisma.user.findUnique({
+          where: { phone: normalizedPhone }
+        });
+
+        if (phoneExists) {
+          return NextResponse.json(
+            { error: 'Phone number already exists' },
+            { status: 400 }
+          );
+        }
+      }
+    } else if (phone === null || (typeof phone === 'string' && phone.trim() === '')) {
+      normalizedPhone = null;
     }
 
     // Prepare update data
-    const updateData: { phone: string; email?: string | null; password?: string } = { phone: normalizedPhone };
+    const updateData: { phone?: string | null; email?: string | null; password?: string } = {};
+    if (normalizedPhone !== existingUser.phone) {
+      updateData.phone = normalizedPhone;
+    }
 
     if (email !== undefined) {
       if (email === null || (typeof email === 'string' && email.trim() === '')) {
