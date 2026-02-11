@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No messages provided.' }, { status: 400 });
         }
 
-        // Fetch real data from the database
-        const projectContext = await getProjectContext();
+        // Fetch real data from the database only if AI_DB_ACCESS is "on"
+        const aiDbAccess = process.env.AI_DB_ACCESS?.toLowerCase() === 'on';
+        const projectContext = aiDbAccess ? await getProjectContext() : '';
 
         // Build the messages array with system prompt + real data
         const messages: ChatMessage[] = [

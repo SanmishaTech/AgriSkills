@@ -100,39 +100,105 @@ export async function POST(request: NextRequest) {
     const pageHeight = pdf.internal.pageSize.getHeight();
     
     // Colors
-    const primaryColor = '#059669'; // Green-600
-    const secondaryColor = '#D97706'; // Amber-600
+    const primaryColor = '#1a365d'; // Dark blue
+    const secondaryColor = '#c9a227'; // Golden
     const textColor = '#1F2937'; // Gray-800
+    const goldColor = '#c9a227'; // Golden for borders
 
     // Add background
-    pdf.setFillColor(252, 252, 252); // Very light gray
+    pdf.setFillColor(255, 255, 255); // White
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-    // Add border
-    pdf.setDrawColor(primaryColor);
-    pdf.setLineWidth(3);
-    pdf.rect(10, 10, pageWidth - 20, pageHeight - 20, 'S');
+    // Helper function to draw laurel/wheat pattern
+    const drawDecorativeBorder = () => {
+      const margin = 8;
+      const patternSize = 6;
+      
+      // Draw outer golden border
+      pdf.setDrawColor(goldColor);
+      pdf.setLineWidth(2);
+      pdf.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2, 'S');
+      
+      // Draw inner golden border
+      pdf.setLineWidth(1);
+      pdf.rect(margin + 3, margin + 3, pageWidth - (margin + 3) * 2, pageHeight - (margin + 3) * 2, 'S');
+      
+      // Draw corner decorations (simulated with small lines)
+      const cornerSize = 12;
+      pdf.setLineWidth(1.5);
+      
+      // Top-left corner
+      for (let i = 0; i < 5; i++) {
+        const offset = i * 2;
+        pdf.line(margin + 5 + offset, margin + 5, margin + 5, margin + 5 + offset);
+      }
+      
+      // Top-right corner
+      for (let i = 0; i < 5; i++) {
+        const offset = i * 2;
+        pdf.line(pageWidth - margin - 5 - offset, margin + 5, pageWidth - margin - 5, margin + 5 + offset);
+      }
+      
+      // Bottom-left corner
+      for (let i = 0; i < 5; i++) {
+        const offset = i * 2;
+        pdf.line(margin + 5 + offset, pageHeight - margin - 5, margin + 5, pageHeight - margin - 5 - offset);
+      }
+      
+      // Bottom-right corner
+      for (let i = 0; i < 5; i++) {
+        const offset = i * 2;
+        pdf.line(pageWidth - margin - 5 - offset, pageHeight - margin - 5, pageWidth - margin - 5, pageHeight - margin - 5 - offset);
+      }
+      
+      // Draw side decorative patterns (small dashes to simulate wheat pattern)
+      pdf.setLineWidth(0.5);
+      const sideMargin = margin + 2;
+      
+      // Top and bottom borders - small decorative dashes
+      for (let x = margin + 20; x < pageWidth - margin - 20; x += 8) {
+        pdf.line(x, sideMargin, x + 3, sideMargin); // Top
+        pdf.line(x, pageHeight - sideMargin, x + 3, pageHeight - sideMargin); // Bottom
+      }
+      
+      // Left and right borders
+      for (let y = margin + 20; y < pageHeight - margin - 20; y += 8) {
+        pdf.line(sideMargin, y, sideMargin, y + 3); // Left
+        pdf.line(pageWidth - sideMargin, y, pageWidth - sideMargin, y + 3); // Right
+      }
+    };
+    
+    drawDecorativeBorder();
+    
+    // Add logo at top
+    try {
+      const logoPath = path.join(process.cwd(), 'public', 'images', 'logo.png');
+      const logoData = readFileSync(logoPath).toString('base64');
+      pdf.addImage(`data:image/png;base64,${logoData}`, 'PNG', pageWidth / 2 - 15, 12, 30, 10);
+    } catch (logoError) {
+      console.log('Logo not found, skipping logo display');
+    }
 
-    // Add decorative border
-    pdf.setDrawColor(secondaryColor);
-    pdf.setLineWidth(1);
-    pdf.rect(15, 15, pageWidth - 30, pageHeight - 30, 'S');
-
-    // Title
+    // Organization header
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(36);
+    pdf.setFontSize(14);
     pdf.setTextColor(primaryColor);
-    pdf.text('This is the certification', pageWidth / 2, 40, { align: 'center' });
+    pdf.text('SHOP FOR CHANGE FAIR TRADE, NGO', pageWidth / 2, 25, { align: 'center' });
 
-    // Certificate subtitle
-    pdf.setFontSize(18);
-    pdf.setTextColor(textColor);
-    pdf.text('CERTIFICATE OF COMPLETION', pageWidth / 2, 55, { align: 'center' });
+    // Main title
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(32);
+    pdf.setTextColor(primaryColor);
+    pdf.text('CERTIFICATE OF COMPLETION', pageWidth / 2, 45, { align: 'center' });
 
-    // Decorative line
-    pdf.setDrawColor(secondaryColor);
+    // Decorative line under title
+    pdf.setDrawColor(goldColor);
     pdf.setLineWidth(2);
-    pdf.line(60, 65, pageWidth - 60, 65);
+    pdf.line(60, 52, pageWidth - 60, 52);
+    
+    // Second decorative line
+    pdf.setLineWidth(0.5);
+    pdf.line(70, 55, pageWidth - 70, 55);
 
     // Certificate body text
     pdf.setFont('helvetica', 'normal');
@@ -231,76 +297,82 @@ export async function POST(request: NextRequest) {
     pdf.setFontSize(12);
     pdf.setTextColor(textColor);
 
-    const bottomY = pageHeight - 50;
-    const footerBaseline = bottomY;
-
-    // Date block
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
-    const dateLabel = 'Date:';
-    const dateValue = certificateData.date || new Date().toLocaleDateString();
-    const dateLabelWidth = pdf.getTextWidth(dateLabel);
-    const dateValueWidth = pdf.getTextWidth(dateValue);
-    const dateBlockWidth = dateLabelWidth + 6 + dateValueWidth;
-
-    // Score block
-    pdf.setFont('helvetica', 'normal');
-    const scoreText = certificateData.score ? `with a score of ${certificateData.score}%` : '';
-    const scoreTextWidth = scoreText ? pdf.getTextWidth(scoreText) : 0;
-
-    // Issuer block
-    pdf.setFont('helvetica', 'bold');
-    const issuerLabel = 'Issued by:';
-    const issuerLabelWidth = pdf.getTextWidth(issuerLabel);
-    pdf.setFont('helvetica', 'normal');
-    const issuerValue = certificateData.issuer || `${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} Academy`;
-    const issuerValueWidth = pdf.getTextWidth(issuerValue);
-    const issuerBlockWidth = issuerLabelWidth + 6 + issuerValueWidth;
-
-    const horizontalPadding = 20;
-    const totalFooterWidth = dateBlockWidth + (scoreText ? horizontalPadding + scoreTextWidth : 0) + horizontalPadding + issuerBlockWidth;
-    const footerStartX = (pageWidth - totalFooterWidth) / 2;
-
-    // Render date block
-    let cursorX = footerStartX;
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(dateLabel, cursorX, footerBaseline);
-    cursorX += dateLabelWidth + 6;
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(dateValue, cursorX, footerBaseline);
-
-    // Render score block (if present)
-    if (scoreText) {
-      cursorX += dateValueWidth + horizontalPadding;
-      pdf.text(scoreText, cursorX, footerBaseline);
-      cursorX += scoreTextWidth;
-    } else {
-      cursorX += dateValueWidth;
-    }
-
-    // Render issuer block
-    cursorX += horizontalPadding;
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(issuerLabel, cursorX, footerBaseline);
-    cursorX += issuerLabelWidth + 6;
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(issuerValue, cursorX, footerBaseline);
-
-    // Add signature line
-    const rightX = pageWidth - 60;
+    const bottomY = pageHeight - 55;
+    
+    // Draw signature line on the left
+    const leftX = 40;
     pdf.setDrawColor(textColor);
     pdf.setLineWidth(0.5);
-    pdf.line(rightX - 60, bottomY + 20, rightX - 5, bottomY + 20);
+    pdf.line(leftX, bottomY, leftX + 60, bottomY);
+    
+    // Signature text
     pdf.setFont('helvetica', 'italic');
     pdf.setFontSize(10);
-    pdf.text('Authorized Signature', rightX - 32.5, bottomY + 25, { align: 'center' });
+    pdf.setTextColor(primaryColor);
+    pdf.text('Mr.Sameer Ravindra Athavale', leftX + 30, bottomY + 6, { align: 'center' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(textColor);
+    pdf.text('CEO', leftX + 30, bottomY + 11, { align: 'center' });
+    pdf.text('Shop For Change Fair Trade', leftX + 30, bottomY + 16, { align: 'center' });
 
-    // Add certificate ID
+    // Draw badge/star in the center
+    const centerX = pageWidth / 2;
+    const badgeY = bottomY - 5;
+    
+    // Draw outer circle (gold)
+    pdf.setDrawColor(goldColor);
+    pdf.setLineWidth(2);
+    pdf.circle(centerX, badgeY + 10, 15, 'S');
+    
+    // Draw inner circle
+    pdf.setLineWidth(1);
+    pdf.circle(centerX, badgeY + 10, 12, 'S');
+    
+    // Draw star in center (simulated with text)
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(20);
+    pdf.setTextColor(goldColor);
+    pdf.text('★', centerX, badgeY + 16, { align: 'center' });
+    
+    // Draw ribbon below star
+    pdf.setFillColor(goldColor);
+    // Left ribbon part
+    pdf.triangle(centerX - 8, badgeY + 18, centerX - 3, badgeY + 25, centerX - 3, badgeY + 18, 'F');
+    // Right ribbon part  
+    pdf.triangle(centerX + 3, badgeY + 18, centerX + 3, badgeY + 25, centerX + 8, badgeY + 18, 'F');
+
+    // Proudly Supported By on the right
+    const rightX = pageWidth - 60;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(primaryColor);
+    pdf.text('Proudly Supported By:', rightX, bottomY - 5, { align: 'center' });
+    
+    // Date and Score info centered below the main content
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(textColor);
+    
+    const dateValue = certificateData.date || new Date().toLocaleDateString();
+    const scoreText = certificateData.score ? `with a score of ${certificateData.score}%` : '';
+    
+    // Date and score in one line
+    const infoText = `Date: ${dateValue} ${scoreText ? '| ' + scoreText : ''}`;
+    pdf.text(infoText, pageWidth / 2, pageHeight - 25, { align: 'center' });
+    
+    // Issuer info
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    const issuerValue = certificateData.issuer || `${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} Academy`;
+    pdf.text(`Issued by: ${issuerValue}`, pageWidth / 2, pageHeight - 18, { align: 'center' });
+
+    // Add certificate ID at the very bottom
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(120, 120, 120);
     const certId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+    pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
 
     // Generate PDF as base64
     const fileSafeCourseName = courseName

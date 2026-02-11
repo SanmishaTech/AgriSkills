@@ -207,6 +207,18 @@ export default function Footer() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  // Lock background scroll when drawer is open
+  useEffect(() => {
+    if (isSpeakOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isSpeakOpen]);
+
   useEffect(() => {
     if (!isSpeakOpen) return;
 
@@ -370,7 +382,7 @@ export default function Footer() {
               type="button"
               onClick={() => {
                 setIsSpeakOpen(true);
-                setSpeakDrawerMode('half');
+                setSpeakDrawerMode('full');
                 /* TODO: wire voice action */
               }}
               aria-label="Speak"
@@ -395,65 +407,85 @@ export default function Footer() {
             />
             <motion.div
               initial={{ y: '100%' }}
-              animate={{ y: 0, height: speakDrawerMode === 'full' ? '92vh' : '60vh' }}
+              animate={{ y: 0, height: speakDrawerMode === 'full' ? '95vh' : '60vh' }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 flex flex-col"
+              className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 flex flex-col overflow-hidden"
               drag="y"
               dragListener={false}
               dragControls={speakDragControls}
-              dragSnapToOrigin
-              dragConstraints={{ top: -160, bottom: 260 }}
-              dragElastic={0.15}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.3}
               onDragEnd={(_, info) => {
                 const dy = info.offset.y;
-                if (dy > 140) {
-                  setIsSpeakOpen(false);
-                  return;
-                }
-                if (dy < -120) {
-                  setSpeakDrawerMode('full');
+                if (speakDrawerMode === 'half') {
+                  if (dy < -80) {
+                    setSpeakDrawerMode('full');
+                  } else if (dy > 100) {
+                    setIsSpeakOpen(false);
+                  }
                 } else {
-                  setSpeakDrawerMode('half');
+                  if (dy > 200) {
+                    setIsSpeakOpen(false);
+                  } else if (dy > 80) {
+                    setSpeakDrawerMode('half');
+                  }
                 }
               }}
             >
+              {/* Drag Handle */}
               <div
-                className="px-4 pt-3 pb-2"
-                style={{
-                  backgroundColor: '#f3f4f6',
-                  backgroundImage:
-                    "radial-gradient(600px 260px at 20% 10%, rgba(34,197,94,0.14), transparent 60%), radial-gradient(520px 240px at 85% 30%, rgba(16,185,129,0.10), transparent 62%), radial-gradient(560px 260px at 40% 88%, rgba(59,130,246,0.08), transparent 65%), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'%3E%3Cpath d='M-20 60 C 40 20, 80 100, 140 60 S 240 100, 300 60'/%3E%3Cpath d='M-20 120 C 40 80, 80 160, 140 120 S 240 160, 300 120'/%3E%3Cpath d='M-20 180 C 40 140, 80 220, 140 180 S 240 220, 300 180'/%3E%3C/g%3E%3Cg fill='%2322c55e' fill-opacity='0.04'%3E%3Ccircle cx='55' cy='55' r='28'/%3E%3Ccircle cx='175' cy='90' r='22'/%3E%3Ccircle cx='120' cy='170' r='30'/%3E%3C/g%3E%3C/svg%3E\")",
-                  backgroundRepeat: 'repeat',
-                  backgroundSize: 'auto, auto, auto, 240px 240px',
-                }}
+                className="flex-shrink-0 cursor-grab active:cursor-grabbing"
+                style={{ touchAction: 'none' }}
                 onPointerDown={(e) => {
                   speakDragControls.start(e);
                 }}
               >
+                <div className="flex items-center justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                </div>
+              </div>
+
+              {/* Chat Header */}
+              <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-green-600">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <Mic className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'} AI</h3>
+                    <p className="text-green-100 text-xs">Ask me anything about the platform</p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  className="w-full flex items-center justify-center"
-                  aria-label="Resize"
-                  onClick={() => {
-                    setSpeakDrawerMode((m) => (m === 'half' ? 'full' : 'half'));
-                  }}
+                  onClick={() => setIsSpeakOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition"
+                  aria-label="Close"
                 >
-                  <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
 
+              {/* Chat Messages Area */}
               <div
-                className="flex-1 overflow-y-auto px-4 py-4"
-                style={{
-                  backgroundColor: '#f3f4f6',
-                  backgroundImage:
-                    "radial-gradient(600px 260px at 20% 10%, rgba(34,197,94,0.14), transparent 60%), radial-gradient(520px 240px at 85% 30%, rgba(16,185,129,0.10), transparent 62%), radial-gradient(560px 260px at 40% 88%, rgba(59,130,246,0.08), transparent 65%), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23000000' stroke-opacity='0.05' stroke-width='2'%3E%3Cpath d='M-20 60 C 40 20, 80 100, 140 60 S 240 100, 300 60'/%3E%3Cpath d='M-20 120 C 40 80, 80 160, 140 120 S 240 160, 300 120'/%3E%3Cpath d='M-20 180 C 40 140, 80 220, 140 180 S 240 220, 300 180'/%3E%3C/g%3E%3Cg fill='%2322c55e' fill-opacity='0.04'%3E%3Ccircle cx='55' cy='55' r='28'/%3E%3Ccircle cx='175' cy='90' r='22'/%3E%3Ccircle cx='120' cy='170' r='30'/%3E%3C/g%3E%3C/svg%3E\")",
-                  backgroundRepeat: 'repeat',
-                  backgroundSize: 'auto, auto, auto, 240px 240px',
-                }}
+                className="flex-1 overflow-y-auto px-3 py-3"
+                style={{ backgroundColor: '#e8efe5' }}
               >
-                <div className="space-y-3">
+                <div className="space-y-2">
+                  {chatMessages.length === 0 && (
+                    <div className="flex items-center justify-center h-full min-h-[120px]">
+                      <div className="text-center px-6">
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center">
+                          <Mic className="w-7 h-7 text-green-600" />
+                        </div>
+                        <p className="text-gray-600 text-sm font-medium">Welcome! 👋</p>
+                        <p className="text-gray-500 text-xs mt-1">What can I help you with today?</p>
+                      </div>
+                    </div>
+                  )}
                   {chatMessages.map((m) => (
                     <div
                       key={m.id}
@@ -462,8 +494,8 @@ export default function Footer() {
                       <div
                         className={
                           m.role === 'user'
-                            ? 'max-w-[85%] rounded-2xl bg-green-600 text-white px-4 py-2 text-sm shadow-sm'
-                            : 'max-w-[85%] rounded-2xl bg-gray-100 text-gray-900 px-4 py-2 text-sm shadow-sm'
+                            ? 'max-w-[82%] rounded-2xl rounded-tr-sm bg-green-600 text-white px-3 py-2 text-[13px] leading-relaxed shadow-sm'
+                            : 'max-w-[82%] rounded-2xl rounded-tl-sm bg-white text-gray-800 px-3 py-2 text-[13px] leading-relaxed shadow-sm'
                         }
                       >
                         {m.content}
@@ -472,7 +504,7 @@ export default function Footer() {
                   ))}
                   {isAiLoading && (
                     <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl bg-gray-100 text-gray-500 px-4 py-3 text-sm shadow-sm flex items-center gap-1">
+                      <div className="rounded-2xl rounded-tl-sm bg-white text-gray-500 px-4 py-3 text-sm shadow-sm flex items-center gap-1.5">
                         <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                         <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -483,9 +515,10 @@ export default function Footer() {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 px-4 py-4 bg-white">
+              {/* Input Bar */}
+              <div className="flex-shrink-0 border-t border-gray-200 px-3 py-2 bg-white" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
                 {speechError && (
-                  <div className="mb-2 text-xs text-red-600">{speechError}</div>
+                  <div className="mb-1.5 text-xs text-red-600 px-1">{speechError}</div>
                 )}
                 <div className="flex items-center gap-2">
                   <Input
@@ -493,7 +526,7 @@ export default function Footer() {
                     value={speakText}
                     onChange={(e) => setSpeakText(e.target.value)}
                     placeholder={`Message ${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}...`}
-                    className="h-11 rounded-full"
+                    className="h-10 rounded-full text-sm"
                     disabled={isAiLoading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -506,21 +539,21 @@ export default function Footer() {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className={`h-11 w-11 rounded-full ${isRecording ? 'border-green-600 text-green-700 bg-green-50' : ''}`}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 ${isRecording ? 'border-green-600 text-green-700 bg-green-50' : ''}`}
                     onClick={toggleRecording}
                     aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                   >
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4" />
                   </Button>
                   <Button
                     type="button"
                     size="icon"
-                    className={`h-11 w-11 rounded-full ${isAiLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    className={`h-10 w-10 rounded-full flex-shrink-0 ${isAiLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                     disabled={isAiLoading}
                     onClick={sendSpeakMessage}
                     aria-label="Send"
                   >
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
