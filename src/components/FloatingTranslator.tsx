@@ -30,6 +30,27 @@ export default function FloatingTranslator() {
     const [translatedLangName, setTranslatedLangName] = useState('');
     const [showFloatingMenu, setShowFloatingMenu] = useState(false);
 
+    const clearGoogTransCookies = () => {
+        if (typeof document === 'undefined') return;
+        // Google Translate sets cookies on multiple paths and domains
+        const hostname = window.location.hostname;
+        const domainParts = hostname.split('.');
+        const domains = [
+            '',                                           // current domain (no Domain attr)
+            hostname,                                     // exact hostname
+            '.' + hostname,                               // .hostname
+        ];
+        // Also try the root domain (e.g. .example.com from sub.example.com)
+        if (domainParts.length >= 2) {
+            const rootDomain = '.' + domainParts.slice(-2).join('.');
+            domains.push(rootDomain);
+        }
+        for (const domain of domains) {
+            const domainStr = domain ? `;domain=${domain}` : '';
+            document.cookie = `googtrans=;path=/${domainStr};max-age=0;expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        }
+    };
+
     const changeLanguage = (langCode: string, langName?: string) => {
         setShowTranslate(false);
         setShowFloatingMenu(false);
@@ -39,13 +60,22 @@ export default function FloatingTranslator() {
             setIsTranslated(false);
             setTranslatedLangName('');
             localStorage.removeItem('googleTranslateLang');
-            document.cookie = 'googtrans=;path=/;max-age=0';
-        } else {
-            setIsTranslated(true);
-            setTranslatedLangName(langName || langCode);
-            localStorage.setItem('googleTranslateLang', langCode);
+            clearGoogTransCookies();
+
+            // Tell Google Translate to revert via the combo selector
+            const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+            if (select) {
+                select.value = 'en';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            // Force a reload to fully clean Google Translate state
+            window.location.reload();
+            return;
         }
 
+        setIsTranslated(true);
+        setTranslatedLangName(langName || langCode);
+        localStorage.setItem('googleTranslateLang', langCode);
         setGoogTransCookie(langCode);
 
         const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
