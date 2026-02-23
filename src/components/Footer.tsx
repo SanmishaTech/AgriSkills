@@ -7,6 +7,8 @@ import { Home as HomeIcon, BookOpen, Mic, Send } from 'lucide-react';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface User {
   id: string;
@@ -38,6 +40,9 @@ export default function Footer() {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const speakDragControls = useDragControls();
   const recognitionRef = useRef<any>(null);
+  const lastSendRef = useRef<number>(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const SEND_COOLDOWN_MS = 2000;
   const router = useRouter();
   const pathname = usePathname();
 
@@ -262,6 +267,18 @@ export default function Footer() {
     const text = speakText.trim();
     if (!text || isAiLoading) return;
 
+    // Enforce 2-second cooldown between sends
+    const now = Date.now();
+    if (now - lastSendRef.current < SEND_COOLDOWN_MS) return;
+    lastSendRef.current = now;
+
+    // Abort any in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const newUserMsg: ChatMessage = { id, role: 'user', content: text };
     setChatMessages((prev) => [...prev, newUserMsg]);
@@ -278,6 +295,7 @@ export default function Footer() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -290,7 +308,9 @@ export default function Footer() {
         ...prev,
         { id: replyId, role: 'assistant', content: replyText },
       ]);
-    } catch {
+    } catch (err: any) {
+      // Don't show error if the request was intentionally aborted
+      if (err?.name === 'AbortError') return;
       const errId = `${Date.now()}-err`;
       setChatMessages((prev) => [
         ...prev,
@@ -498,7 +518,41 @@ export default function Footer() {
                             : 'max-w-[82%] rounded-2xl rounded-tl-sm bg-white text-gray-800 px-3 py-2 text-[13px] leading-relaxed shadow-sm'
                         }
                       >
-                        {m.content}
+                        <div
+                          className={`prose prose-sm max-w-none ${m.role === 'user' ? 'text-white prose-invert' : 'text-gray-800'
+                            } prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5 break-words`}
+                        >
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ node, ...props }) => (
+                                <a
+                                  {...props}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold no-underline transition-colors mx-1 ${m.role === 'user'
+                                    ? 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
+                                    : 'bg-green-100 hover:bg-green-200 text-green-800 border border-green-200'
+                                    }`}
+                                >
+                                  <span>🔗</span>
+                                  {props.children}
+                                </a>
+                              ),
+                              p: ({ node, ...props }) => (
+                                <p {...props} className="m-0 leading-relaxed last:mb-0" />
+                              ),
+                              ul: ({ node, ...props }) => (
+                                <ul {...props} className="my-1 pl-4 list-disc marker:text-current" />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol {...props} className="my-1 pl-4 list-decimal marker:text-current" />
+                              ),
+                            }}
+                          >
+                            {m.content}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     </div>
                   ))}
