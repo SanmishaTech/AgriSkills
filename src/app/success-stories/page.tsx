@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Search, Filter, Heart, Share, User, Calendar, TrendingUp, Award } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Search, Filter, Heart, Share, User, Calendar, TrendingUp, Award, X } from 'lucide-react';
 import Image from 'next/image';
+import HomeNavbar from '@/components/HomeNavbar';
 
 interface SuccessStory {
   id: number;
@@ -13,6 +14,7 @@ interface SuccessStory {
   emoji: string;
   category: string;
   impact: string;
+  image?: string;
   fullStory: string;
   author: string;
   location: string;
@@ -25,153 +27,51 @@ interface SuccessStory {
 const successStoriesData: SuccessStory[] = [
   {
     id: 1,
-    title: "Rekha trained 12 women in tailoring",
-    description: "Rekha started a small training center in her village after completing our tailoring course.",
-    fullStory: "Rekha Sharma, a 34-year-old mother of two from Rajasthan, transformed her life through our tailoring skills program. Starting with basic stitching knowledge, she mastered advanced tailoring techniques through our comprehensive course. Within six months, she established a small training center in her village, providing employment opportunities for local women. Today, she has trained over 12 women who are now earning independently, creating a ripple effect of empowerment in her community. Her center has become a hub for women's skill development, and she plans to expand to neighboring villages.",
-    emoji: "✂️",
-    category: "Tailoring",
-    impact: "12 women trained",
-    author: "Rekha Sharma",
-    location: "Jaipur, Rajasthan",
-    date: "2024-01-15",
+    title: "Transforming Smallholder Farming with Sustainable Farming",
+    description: "Narayan Bhau Bhoye implemented the No-Till/Regenerative Technique (SRT) to transform his farm.",
+    image: "/images/successstories/successstories-1.jpg",
+    fullStory: "Practices Farmer Mr. Narayan Bhau Bhoye, Gorthan Village, Palghar District\nA Real Life Case Study by Shop For Change Fair Trade NGO\n\n**Background:**\nShop for Change Fair Trade, with funding support from GeBBS Healthcare, launched a capacity-building project to promote sustainable agricultural practices among tribal farmers in Jawhar. A two-day focused training session was conducted for over 70 tribal farmers, ensuring equal participation from men and women. The training for male farmers was held in January 2025, following which one of the farmers immediately adopted the No-Till/Regenerative Technique (SRT) on his farm.\n\nNarayan Bhau Bhoye, a smallholder farmer from Gorthan village in Palghar district, is a notable example of success from this intervention. Known for his experimental nature, Narayan decided to initially apply SRT on a small portion of his land—2.5 gunthas—to assess the results before scaling up. Based on the outcomes from this trial, he plans to implement SRT across a larger area during the upcoming monsoon season.\n\n**SRT Application Details:**\n• Crop Selection: 1 Guntha Groundnut, 1 Guntha Wal (Indian Bean), 0.5 Guntha Chickpea\n• Date of Sowing: January 23, 2025\n• Expected Harvest Date: May 10, 2025\n\n**Benefits Experienced:**\n• Reduced Labor Requirement: Decreased from 10-15 workers (traditional farming) to 4-5 workers under SRT.\n• Cost Savings: Labor savings amounted to approximately ₹3,200.\n• Enhanced Crop Growth: Crop height increased from 2-3 feet (traditional) to over 3 feet with SRT.\n\n**Projected Economic Impact Summary:**\n• Income with Traditional Methods: ₹6,875\n• Projected Income with SRT: ₹11,525\n• Net Increase in Income: ₹4,650\n• Total Net Gain (Income Increase + Labor Savings): ₹7,850",
+    emoji: "🌱",
+    category: "Sustainable Farming",
+    impact: "₹7,850 Net Gain",
+    author: "Shop For Change NGO",
+    location: "Palghar District",
+    date: "2025-01-23",
     readTime: "3 min read",
-    likes: 234,
+    likes: 124,
     shares: 45
   },
   {
     id: 2,
-    title: "Raju started organic farming in his village",
-    description: "After learning organic farming techniques, Raju converted his 5-acre farm to profitable organic cultivation.",
-    fullStory: "Raju Kumar's journey from conventional to organic farming began when he enrolled in our sustainable agriculture program. Initially skeptical about organic methods, he gradually learned about soil health, natural pest control, and sustainable water management. The transformation of his 5-acre farm took two years, but the results were remarkable. His organic vegetables and grains now fetch premium prices in local markets. He has reduced his input costs by 60% and increased his profit margins by 40%. Raju now mentors other farmers in his district, helping them transition to organic farming practices.",
-    emoji: "🌱",
-    category: "Organic Farming",
-    impact: "5-acre farm converted",
-    author: "Raju Kumar",
-    location: "Meerut, Uttar Pradesh",
-    date: "2024-02-10",
+    title: "Ecovibe Krushi Producer Company – A Women-Led Model of Rural Enterprise",
+    description: "In the tribal belt of Palghar, Maharashtra, women farmers have long faced systemic barriers to income security.",
+    image: "/images/successstories/successstories-2.jpg",
+    fullStory: "**Background**\nIn the tribal belt of Palghar, Maharashtra, women farmers have long faced systemic barriers to income security, access to markets, and leadership opportunities. Recognizing the need for structural change, Shop for Change Fair Trade initiated the formation of a women-centric Farmer Producer Organization (FPO) to create long-term, market-driven empowerment.\n\n**The Intervention**\nIn February 2025, Ecovibe Krushi Producer Company Ltd. was officially registered. Designed to be a community-owned and women-led FPO, it focuses on building collective bargaining power, strengthening agricultural value chains, and enabling direct access to markets.\n\n**Projected Key Highlights**\n• 500+ tribal farmers to be mobilized, with majority women shareholders\n• Capacity-building workshops on FPO management, bookkeeping, agri-finance, and government schemes\n• Collective procurement of inputs (seeds, bio-fertilizers, equipment) to reduce costs by 15–20%\n• Development of value-added products such as turmeric powder, millet mixes, and forest produce\n\n**Expected Outcomes**\n• 30–50% increase in net incomes through improved input access and collective marketing\n• Enhanced women's leadership in agri-business and governance structures\n• Strengthened resilience against climate and market shocks through diversified income streams\n• A replicable model for scaling women-led FPOs in other tribal regions across India\n\n**Why This Matters**\nEcovibe Krushi Producer Company is envisioned as a blueprint for inclusive rural development, where tribal women shift from the margins to the mainstream of agricultural enterprise. Through market linkage, skill-building, and collective ownership, Ecovibe aims to redefine what rural self-reliance looks like.",
+    emoji: "👩‍🌾",
+    category: "Rural Enterprise",
+    impact: "500+ Farmers Mobilized",
+    author: "Shop For Change NGO",
+    location: "Palghar District",
+    date: "2025-02-10",
     readTime: "4 min read",
-    likes: 189,
+    likes: 215,
     shares: 62
   },
   {
     id: 3,
-    title: "Meera's dairy business flourishes",
-    description: "Meera expanded her dairy from 2 cows to 15 cows, increasing her monthly income by 400%.",
-    fullStory: "Meera Patel started with just two local cows and a dream to become financially independent. Through our dairy management program, she learned about cattle nutrition, breeding techniques, and modern milking practices. She implemented scientific feeding schedules and proper healthcare for her cattle. Over 18 months, she gradually expanded her herd to 15 high-yielding crossbred cows. Her daily milk production increased from 20 liters to 180 liters. She now supplies milk to a local cooperative and has started producing paneer and ghee. Her monthly income has grown from ₹8,000 to ₹40,000, making her one of the most successful dairy entrepreneurs in her district.",
-    emoji: "🥛",
-    category: "Dairy Farming",
-    impact: "400% income increase",
-    author: "Meera Patel",
-    location: "Anand, Gujarat",
-    date: "2024-01-28",
+    title: "Babu Waghera – From Marginal Farmer to Export-Grade Chilli Producer",
+    description: "Babu Waghera once relied on irregular daily wage work and low-yield farming for survival.",
+    image: "/images/successstories/successstories-3.jpg",
+    fullStory: "**Background**\nBabu Waghera, a tribal farmer from Jawhar Taluka in Maharashtra, once relied on irregular daily wage work and low-yield farming for survival. With minimal access to knowledge or infrastructure, his annual income was limited to around ₹20,000–₹25,000—barely enough to support his family.\n\n**The Turning Point**\nIn 2019, Babu joined a Shop for Change Fair Trade initiative aimed at linking tribal chilli farmers to premium global markets. With technical support, quality inputs, and training, he was selected as one of the farmers to cultivate export-grade green chillies.\n\n**Key Milestone**\nIn 2019–20, Babu's chillies were part of the first-ever tribal farmer export batch to London, supported by JSW Foundation and facilitated by Del Monte as the export partner. This marked a breakthrough in tribal farmer market access and profitability.\n\n**Impact and Achievements**\n• Cultivated high-grade green chillies that met export standards\n• Received post-harvest training in sorting, grading, and packaging\n• Earned over ₹1.5 lakh in a single season—a sixfold increase in his typical annual income\n• Emerged as a community role model, encouraging fellow farmers to shift from low-value crops to high-return, market-linked farming\n\n**Why It Matters**\nBabu Waghera's journey—from a struggling daily wage worker to an international exporter—is a powerful example of what is possible when grassroots talent meets global opportunity. His story reflects the core mission of Shop for Change: empowering farmers through dignified trade, not aid.",
+    emoji: "🌶️",
+    category: "Export Farming",
+    impact: "₹1.5 lakh+ Earned",
+    author: "Shop For Change NGO",
+    location: "Jawhar Taluka",
+    date: "2024-05-15",
     readTime: "5 min read",
     likes: 312,
-    shares: 78
-  },
-  {
-    id: 4,
-    title: "Suresh's poultry farm success",
-    description: "Starting with 50 chickens, Suresh now manages 1000+ birds and supplies to local markets.",
-    fullStory: "Suresh Reddy's poultry venture began as a small backyard operation with 50 country chickens. After joining our poultry management course, he learned about modern housing systems, vaccination schedules, and feed management. He gradually upgraded his facilities and introduced improved breeds. His systematic approach to poultry farming, including proper biosecurity measures and record-keeping, helped him scale operations rapidly. Today, his farm houses over 1000 birds across different batches. He supplies eggs and meat to local markets, restaurants, and wholesalers. His monthly turnover has crossed ₹1.5 lakhs, and he employs three local youth in his operations.",
-    emoji: "🐔",
-    category: "Poultry Farming",
-    impact: "1000+ birds managed",
-    author: "Suresh Reddy",
-    location: "Hyderabad, Telangana",
-    date: "2024-02-20",
-    readTime: "4 min read",
-    likes: 267,
-    shares: 54
-  },
-  {
-    id: 5,
-    title: "Priya's vegetable garden transformation",
-    description: "Priya transformed her backyard into a profitable vegetable garden earning ₹8000 monthly.",
-    fullStory: "Priya Singh utilized her small backyard space to create a thriving kitchen garden after completing our urban farming course. She learned about vertical gardening, container farming, and seasonal crop planning. Using innovative techniques like grow bags, trellises, and drip irrigation, she maximized her limited space. She grows a variety of vegetables including tomatoes, peppers, leafy greens, and herbs. Her produce is pesticide-free and freshly harvested, which attracts customers willing to pay premium prices. She sells directly to neighbors, local restaurants, and through online platforms. What started as a hobby has become a sustainable business earning her ₹8,000 monthly while providing fresh, healthy food for her family.",
-    emoji: "🥬",
-    category: "Kitchen Gardening",
-    impact: "₹8000 monthly income",
-    author: "Priya Singh",
-    location: "Pune, Maharashtra",
-    date: "2024-03-05",
-    readTime: "3 min read",
-    likes: 198,
-    shares: 41
-  },
-  {
-    id: 6,
-    title: "Ramesh's bee-keeping venture",
-    description: "Ramesh started with 5 hives and now harvests 200kg of honey annually.",
-    fullStory: "Ramesh Kumar's apiary journey began with our beekeeping fundamentals course. Initially apprehensive about handling bees, he gained confidence through hands-on training and mentorship. He started with 5 traditional hives in his mango orchard. Learning about bee behavior, hive management, and honey extraction techniques, he gradually modernized his approach. He introduced improved hive designs and scientific management practices. His bee colonies thrived, and he expanded to 25 hives across different locations. He now harvests 200kg of pure honey annually, which he sells under his own brand. Additionally, he produces beeswax and offers pollination services to fruit growers. His success has inspired 10 other farmers in his area to start beekeeping.",
-    emoji: "🐝",
-    category: "Bee Keeping",
-    impact: "200kg honey annually",
-    author: "Ramesh Kumar",
-    location: "Lucknow, Uttar Pradesh",
-    date: "2024-02-14",
-    readTime: "4 min read",
-    likes: 156,
-    shares: 33
-  },
-  {
-    id: 7,
-    title: "Sunita's mushroom cultivation",
-    description: "Sunita's mushroom farm produces 50kg daily, supplying to restaurants and hotels.",
-    fullStory: "Sunita Devi entered mushroom cultivation through our specialized training program on oyster mushroom production. She converted a small room in her house into a controlled environment for mushroom growing. Learning about substrate preparation, spawning, and environmental control, she achieved consistent production cycles. Her quality mushrooms gained recognition among local restaurants and hotels for their freshness and taste. She now operates multiple growing chambers and produces 50kg of mushrooms daily. Her product range includes oyster, shiitake, and button mushrooms. She has trained her two daughters in the business, making it a family enterprise. Her annual turnover exceeds ₹10 lakhs, and she has become a model entrepreneur in her district.",
-    emoji: "🍄",
-    category: "Mushroom Farming",
-    impact: "50kg daily production",
-    author: "Sunita Devi",
-    location: "Shimla, Himachal Pradesh",
-    date: "2024-01-22",
-    readTime: "4 min read",
-    likes: 223,
-    shares: 47
-  },
-  {
-    id: 8,
-    title: "Vikram's fish farming success",
-    description: "Vikram converted his 2-acre pond into a thriving fish farm with multiple species.",
-    fullStory: "Vikram Yadav transformed his ancestral pond into a modern aquaculture facility through our fish farming program. He learned about pond preparation, water quality management, and integrated fish farming systems. Initially focusing on common carp and rohu, he gradually diversified to include catla, grass carp, and silver carp in a polyculture system. His scientific approach to feeding, aeration, and disease management resulted in excellent fish growth rates. He harvests 4 tonnes of fish every 8 months from his 2-acre pond. His fish are supplied to local markets, restaurants, and wholesalers across three districts. He has also started fish seed production, selling fingerlings to other fish farmers. His success has motivated many farmers to convert their unused ponds into productive aquaculture systems.",
-    emoji: "🐟",
-    category: "Fish Farming",
-    impact: "2-acre fish farm",
-    author: "Vikram Yadav",
-    location: "Bhopal, Madhya Pradesh",
-    date: "2024-03-12",
-    readTime: "5 min read",
-    likes: 189,
-    shares: 39
-  },
-  {
-    id: 9,
-    title: "Kavita's spice processing unit",
-    description: "Kavita processes and packages spices, supplying to 20+ retail stores in her district.",
-    fullStory: "Kavita Sharma established her spice processing unit after completing our food processing and entrepreneurship program. She started by processing turmeric and chili powder using traditional methods, then gradually invested in modern grinding and packaging equipment. Her focus on quality control, hygienic processing, and attractive packaging helped her build a loyal customer base. She sources raw materials directly from farmers, ensuring quality and fair prices. Her product range now includes 15 different spices and spice blends. She supplies to over 20 retail stores across her district and has started online sales. Her branded spices have gained recognition for their purity and authentic taste. She employs 8 women from her village, providing them with steady income and skill development opportunities.",
-    emoji: "🌶️",
-    category: "Food Processing",
-    impact: "20+ stores supplied",
-    author: "Kavita Sharma",
-    location: "Jodhpur, Rajasthan",
-    date: "2024-02-28",
-    readTime: "4 min read",
-    likes: 145,
-    shares: 29
-  },
-  {
-    id: 10,
-    title: "Ankit's hydroponic farming",
-    description: "Ankit's soilless farming setup produces fresh vegetables year-round in controlled environment.",
-    fullStory: "Ankit Verma pioneered hydroponic farming in his region after attending our advanced agricultural technology program. Initially investing in a small NFT (Nutrient Film Technique) system, he learned about nutrient solutions, pH management, and climate control. His soilless cultivation method allows year-round production of high-quality vegetables in controlled conditions. He specializes in growing lettuce, spinach, herbs, and cherry tomatoes. His produce is pesticide-free and has superior taste and nutritional value. He supplies to premium restaurants, health-conscious consumers, and organic stores in nearby cities. His 1000 sq ft hydroponic setup generates monthly revenue of ₹50,000. He has become a consultant for other farmers interested in adopting hydroponic technology and has trained over 50 farmers in the past year.",
-    emoji: "💧",
-    category: "Hydroponic Farming",
-    impact: "Year-round production",
-    author: "Ankit Verma",
-    location: "Bangalore, Karnataka",
-    date: "2024-03-18",
-    readTime: "5 min read",
-    likes: 278,
-    shares: 68
+    shares: 89
   }
 ];
 
@@ -182,6 +82,7 @@ export default function SuccessStoriesPage() {
   const [likedStories, setLikedStories] = useState<Set<number>>(new Set());
   const [selectedStory, setSelectedStory] = useState<SuccessStory | null>(null);
   const [sharingStories, setSharingStories] = useState<Set<number>>(new Set());
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
 
   useEffect(() => {
     let filtered = successStoriesData;
@@ -213,7 +114,7 @@ export default function SuccessStoriesPage() {
 
   const handleShare = async (story: SuccessStory, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Prevent multiple concurrent shares for the same story
     if (sharingStories.has(story.id)) {
       return;
@@ -248,47 +149,19 @@ export default function SuccessStoriesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">Success Stories</h1>
-                <p className="text-green-100 mt-1">Inspiring journeys of transformation and growth</p>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-3">
-              <Award className="w-8 h-8 text-yellow-300" />
-              <div className="text-right">
-                <p className="text-sm text-green-100">Featured Stories</p>
-                <p className="text-lg font-semibold">{successStoriesData.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Shared Homepage Navbar */}
+      <HomeNavbar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isMobileSearchActive={isMobileSearchActive}
+        setIsMobileSearchActive={setIsMobileSearchActive}
+      />
 
-      {/* Search Section */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search stories, authors, or locations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
+      {/* Page Title */}
+      <div className="bg-white border-b px-4 sm:px-6 lg:px-8 py-5">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Success Stories</h1>
+          <p className="text-gray-500 mt-1 text-sm">Inspiring journeys of transformation and growth</p>
         </div>
       </div>
 
@@ -335,16 +208,26 @@ export default function SuccessStoriesPage() {
                 onClick={() => setSelectedStory(story)}
               >
                 {/* Story Header */}
-                <div className="relative h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-6xl">
-                  <span>{story.emoji}</span>
-                  
+                <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {/* @ts-ignore */}
+                  {story.image ? (
+                    /* @ts-ignore */
+                    <Image src={story.image} alt={story.title} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    /* @ts-ignore */
+                    <span className="text-5xl relative z-10">{story.emoji}</span>
+                  )}
+
+                  {/* Gradient Overlay for better badge visibility */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent z-0 pointer-events-none" />
+
                   {/* Category Badge */}
-                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-3 py-1 rounded-full font-semibold">
+                  <div className="absolute top-3 left-3 bg-white/95 text-gray-800 text-xs px-3 py-1 rounded-full font-semibold shadow-sm z-10">
                     {story.category}
                   </div>
-                  
+
                   {/* Impact Badge */}
-                  <div className="absolute top-3 right-3 bg-green-500/90 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold">
+                  <div className="absolute top-3 right-3 bg-green-600/95 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-sm z-10">
                     {story.impact}
                   </div>
                 </div>
@@ -378,11 +261,10 @@ export default function SuccessStoriesPage() {
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     <button
                       onClick={(e) => handleLike(story.id, e)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${
-                        likedStories.has(story.id)
-                          ? 'bg-red-50 text-red-600'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${likedStories.has(story.id)
+                        ? 'bg-red-50 text-red-600'
+                        : 'text-gray-600 hover:bg-gray-50'
+                        }`}
                     >
                       <Heart className={`w-4 h-4 ${likedStories.has(story.id) ? 'fill-current' : ''}`} />
                       <span>{story.likes + (likedStories.has(story.id) ? 1 : 0)}</span>
@@ -425,13 +307,22 @@ export default function SuccessStoriesPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="relative h-32 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-4xl">
-              <span>{selectedStory.emoji}</span>
+            <div className="relative h-48 sm:h-56 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-5xl overflow-hidden">
+              {/* @ts-ignore */}
+              {selectedStory.image ? (
+                <>
+                  {/* @ts-ignore */}
+                  <Image src={selectedStory.image} alt={selectedStory.title} layout="fill" objectFit="cover" />
+                  <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />
+                </>
+              ) : (
+                <span className="relative z-10">{selectedStory.emoji}</span>
+              )}
               <button
                 onClick={() => setSelectedStory(null)}
-                className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors z-20"
               >
-                <ArrowLeft className="w-5 h-5 text-white rotate-45" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
@@ -442,7 +333,7 @@ export default function SuccessStoriesPage() {
                 <span>•</span>
                 <span>{selectedStory.impact}</span>
               </div>
-              
+
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 {selectedStory.title}
               </h2>
@@ -465,7 +356,11 @@ export default function SuccessStoriesPage() {
 
               <div className="prose prose-gray max-w-none">
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {selectedStory.fullStory}
+                  {selectedStory.fullStory.split(/(\*\*.*?\*\*)/).map((part, i) =>
+                    part.startsWith('**') && part.endsWith('**') ?
+                      <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong> :
+                      part
+                  )}
                 </p>
               </div>
 
@@ -473,11 +368,10 @@ export default function SuccessStoriesPage() {
               <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
                 <button
                   onClick={(e) => handleLike(selectedStory.id, e)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    likedStories.has(selectedStory.id)
-                      ? 'bg-red-50 text-red-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${likedStories.has(selectedStory.id)
+                    ? 'bg-red-50 text-red-600'
+                    : 'text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   <Heart className={`w-4 h-4 ${likedStories.has(selectedStory.id) ? 'fill-current' : ''}`} />
                   <span>Like ({selectedStory.likes + (likedStories.has(selectedStory.id) ? 1 : 0)})</span>

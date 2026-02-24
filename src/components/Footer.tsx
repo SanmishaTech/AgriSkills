@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Home as HomeIcon, BookOpen, Mic, Send } from 'lucide-react';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -385,12 +386,14 @@ export default function Footer() {
                 setSpeakDrawerMode('full');
                 /* TODO: wire voice action */
               }}
-              aria-label="Speak"
-              className="bg-green-600 hover:bg-green-700 text-white rounded-full w-14 h-14 shadow-xl flex items-center justify-center ring-4 ring-white"
+              aria-label="Gram Sathi"
+              className="bg-white hover:bg-gray-50 rounded-full w-14 h-14 shadow-xl flex items-center justify-center ring-4 ring-white overflow-hidden"
             >
-              <Mic className="w-6 h-6" />
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-white">
+                <Image src="/images/gramsathi.jpeg" alt="Gram Sathi" fill className="object-cover" />
+              </div>
             </button>
-            <span className="mt-1 text-xs font-medium text-green-700">Speak</span>
+            <span className="mt-1 text-xs font-medium text-green-700">Gram Sathi</span>
           </div>
         </div>
       </div>

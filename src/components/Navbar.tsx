@@ -225,7 +225,7 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Hide on auth pages, the home route, and preview pages
-  const hideOnPages = ["/", "/login", "/register"];
+  const hideOnPages = ["/", "/login", "/register", "/success-stories"];
   const isPreviewPage = pathname?.includes('/preview');
   const shouldHide = hideOnPages.includes(pathname) || isPreviewPage;
 

@@ -4,13 +4,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BookOpen, 
-  ChevronRight, 
-  ChevronDown, 
-  Play, 
-  Clock, 
-  Users, 
+import {
+  BookOpen,
+  ChevronRight,
+  ChevronDown,
+  Play,
+  Clock,
+  Users,
   ArrowLeft,
   GraduationCap,
   FileText,
@@ -148,13 +148,13 @@ export default function UserDashboard() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     console.log('User Dashboard Auth Check:', {
       hasToken: !!token,
       hasUserData: !!userData,
       tokenPreview: token ? token.substring(0, 20) + '...' : null
     });
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
@@ -208,7 +208,7 @@ export default function UserDashboard() {
       console.log('Fetching topics from /api/public/topics');
       const response = await fetch('/api/public/topics');
       console.log('Response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Topics data received:', data);
@@ -251,13 +251,13 @@ export default function UserDashboard() {
   const navigateToChapters = async (course: Course) => {
     try {
       setChaptersLoading(true);
-      
+
       // Fetch chapters for this course
       const response = await fetch(`/api/courses/${course.id}/chapters`);
       if (response.ok) {
         const data = await response.json();
         const chapters = data.course.chapters;
-        
+
         // Check quiz pass status for all chapters
         let courseWithChapters = { ...course, chapters };
         const chapterIds = chapters.map((ch: Chapter) => ch.id);
@@ -271,22 +271,22 @@ export default function UserDashboard() {
             },
             body: JSON.stringify({ chapterIds })
           });
-          
+
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
             setQuizStatuses(statusData.statusMap);
-            
+
             // Add quiz status to each chapter
             const chaptersWithStatus = chapters.map((ch: Chapter) => ({
               ...ch,
               quizPassed: statusData.statusMap[ch.id]?.passed || false,
               quizScore: statusData.statusMap[ch.id]?.score
             }));
-            
+
             courseWithChapters = { ...course, chapters: chaptersWithStatus };
           }
         }
-        
+
         setNavigation(prev => ({
           level: 'chapters',
           selectedTopic: prev.selectedTopic,
@@ -526,7 +526,7 @@ export default function UserDashboard() {
                         <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                         <p className="text-xs text-gray-500">{user?.email}</p>
                       </div>
-                      
+
                       <button
                         onClick={() => { setShowUserMenu(false); router.push('/profile'); }}
                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -536,7 +536,7 @@ export default function UserDashboard() {
                       </button>
 
                       <div className="border-t border-gray-100">
-                        <button 
+                        <button
                           onClick={handleLogout}
                           className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
                         >
@@ -566,11 +566,10 @@ export default function UserDashboard() {
               {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />}
               <button
                 onClick={crumb.onClick}
-                className={`${
-                  index === navigation.breadcrumb.length - 1
+                className={`${index === navigation.breadcrumb.length - 1
                     ? 'text-gray-900 font-medium'
                     : 'text-blue-600 hover:text-blue-800'
-                } transition-colors`}
+                  } transition-colors`}
               >
                 {crumb.label}
               </button>
@@ -725,7 +724,7 @@ export default function UserDashboard() {
           </h2>
           <p className="text-gray-600">Select a subtopic to view available courses</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {navigation.selectedTopic.subtopics.map((subtopic, index) => (
             <motion.div
@@ -739,7 +738,7 @@ export default function UserDashboard() {
             >
               <h3 className="text-lg font-bold text-gray-900 mb-2">{subtopic.title}</h3>
               <p className="text-gray-600 mb-4 line-clamp-2">{subtopic.description}</p>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-gray-500">
                   <GraduationCap className="w-4 h-4 mr-1" />
@@ -771,7 +770,7 @@ export default function UserDashboard() {
           </h2>
           <p className="text-gray-600">Choose a course to start learning</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {navigation.selectedSubtopic.courses.map((course, index) => (
             <motion.div
@@ -784,25 +783,24 @@ export default function UserDashboard() {
               onClick={() => navigateToChapters(course)}
             >
               <div className="h-32 bg-gradient-to-br from-blue-400 to-blue-600" />
-              
+
               <div className="p-6">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-bold text-gray-900 flex-1 pr-2">{course.title}</h3>
                   {course.level && (
-                    <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-                      course.level === 'Beginner' 
+                    <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${course.level === 'Beginner'
                         ? 'bg-green-100 text-green-700'
                         : course.level === 'Intermediate'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
                       {course.level}
                     </span>
                   )}
                 </div>
-                
+
                 <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                
+
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   {course.duration && (
                     <div className="flex items-center">
@@ -815,7 +813,7 @@ export default function UserDashboard() {
                     <span>{course._count?.chapters || 0} Chapters</span>
                   </div>
                 </div>
-                
+
                 <button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
                   Start Course
                 </button>
@@ -912,14 +910,14 @@ export default function UserDashboard() {
                     </span>
                     <div className="flex items-center gap-2">
                       {/* Learn Button */}
-                      <button 
+                      <button
                         onClick={() => router.push(`/learn/${chapter.id}`)}
                         className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex items-center gap-1"
                       >
                         <BookOpen className="w-4 h-4" />
                         Learn
                       </button>
-                      
+
                       {/* Quiz Button - Show different states based on pass status */}
                       {chapter.quizPassed ? (
                         <div className="flex items-center gap-2">
@@ -929,7 +927,7 @@ export default function UserDashboard() {
                           </span>
                         </div>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => {
                             const token = localStorage.getItem('token');
                             const userData = localStorage.getItem('user');
@@ -989,9 +987,9 @@ export default function UserDashboard() {
             Back to Topics
           </button>
         )}
-        
+
         {renderBreadcrumb()}
-        
+
         <AnimatePresence mode="wait">
           <motion.div
             key={navigation.level}
@@ -1007,7 +1005,7 @@ export default function UserDashboard() {
           </motion.div>
         </AnimatePresence>
       </main>
-      
+
       {/* Topic Questions Modal removed - replaced by /topic/[id]/questions page */}
 
       {/* Package Management Modal */}
@@ -1031,8 +1029,8 @@ export default function UserDashboard() {
                 <div className="flex items-center gap-2">
                   <Package className="w-6 h-6 text-green-600" />
                   <h2 className="text-xl font-bold text-gray-900">
-                    {packageModalMode === 'list' ? 'Learning Packages' : 
-                     packageModalMode === 'add' ? 'Add New Package' : 'Edit Package'}
+                    {packageModalMode === 'list' ? 'Learning Packages' :
+                      packageModalMode === 'add' ? 'Add New Package' : 'Edit Package'}
                   </h2>
                 </div>
                 <button
@@ -1072,11 +1070,10 @@ export default function UserDashboard() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
                                   <h3 className="text-lg font-bold text-gray-900">{pkg.name}</h3>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
-                                    pkg.isActive 
+                                  <span className={`text-xs px-2 py-1 rounded-full ${pkg.isActive
                                       ? 'bg-green-100 text-green-700'
                                       : 'bg-red-100 text-red-700'
-                                  }`}>
+                                    }`}>
                                     {pkg.isActive ? 'Active' : 'Inactive'}
                                   </span>
                                 </div>

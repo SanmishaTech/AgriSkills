@@ -1,12 +1,28 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useMotionValueEvent, animate, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic, Headphones } from 'lucide-react';
+import { Home, Search, BookOpen, Play, Globe, Menu, Smile, ArrowRight, ArrowLeft, X, Heart, MessageCircle, Share, MoreVertical, Pause, RotateCcw, Mic, Headphones, ChevronLeft, ChevronRight, ChevronDown, SlidersHorizontal, ShoppingCart } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from 'next/image';
 import { LanguageIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import FullScreenDemoPlayer from '@/components/FullScreenDemoPlayer';
+import HomeNavbar from '@/components/HomeNavbar';
+// Topic accent gradients — cycling palette
+const TOPIC_COLORS = [
+  'from-emerald-500 to-teal-600',
+  'from-blue-500 to-indigo-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-purple-500 to-violet-600',
+  'from-cyan-500 to-sky-600',
+];
 // Type definitions
 interface Video {
   id: number;
@@ -87,6 +103,79 @@ export default function HomePage() {
   const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
+  const videosScrollRef = useRef<HTMLDivElement>(null);
+  const [activeVideoDot, setActiveVideoDot] = useState(0);
+  // Active topic tab — null means "All"
+  const [activeTopicTab, setActiveTopicTab] = useState<string | null>(null);
+
+  // Search Results & Filter state
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedRatings, setSelectedRatings] = useState<string>('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [showPrepCoursesOnly, setShowPrepCoursesOnly] = useState(false);
+  const [showHandsOn, setShowHandsOn] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<string>('relevant');
+
+  // State for YouTube shorts
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [videosLoading, setVideosLoading] = useState(true);
+
+  // Fetch YouTube shorts from the database
+  useEffect(() => {
+    const fetchYouTubeShorts = async () => {
+      try {
+        const response = await fetch('/api/public/youtube-shorts?limit=15');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.shorts)) {
+            setVideos(data.shorts);
+          } else {
+            console.warn('Invalid YouTube shorts data format:', data);
+            setVideos([]);
+          }
+        } else {
+          console.error('Failed to fetch YouTube shorts:', response.status);
+          setVideos([]);
+        }
+      } catch (error) {
+        console.error('Error fetching YouTube shorts:', error);
+        setVideos([]);
+      } finally {
+        setVideosLoading(false);
+      }
+    };
+
+    fetchYouTubeShorts();
+  }, []);
+
+  // --- Framer Motion Carousel State ---
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselWidth, setCarouselWidth] = useState(0);
+  const x = useMotionValue(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (carouselRef.current) {
+        setCarouselWidth(carouselRef.current.scrollWidth - carouselRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    // Use a small delay on load in case images load
+    setTimeout(updateWidth, 500);
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [videos]);
+
+  useMotionValueEvent(x, "change", (latestX) => {
+    if (carouselWidth > 0) {
+      const progress = Math.abs(latestX) / carouselWidth;
+      const dotIndex = Math.max(0, Math.min(2, Math.round(progress * 2)));
+      if (activeVideoDot !== dotIndex) {
+        setActiveVideoDot(dotIndex);
+      }
+    }
+  });
 
   const smoothScrollTo = (top: number) => {
     if (typeof window === 'undefined') return;
@@ -106,6 +195,43 @@ export default function HomePage() {
     };
 
     requestAnimationFrame(step);
+  };
+
+  const scrollVideos = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      // Find the first video card to calculate the exact width of "2 boxes"
+      const firstCard = carouselRef.current.querySelector('.group');
+      // Adding 16px to account for the gap-4 between cards
+      const cardPlusGap = firstCard ? firstCard.clientWidth + 16 : carouselRef.current.offsetWidth / 1.5;
+      const scrollAmount = cardPlusGap * 2;
+
+      let newX = direction === 'left' ? x.get() + scrollAmount : x.get() - scrollAmount;
+      // Clamp bounds
+      newX = Math.max(-carouselWidth, Math.min(0, newX));
+
+      animate(x, newX, {
+        type: "spring",
+        bounce: 0,
+        duration: 0.8
+      });
+    }
+  };
+
+  const scrollToVideoDot = (dotIndex: number) => {
+    if (carouselRef.current) {
+      const targetScroll = -(carouselWidth / 2) * dotIndex;
+      animate(x, targetScroll, {
+        type: "spring",
+        bounce: 0,
+        duration: 0.8
+      });
+    }
+  };
+
+  const handleDragEnd = (event: any, info: any) => {
+    // The x motion value is automatically updated by drag.
+    // The useMotionValueEvent hook updates the active dot.
+    // No manual state update needed here for x or activeVideoDot.
   };
 
   const circularMenuItems = [
@@ -169,38 +295,6 @@ export default function HomePage() {
   };
 
   // Video player state management
-
-  // State for YouTube shorts
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [videosLoading, setVideosLoading] = useState(true);
-
-  // Fetch YouTube shorts from the database
-  useEffect(() => {
-    const fetchYouTubeShorts = async () => {
-      try {
-        const response = await fetch('/api/public/youtube-shorts?limit=20');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && Array.isArray(data.shorts)) {
-            setVideos(data.shorts);
-          } else {
-            console.warn('Invalid YouTube shorts data format:', data);
-            setVideos([]);
-          }
-        } else {
-          console.error('Failed to fetch YouTube shorts:', response.status);
-          setVideos([]);
-        }
-      } catch (error) {
-        console.error('Error fetching YouTube shorts:', error);
-        setVideos([]);
-      } finally {
-        setVideosLoading(false);
-      }
-    };
-
-    fetchYouTubeShorts();
-  }, []);
 
   const VideoPlayer = ({ video }: { video: Video }) => {
     const [playerState, setPlayerState] = useState('paused');
@@ -457,508 +551,351 @@ export default function HomePage() {
     el.scrollBy({ left: direction === 'right' ? amount : -amount, behavior: 'smooth' });
   };
 
+  // Filtered topics based on search + active tab + sortOrder
+  const filteredTopics = topics.filter(t => {
+    const matchesSearch = !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab = !activeTopicTab || t.id === activeTopicTab;
+    return matchesSearch && matchesTab;
+  }).sort((a, b) => {
+    if (sortOrder === 'asc') return a.title.localeCompare(b.title);
+    if (sortOrder === 'desc') return b.title.localeCompare(a.title);
+    return 0; // 'relevant' defaults to no change
+  });
+
+  const renderTopicsGrid = () => {
+    return topicsLoading ? (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 animate-pulse">
+            <div className="h-40 bg-gray-200" />
+            <div className="p-4 space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-3 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : filteredTopics.length === 0 ? (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <BookOpen className="w-16 h-16 mb-4 opacity-30" />
+        <p className="text-lg font-medium text-gray-500">No topics found</p>
+        <p className="text-sm mt-1 text-gray-400">Try adjusting your filters or search term</p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredTopics.map((topic, index) => {
+          const gradientClass = TOPIC_COLORS[index % TOPIC_COLORS.length];
+          const totalCourses = topic.subtopics?.reduce((sum, st) => sum + (st._count?.courses || 0), 0) || 0;
+          return (
+            <motion.div
+              key={topic.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              whileHover={{ y: -4, transition: { duration: 0.15 } }}
+              onClick={() => openTopicDemo(topic.id)}
+              className="group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
+            >
+              {/* Thumbnail */}
+              <div className="relative h-40 overflow-hidden">
+                {topic.thumbnail ? (
+                  <img
+                    src={topic.thumbnail}
+                    alt={topic.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+                    <BookOpen className="w-10 h-10 text-white/80" />
+                  </div>
+                )}
+                {/* Popular badge on every 3rd item */}
+                {index % 3 === 1 && (
+                  <span className="absolute top-2 left-2 bg-yellow-400 text-gray-900 text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide">
+                    Popular
+                  </span>
+                )}
+              </div>
+
+              {/* Card body */}
+              <div className="p-4">
+                <h3 className="font-bold text-gray-900 text-sm md:text-base line-clamp-2 leading-snug mb-2 group-hover:text-green-600 transition-colors">
+                  {topic.title}
+                </h3>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {topic._count?.subtopics || 0} subtopics
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Play className="w-3.5 h-3.5" />
+                    {totalCourses} courses
+                  </span>
+                </div>
+                <button className="mt-3 w-full text-xs font-semibold text-green-600 border border-green-600 rounded-lg py-1.5 hover:bg-green-600 hover:text-white transition-colors">
+                  Explore →
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col w-full relative">
 
-      <header className="text-white py-2 px-3 md:py-4 md:px-6 lg:py-5 lg:px-8 flex items-center justify-between flex-shrink-0"
-        style={{
-          background: 'linear-gradient(to bottom, #008C45 50%, #00B68A 100%)'
+      {/* ── Udemy-style sticky white navbar ── */}
+      <HomeNavbar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isMobileSearchActive={isMobileSearchActive}
+        setIsMobileSearchActive={setIsMobileSearchActive}
+        onExploreClick={() => {
+          document.getElementById('topics-section')?.scrollIntoView({ behavior: 'smooth' });
         }}
-      >
-
-        <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
-          <h1 className="hidden md:block md:text-sm lg:text-base xl:text-lg 2xl:text-xl font-bold whitespace-nowrap">{process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}</h1>
-        </div>
-
-        {/* Navigation items for floating navbar on larger screens */}
-        <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-          <button
-            onClick={() => {
-              setActiveNav('home');
-              router.push('/');
-              if (typeof window !== 'undefined') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'home' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
-          >
-            <Home className="w-4 h-4" />
-            <span className="text-sm font-medium">Home</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveNav('search');
-              if (typeof window !== 'undefined') {
-                const el = document.getElementById('search');
-                if (el) {
-                  const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96);
-                  smoothScrollTo(top);
-                  return;
-                }
-              }
-              try {
-                sessionStorage.setItem('scrollToSearch', '1');
-              } catch {
-                // ignore
-              }
-              router.push('/');
-            }}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'search' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
-          >
-            <Search className="w-4 h-4" />
-            <span className="text-sm font-medium">Search</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveNav('learn');
-              if (isAuthenticated) {
-                router.push('/dashboard/user');
-              } else {
-                router.push('/learn');
-              }
-            }}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-md transition-colors ${activeNav === 'learn' ? 'text-yellow-200 bg-white/10' : 'text-white hover:text-yellow-200'}`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span className="text-sm font-medium">Learn</span>
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-2.5 xl:space-x-3 2xl:space-x-3.5">
-          {!authLoading && (
-            isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    const dashboardUrl = user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/user';
-                    router.push(dashboardUrl);
-                  }}
-                  className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
-                >
-                  DASHBOARD
-                </button>
-                <span className="text-white text-xs">|</span>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    setUser(null);
-                    setIsAuthenticated(false);
-                    router.push('/');
-                  }}
-                  className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
-                >
-                  LOGOUT
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => router.push('/login')}
-                className="text-[10px] md:text-xs lg:text-sm xl:text-base 2xl:text-lg font-bold tracking-wider whitespace-nowrap hover:text-yellow-200 transition-colors cursor-pointer"
-              >
-                LOGIN/ SIGN UP
-              </button>
-            )
-          )}
-
-          <div className="bg-yellow-200 rounded-md p-0.5 flex items-center border border-transparent">
-            <button
-              className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-l hover:bg-black/10 transition-colors"
-              title="Language Translator"
-              onClick={() => window.dispatchEvent(new Event('open-language-picker'))}
-            >
-              <LanguageIcon className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
-            </button>
-            <div className="w-px h-3 md:h-4 lg:h-4 bg-gray-500/50"></div>
-            <button
-              className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
-              title="Support Center"
-              onClick={() => router.push('/help')}
-            >
-              <Headphones className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
-            </button>
-            <div className="w-px h-3 md:h-4 lg:h-4 bg-gray-500/50"></div>
-            <button
-              className="bg-transparent text-black p-0.5 md:p-1 lg:p-1 rounded-r hover:bg-black/10 transition-colors"
-              title="Page Help"
-              onClick={() => setShowHelpDialog(true)}
-            >
-              <QuestionMarkCircleIcon className="h-3 w-3 md:h-4 md:w-4 lg:h-4 lg:w-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+      />
 
       <main className="flex-1">
 
+        {searchQuery.length > 0 ? (
+          /* ── Search Results UI ── */
+          <section className="bg-white min-h-[50vh]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-6">
+                {filteredTopics.length} results for &quot;{searchQuery}&quot;
+              </h1>
 
-        <motion.div
-          className="relative group cursor-pointer mx-4 md:mx-6 lg:mx-8 xl:mx-12 2xl:mx-16 mt-6 md:mt-8 lg:mt-6 h-60 md:h-72 lg:h-96 xl:h-[28rem] 2xl:h-[32rem] rounded-xl overflow-hidden shadow-lg bg-gray-900"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => router.push('/dashboard/user')}
-        >
-          <Image
-            src="/images/image1.png"
-            alt="Sustainable Farming Techniques"
-            layout="fill"
-            objectFit="cover"
-            className="group-hover:scale-110 transition-transform duration-500 ease-in-out"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
-          <div className="absolute inset-0 p-4 md:p-6 lg:p-8 xl:p-10 2xl:p-12 flex flex-col justify-end">
-            <h3 className="text-white text-lg md:text-xl lg:text-2xl xl:text-3xl 2xl:text-4xl font-bold">Master Sustainable Farming</h3>
-            <p className="text-gray-300 mt-1 md:mt-2 text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl">Unlock the secrets to a greener, more profitable harvest.</p>
-            <div className="flex items-center mt-3 md:mt-4 lg:mt-5 text-green-400 font-semibold text-xs md:text-sm lg:text-base xl:text-lg">
-              <span>Learn More</span>
-              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 ml-1 md:ml-2 transform group-hover:translate-x-1 transition-transform" />
+
+
+              <div className="mt-8">
+                {renderTopicsGrid()}
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </section>
+        ) : (
+          /* ── Default Hero & Exploring UI ── */
+          <>
+            {/* ── Udemy Style Hero Banner ── */}
+            <section className="relative w-full bg-white sm:pt-6">
+              <div className="max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 relative block h-[240px] sm:h-[380px] lg:h-[440px] sm:mb-8 lg:mb-12">
+                {/* Image Container */}
+                <div className="relative w-full h-full sm:mx-0">
+                  {/* Desktop Banner Image */}
+                  <Image
+                    src="/images/desktopview.jpg"
+                    alt="Farming Desktop"
+                    layout="fill"
+                    objectFit="cover"
+                    className="hidden sm:block object-top object-cover sm:rounded-lg lg:rounded-xl shadow-md"
+                    priority
+                  />
+                  {/* Mobile Banner Image */}
+                  <Image
+                    src="/images/Banner.jpeg"
+                    alt="Farming Mobile"
+                    layout="fill"
+                    objectFit="cover"
+                    className="block sm:hidden object-top object-cover shadow-md"
+                    priority
+                  />
+                </div>
+              </div>
+            </section>
 
-        <section className="mx-4 md:mx-6 lg:mx-8 xl:mx-12 2xl:mx-16 mt-4 md:mt-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 mb-2">About Us</h2>
-            <p className="text-gray-600 text-sm md:text-base leading-7 [text-wrap:pretty]">
-              Shop for Change Fair Trade exists to build a future where rural and tribal communities shape India’s economy through ownership, innovation, and cultural pride. We help farmers and producers move from the margins to the marketplace by strengthening direct market linkages, promoting agroforestry, delivering training in natural/regenerative farming and business skills, and enabling digital inclusion—including support to use mobile tools, e-commerce, and AI for better decisions. Women’s empowerment is central to our approach because women’s leadership uplifts entire families and communities.
-            </p>
+
+
+            {/* ── Skills / Videos Showcase Section ── */}
+            <section className="bg-gray-50 py-12 md:py-16 border-b border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start">
+                  {/* Left content */}
+                  <div className="lg:w-1/3 pt-4 flex flex-col justify-center font-serif">
+                    <h2 className="text-[32px] sm:text-4xl lg:text-[40px] font-bold text-[#2d2f31] leading-tight mb-4 tracking-tight">
+                      Learn Farming<br />Skills That<br />Change Lives
+                    </h2>
+                    <p className="text-base md:text-[17px] text-[#2d2f31] font-sans mb-6 leading-relaxed">
+                      Join thousands of farmers mastering modern techniques — from organic cultivation to dairy, poultry, and agri-tech.
+                    </p>
+                    <div>
+                      <button
+                        onClick={() => isAuthenticated ? router.push('/dashboard/user') : router.push('/learn')}
+                        className="flex justify-center flex-shrink-0 items-center bg-[#a435f0] hover:bg-[#8710d8] text-white font-bold px-6 h-12 text-[16px] transition-colors rounded-none w-full sm:w-max border border-transparent font-sans shadow-[0_2px_4px_rgba(0,0,0,0.08)]"
+                      >
+                        Start Learning
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right content - Scrollable Videos */}
+                  <div className="lg:w-2/3 w-full overflow-hidden">
+                    <div className="relative">
+                      <div ref={carouselRef} className="overflow-hidden">
+                        <motion.div
+                          className="flex gap-4 pb-6"
+                          drag="x"
+                          dragConstraints={{ right: 0, left: -carouselWidth }}
+                          dragElastic={0.15}
+                          onDragEnd={handleDragEnd}
+                          style={{ x }}
+                        >
+                          {videosLoading ? (
+                            <div className="flex items-center justify-center w-full py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mr-3"></div>
+                              <p className="text-gray-600">Loading videos...</p>
+                            </div>
+                          ) : videos.length === 0 ? (
+                            <div className="flex items-center justify-center w-full py-12 text-gray-500">
+                              <p>No videos available yet</p>
+                            </div>
+                          ) : (
+                            videos.map((video) => (
+                              <motion.div
+                                key={video.id}
+                                className="bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing group flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 relative"
+                                style={{ aspectRatio: '9/16', height: 'auto' }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => openShort(video)}
+                              >
+                                {/* YouTube Short Thumbnail - Vertical */}
+                                <div className="relative w-full h-full bg-black overflow-hidden pointer-events-none">
+                                  {/* Thumbnail Image */}
+                                  <img
+                                    src={video.thumbnailUrl}
+                                    alt={video.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
+                                    }}
+                                  />
+
+                                  {/* Play button overlay */}
+                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                                      <Play className="w-6 h-6 text-black fill-black ml-1" />
+                                    </div>
+                                  </div>
+
+                                  {/* Duration badge - YouTube Shorts style */}
+                                  <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded font-medium">
+                                    {video.duration}
+                                  </div>
+
+                                  {/* Shorts badge */}
+                                  <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
+                                    SHORTS
+                                  </div>
+
+                                  {/* Views count overlay */}
+                                  <div className="absolute bottom-3 left-3 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
+                                    {video.views}
+                                  </div>
+                                </div>
+
+                                {/* Video info overlay - positioned at bottom */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white pointer-events-none">
+                                  <h3 className="font-semibold text-white mb-1 text-sm line-clamp-2 leading-tight">
+                                    {video.title}
+                                  </h3>
+                                  <div className="flex items-center text-gray-200 text-xs mb-1">
+                                    <div className="w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                                      <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
+                                    </div>
+                                    <span className="truncate text-xs">{video.instructor}</span>
+                                  </div>
+                                  <div className="text-gray-300 text-xs">
+                                    <span>{video.timeAgo}</span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))
+                          )}
+                        </motion.div>
+                      </div>
+                      {/* Carousel Navigation (Udemy Style) */}
+                      <div className="flex items-center justify-center gap-4 mt-2">
+                        <button
+                          onClick={() => scrollVideos('left')}
+                          className="w-8 h-8 rounded-full border border-[#2d2f31] flex items-center justify-center text-[#2d2f31] hover:bg-gray-100 transition-colors"
+                        >
+                          <ChevronLeft className="w-5 h-5" strokeWidth={1.5} />
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {[0, 1, 2].map((dot) => (
+                            <button
+                              key={dot}
+                              onClick={() => scrollToVideoDot(dot)}
+                              className={`rounded-full transition-all duration-300 ${activeVideoDot === dot
+                                ? "w-4 h-1.5 bg-[#a435f0]"
+                                : "w-1.5 h-1.5 bg-gray-300 hover:bg-gray-400"
+                                }`}
+                              aria-label={`Go to slide ${dot + 1}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => scrollVideos('right')}
+                          className="w-8 h-8 rounded-full border border-[#2d2f31] flex items-center justify-center text-[#2d2f31] hover:bg-gray-100 transition-colors"
+                        >
+                          <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ── 4-column topic card grid ── */}
+            <section id="topics-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <div className="flex items-baseline justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-[#2d2f31]">
+                    {activeTopicTab
+                      ? topics.find(t => t.id === activeTopicTab)?.title || 'Topics'
+                      : searchQuery ? `Results for "${searchQuery}"` : 'What would you like to learn?'}
+                  </h2>
+                  <p className="text-base text-[#6a6f73] mt-2">
+                    {filteredTopics.length} {filteredTopics.length === 1 ? 'topic' : 'topics'} available
+                  </p>
+                </div>
+              </div>
+
+              {renderTopicsGrid()}
+            </section>
+          </>
+        )}
+
+        {/* ── About Us and Certificates ── */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+            {/* About Us */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 flex-1">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 mb-4">About Us</h2>
+              <p className="text-gray-600 text-sm md:text-base leading-relaxed">
+                Shop for Change Fair Trade exists to build a future where rural and tribal communities shape India&apos;s economy through ownership, innovation, and cultural pride. We help farmers and producers move from the margins to the marketplace by strengthening direct market linkages, promoting agroforestry, delivering training in natural/regenerative farming and business skills, and enabling digital inclusion—including support to use mobile tools, e-commerce, and AI for better decisions. Women&apos;s empowerment is central to our approach because women&apos;s leadership uplifts entire families and communities.
+              </p>
+            </div>
+
+            {/* Certificates Section */}
+            <div className="lg:w-[400px] shrink-0 flex items-center justify-center overflow-hidden">
+              <Image
+                src="/images/certificate.png"
+                alt="Get Certified"
+                width={400}
+                height={300}
+                className="rounded-xl shadow-sm object-cover w-full h-full max-h-[300px] hover:shadow-md transition-shadow"
+              />
+            </div>
           </div>
         </section>
 
-        <div className="px-4 md:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-24">
-          <div className="flex justify-between items-center mt-3 mb-4 md:mb-5 lg:mb-6 xl:mb-8">
-            <h2 className="text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-semibold">Videos</h2>
-            {/* <button className="text-green-600 text-xs md:text-sm lg:text-base xl:text-lg font-medium hover:text-green-700 transition-colors">View More</button> */}
-          </div>
-
-          {/* Horizontal scroll for all screen sizes */}
-          <div className="flex overflow-x-auto gap-3 sm:gap-4 lg:gap-6 px-1 pb-2 scrollbar-hide snap-x snap-mandatory">
-            {videosLoading ? (
-              <div className="flex items-center justify-center w-full py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mr-3"></div>
-                <p className="text-gray-600">Loading videos...</p>
-              </div>
-            ) : videos.length === 0 ? (
-              <div className="flex items-center justify-center w-full py-12 text-gray-500">
-                <p>No videos available yet</p>
-              </div>
-            ) : (
-              videos.map((video) => (
-                <motion.div
-                  key={video.id}
-                  className="bg-black rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 snap-start relative"
-                  style={{ aspectRatio: '9/16', height: 'auto' }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => openShort(video)}
-                >
-                  {/* YouTube Short Thumbnail - Vertical */}
-                  <div className="relative w-full h-full bg-black overflow-hidden">
-                    {/* Thumbnail Image */}
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
-                      }}
-                    />
-
-                    {/* Play button overlay */}
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="bg-white/90 rounded-full p-3 shadow-lg">
-                        <Play className="w-6 h-6 text-black fill-black ml-1" />
-                      </div>
-                    </div>
-
-                    {/* Duration badge - YouTube Shorts style */}
-                    <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded font-medium">
-                      {video.duration}
-                    </div>
-
-                    {/* Shorts badge */}
-                    <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
-                      SHORTS
-                    </div>
-
-                    {/* Views count overlay */}
-                    <div className="absolute bottom-3 left-3 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
-                      {video.views}
-                    </div>
-                  </div>
-
-                  {/* Video info overlay - positioned at bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white">
-                    <h3 className="font-semibold text-white mb-1 text-sm line-clamp-2 leading-tight">
-                      {video.title}
-                    </h3>
-                    <div className="flex items-center text-gray-200 text-xs mb-1">
-                      <div className="w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
-                        <span className="text-xs font-medium">{video.instructor.charAt(0)}</span>
-                      </div>
-                      <span className="truncate text-xs">{video.instructor}</span>
-                    </div>
-                    <div className="text-gray-300 text-xs">
-                      <span>{video.timeAgo}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-
-          {/* See By Section */}
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">See By</h3>
-              <button
-                type="button"
-                onClick={() => scrollSeeBy('right')}
-                aria-label="Scroll topics right"
-                title="Scroll"
-                className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200 text-gray-700"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Topics Grid */}
-            <div ref={seeByScrollRef} className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
-              {topicsLoading ? (
-                <div className="flex items-center justify-center w-full py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
-                </div>
-              ) : topics.length === 0 ? (
-                <div className="flex items-center justify-center w-full py-8 text-gray-500">
-                  <p>No topics available yet</p>
-                </div>
-              ) : (
-                topics.map((topic, index) => (
-                  <div
-                    key={topic.id}
-                    className="bg-white rounded-xl overflow-hidden min-w-[78px] cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => openTopicDemo(topic.id)}
-                  >
-                    {/* Topic Thumbnail */}
-                    {topic.thumbnail ? (
-                      <div className="relative h-[54px] w-full">
-                        <Image
-                          src={topic.thumbnail}
-                          alt={topic.title}
-                          layout="fill"
-                          objectFit="cover"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className={`${getTopicColor(index)} h-[54px] w-full flex items-center justify-center`}>
-                        <div className="text-2xl">{getTopicIcon(index)}</div>
-                      </div>
-                    )}
-                    {/* Topic Title */}
-                    <div className="p-1.5">
-                      <h4 className="text-[10px] font-medium text-gray-700 text-center">{topic.title}</h4>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Search Section */}
-          <div className="mt-8 scroll-mt-24" id="search">
-            <div className="relative">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search Topic"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-700 placeholder-gray-500"
-                />
-                {/* Settings/Filter Icon */}
-                <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Random Topics or Search Results */}
-            <div className="mt-6">
-              {searchQuery ? (
-                // Show search results in card format with images and details
-                topics
-                  .filter(topic =>
-                    topic.title.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .length > 0 ? (
-                  <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                      {topics
-                        .filter(topic =>
-                          topic.title.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
-                        .map((topic, index) => (
-                          <div
-                            key={topic.id}
-                            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => openTopicDemo(topic.id)}
-                          >
-                            {/* Topic Image */}
-                            {topic.thumbnail ? (
-                              <div className="relative h-40 md:h-48 w-full">
-                                <Image
-                                  src={topic.thumbnail}
-                                  alt={topic.title}
-                                  layout="fill"
-                                  objectFit="cover"
-                                  className="object-cover"
-                                />
-                                {index % 3 === 1 && (
-                                  <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                    BEST
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="relative h-40 md:h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                                <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                                {index % 3 === 1 && (
-                                  <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                    BEST
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Topic Content */}
-                            <div className="p-3">
-                              <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
-
-                              {/* Subtopic Info */}
-                              <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
-                                <div className="flex items-center gap-1">
-                                  <div className="w-3 h-3 bg-orange-100 rounded-full flex items-center justify-center">
-                                    <BookOpen className="w-2 h-2 text-orange-600" />
-                                  </div>
-                                  <span>{topic._count?.subtopics || 0} Subtopics</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <Play className="w-2 h-2 text-blue-600" />
-                                  </div>
-                                  <span>{topic.subtopics?.reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0) || 0} Courses</span>
-                                </div>
-                              </div>
-
-                              {/* View More Button */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/topic/${topic.id}`);
-                                }}
-                                className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors"
-                              >
-                                View More
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                ) : (
-                  // Show "No results" message when search yields no results
-                  <div className="flex items-center justify-center w-full py-8 text-gray-500">
-                    <p>No topics found matching "{searchQuery}"</p>
-                  </div>
-                )
-              ) : (
-                // Show 6 random topics in card format when no search query
-                topics.length > 0 ? (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    {topics
-                      .sort(() => Math.random() - 0.5) // Shuffle the array
-                      .slice(0, 6) // Take first 6 items
-                      .map((topic, index) => (
-                        <div
-                          key={topic.id}
-                          className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={() => openTopicDemo(topic.id)}
-                        >
-                          {/* Topic Image */}
-                          {topic.thumbnail ? (
-                            <div className="relative h-40 md:h-48 w-full">
-                              <Image
-                                src={topic.thumbnail}
-                                alt={topic.title}
-                                layout="fill"
-                                objectFit="cover"
-                                className="object-cover"
-                              />
-                              {index % 3 === 1 && (
-                                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  BEST
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="relative h-40 md:h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                              <div className="text-white text-2xl">{getTopicIcon(index)}</div>
-                              {index % 3 === 1 && (
-                                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                  BEST
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Topic Content */}
-                          <div className="p-3">
-                            <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-1">{topic.title}</h4>
-
-                            {/* Subtopic Info */}
-                            <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-orange-100 rounded-full flex items-center justify-center">
-                                  <BookOpen className="w-2 h-2 text-orange-600" />
-                                </div>
-                                <span>{topic._count?.subtopics || 0} Subtopics</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
-                                  <Play className="w-2 h-2 text-blue-600" />
-                                </div>
-                                <span>{topic.subtopics?.reduce((total, subtopic) => total + (subtopic._count?.courses || 0), 0) || 0} Courses</span>
-                              </div>
-                            </div>
-
-                            {/* View More Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/topic/${topic.id}`);
-                              }}
-                              className="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-4 rounded-lg transition-colors"
-                            >
-                              View More
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </div>
-                ) : null
-              )}
-            </div>
-          </div>
-
-
+        <div className="pb-24">
           {/* Success Stories Section */}
-          <div className="mt-8">
+          <div className="mt-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">Success Stories</h3>
               <button
@@ -974,93 +911,33 @@ export default function HomePage() {
               {[
                 {
                   id: 1,
-                  title: "Rekha trained 12 women in tailoring",
-                  description: "Rekha started a small training center in her village after completing our tailoring course.",
-                  emoji: "✂️",
-                  category: "Tailoring",
-                  impact: "12 women trained",
-                  fullStory: "Rekha Sharma, a 34-year-old mother of two from Rajasthan, transformed her life through our tailoring skills program. Starting with basic stitching knowledge, she mastered advanced tailoring techniques through our comprehensive course. Within six months, she established a small training center in her village, providing employment opportunities for local women. Today, she has trained over 12 women who are now earning independently, creating a ripple effect of empowerment in her community. Her center has become a hub for women's skill development, and she plans to expand to neighboring villages."
+                  title: "Transforming Smallholder Farming with Sustainable Farming",
+                  description: "Narayan Bhau Bhoye from Gorthan Village, Palghar District implemented the No-Till/Regenerative Technique (SRT) to transform his smallholder farm.",
+                  image: "/images/successstories/successstories-1.jpg",
+                  category: "Sustainable Farming",
+                  impact: "₹7,850 Net Gain",
+                  emoji: "🌱",
+                  fullStory: "Practices Farmer Mr. Narayan Bhau Bhoye, Gorthan Village, Palghar District\nA Real Life Case Study by Shop For Change Fair Trade NGO\n\n**Background:**\nShop for Change Fair Trade, with funding support from GeBBS Healthcare, launched a capacity-building project to promote sustainable agricultural practices among tribal farmers in Jawhar. A two-day focused training session was conducted for over 70 tribal farmers, ensuring equal participation from men and women. The training for male farmers was held in January 2025, following which one of the farmers immediately adopted the No-Till/Regenerative Technique (SRT) on his farm.\n\nNarayan Bhau Bhoye, a smallholder farmer from Gorthan village in Palghar district, is a notable example of success from this intervention. Known for his experimental nature, Narayan decided to initially apply SRT on a small portion of his land—2.5 gunthas—to assess the results before scaling up. Based on the outcomes from this trial, he plans to implement SRT across a larger area during the upcoming monsoon season.\n\n**SRT Application Details:**\n• Crop Selection: 1 Guntha Groundnut, 1 Guntha Wal (Indian Bean), 0.5 Guntha Chickpea\n• Date of Sowing: January 23, 2025\n• Expected Harvest Date: May 10, 2025\n\n**Benefits Experienced:**\n• Reduced Labor Requirement: Decreased from 10-15 workers (traditional farming) to 4-5 workers under SRT.\n• Cost Savings: Labor savings amounted to approximately ₹3,200.\n• Enhanced Crop Growth: Crop height increased from 2-3 feet (traditional) to over 3 feet with SRT.\n\n**Projected Economic Impact Summary:**\n• Income with Traditional Methods: ₹6,875\n• Projected Income with SRT: ₹11,525\n• Net Increase in Income: ₹4,650\n• Total Net Gain (Income Increase + Labor Savings): ₹7,850"
                 },
                 {
                   id: 2,
-                  title: "Raju started organic farming in his village",
-                  description: "After learning organic farming techniques, Raju converted his 5-acre farm to profitable organic cultivation.",
-                  emoji: "🌱",
-                  category: "Organic Farming",
-                  impact: "5-acre farm converted",
-                  fullStory: "Raju Kumar's journey from conventional to organic farming began when he enrolled in our sustainable agriculture program. Initially skeptical about organic methods, he gradually learned about soil health, natural pest control, and sustainable water management. The transformation of his 5-acre farm took two years, but the results were remarkable. His organic vegetables and grains now fetch premium prices in local markets. He has reduced his input costs by 60% and increased his profit margins by 40%. Raju now mentors other farmers in his district, helping them transition to organic farming practices."
+                  title: "Ecovibe Krushi Producer Company – A Women-Led Model of Rural Enterprise",
+                  description: "In the tribal belt of Palghar, Maharashtra, women farmers have long faced systemic barriers to income security and market access.",
+                  image: "/images/successstories/successstories-2.jpg",
+                  category: "Rural Enterprise",
+                  impact: "500+ Farmers Mobilized",
+                  emoji: "👩‍🌾",
+                  fullStory: "**Background**\nIn the tribal belt of Palghar, Maharashtra, women farmers have long faced systemic barriers to income security, access to markets, and leadership opportunities. Recognizing the need for structural change, Shop for Change Fair Trade initiated the formation of a women-centric Farmer Producer Organization (FPO) to create long-term, market-driven empowerment.\n\n**The Intervention**\nIn February 2025, Ecovibe Krushi Producer Company Ltd. was officially registered. Designed to be a community-owned and women-led FPO, it focuses on building collective bargaining power, strengthening agricultural value chains, and enabling direct access to markets.\n\n**Projected Key Highlights**\n• 500+ tribal farmers to be mobilized, with majority women shareholders\n• Capacity-building workshops on FPO management, bookkeeping, agri-finance, and government schemes\n• Collective procurement of inputs (seeds, bio-fertilizers, equipment) to reduce costs by 15–20%\n• Development of value-added products such as turmeric powder, millet mixes, and forest produce\n\n**Expected Outcomes**\n• 30–50% increase in net incomes through improved input access and collective marketing\n• Enhanced women's leadership in agri-business and governance structures\n• Strengthened resilience against climate and market shocks through diversified income streams\n• A replicable model for scaling women-led FPOs in other tribal regions across India\n\n**Why This Matters**\nEcovibe Krushi Producer Company is envisioned as a blueprint for inclusive rural development, where tribal women shift from the margins to the mainstream of agricultural enterprise. Through market linkage, skill-building, and collective ownership, Ecovibe aims to redefine what rural self-reliance looks like."
                 },
                 {
                   id: 3,
-                  title: "Meera's dairy business flourishes",
-                  description: "Meera expanded her dairy from 2 cows to 15 cows, increasing her monthly income by 400%.",
-                  emoji: "🥛",
-                  category: "Dairy Farming",
-                  impact: "400% income increase",
-                  fullStory: "Meera Patel started with just two local cows and a dream to become financially independent. Through our dairy management program, she learned about cattle nutrition, breeding techniques, and modern milking practices. She implemented scientific feeding schedules and proper healthcare for her cattle. Over 18 months, she gradually expanded her herd to 15 high-yielding crossbred cows. Her daily milk production increased from 20 liters to 180 liters. She now supplies milk to a local cooperative and has started producing paneer and ghee. Her monthly income has grown from ₹8,000 to ₹40,000, making her one of the most successful dairy entrepreneurs in her district."
-                },
-                {
-                  id: 4,
-                  title: "Suresh's poultry farm success",
-                  description: "Starting with 50 chickens, Suresh now manages 1000+ birds and supplies to local markets.",
-                  emoji: "🐔",
-                  category: "Poultry Farming",
-                  impact: "1000+ birds managed",
-                  fullStory: "Suresh Reddy's poultry venture began as a small backyard operation with 50 country chickens. After joining our poultry management course, he learned about modern housing systems, vaccination schedules, and feed management. He gradually upgraded his facilities and introduced improved breeds. His systematic approach to poultry farming, including proper biosecurity measures and record-keeping, helped him scale operations rapidly. Today, his farm houses over 1000 birds across different batches. He supplies eggs and meat to local markets, restaurants, and wholesalers. His monthly turnover has crossed ₹1.5 lakhs, and he employs three local youth in his operations."
-                },
-                {
-                  id: 5,
-                  title: "Priya's vegetable garden transformation",
-                  description: "Priya transformed her backyard into a profitable vegetable garden earning ₹8000 monthly.",
-                  emoji: "🥬",
-                  category: "Kitchen Gardening",
-                  impact: "₹8000 monthly income",
-                  fullStory: "Priya Singh utilized her small backyard space to create a thriving kitchen garden after completing our urban farming course. She learned about vertical gardening, container farming, and seasonal crop planning. Using innovative techniques like grow bags, trellises, and drip irrigation, she maximized her limited space. She grows a variety of vegetables including tomatoes, peppers, leafy greens, and herbs. Her produce is pesticide-free and freshly harvested, which attracts customers willing to pay premium prices. She sells directly to neighbors, local restaurants, and through online platforms. What started as a hobby has become a sustainable business earning her ₹8,000 monthly while providing fresh, healthy food for her family."
-                },
-                {
-                  id: 6,
-                  title: "Ramesh's bee-keeping venture",
-                  description: "Ramesh started with 5 hives and now harvests 200kg of honey annually.",
-                  emoji: "🐝",
-                  category: "Bee Keeping",
-                  impact: "200kg honey annually",
-                  fullStory: "Ramesh Kumar's apiary journey began with our beekeeping fundamentals course. Initially apprehensive about handling bees, he gained confidence through hands-on training and mentorship. He started with 5 traditional hives in his mango orchard. Learning about bee behavior, hive management, and honey extraction techniques, he gradually modernized his approach. He introduced improved hive designs and scientific management practices. His bee colonies thrived, and he expanded to 25 hives across different locations. He now harvests 200kg of pure honey annually, which he sells under his own brand. Additionally, he produces beeswax and offers pollination services to fruit growers. His success has inspired 10 other farmers in his area to start beekeeping."
-                },
-                {
-                  id: 7,
-                  title: "Sunita's mushroom cultivation",
-                  description: "Sunita's mushroom farm produces 50kg daily, supplying to restaurants and hotels.",
-                  emoji: "🍄",
-                  category: "Mushroom Farming",
-                  impact: "50kg daily production",
-                  fullStory: "Sunita Devi entered mushroom cultivation through our specialized training program on oyster mushroom production. She converted a small room in her house into a controlled environment for mushroom growing. Learning about substrate preparation, spawning, and environmental control, she achieved consistent production cycles. Her quality mushrooms gained recognition among local restaurants and hotels for their freshness and taste. She now operates multiple growing chambers and produces 50kg of mushrooms daily. Her product range includes oyster, shiitake, and button mushrooms. She has trained her two daughters in the business, making it a family enterprise. Her annual turnover exceeds ₹10 lakhs, and she has become a model entrepreneur in her district."
-                },
-                {
-                  id: 8,
-                  title: "Vikram's fish farming success",
-                  description: "Vikram converted his 2-acre pond into a thriving fish farm with multiple species.",
-                  emoji: "🐟",
-                  category: "Fish Farming",
-                  impact: "2-acre fish farm",
-                  fullStory: "Vikram Yadav transformed his ancestral pond into a modern aquaculture facility through our fish farming program. He learned about pond preparation, water quality management, and integrated fish farming systems. Initially focusing on common carp and rohu, he gradually diversified to include catla, grass carp, and silver carp in a polyculture system. His scientific approach to feeding, aeration, and disease management resulted in excellent fish growth rates. He harvests 4 tonnes of fish every 8 months from his 2-acre pond. His fish are supplied to local markets, restaurants, and wholesalers across three districts. He has also started fish seed production, selling fingerlings to other fish farmers. His success has motivated many farmers to convert their unused ponds into productive aquaculture systems."
-                },
-                {
-                  id: 9,
-                  title: "Kavita's spice processing unit",
-                  description: "Kavita processes and packages spices, supplying to 20+ retail stores in her district.",
+                  title: "Babu Waghera – From Marginal Farmer to Export-Grade Chilli Producer",
+                  description: "Babu Waghera, a tribal farmer from Jawhar Taluka in Maharashtra, once relied on irregular daily wage work and low-yield farming for survival.",
+                  image: "/images/successstories/successstories-3.jpg",
+                  category: "Export Farming",
+                  impact: "₹1.5 lakh+ Earned",
                   emoji: "🌶️",
-                  category: "Food Processing",
-                  impact: "20+ stores supplied",
-                  fullStory: "Kavita Sharma established her spice processing unit after completing our food processing and entrepreneurship program. She started by processing turmeric and chili powder using traditional methods, then gradually invested in modern grinding and packaging equipment. Her focus on quality control, hygienic processing, and attractive packaging helped her build a loyal customer base. She sources raw materials directly from farmers, ensuring quality and fair prices. Her product range now includes 15 different spices and spice blends. She supplies to over 20 retail stores across her district and has started online sales. Her branded spices have gained recognition for their purity and authentic taste. She employs 8 women from her village, providing them with steady income and skill development opportunities."
-                },
-                {
-                  id: 10,
-                  title: "Ankit's hydroponic farming",
-                  description: "Ankit's soilless farming setup produces fresh vegetables year-round in controlled environment.",
-                  emoji: "💧",
-                  category: "Hydroponic Farming",
-                  impact: "Year-round production",
-                  fullStory: "Ankit Verma pioneered hydroponic farming in his region after attending our advanced agricultural technology program. Initially investing in a small NFT (Nutrient Film Technique) system, he learned about nutrient solutions, pH management, and climate control. His soilless cultivation method allows year-round production of high-quality vegetables in controlled conditions. He specializes in growing lettuce, spinach, herbs, and cherry tomatoes. His produce is pesticide-free and has superior taste and nutritional value. He supplies to premium restaurants, health-conscious consumers, and organic stores in nearby cities. His 1000 sq ft hydroponic setup generates monthly revenue of ₹50,000. He has become a consultant for other farmers interested in adopting hydroponic technology and has trained over 50 farmers in the past year."
+                  fullStory: "**Background**\nBabu Waghera, a tribal farmer from Jawhar Taluka in Maharashtra, once relied on irregular daily wage work and low-yield farming for survival. With minimal access to knowledge or infrastructure, his annual income was limited to around ₹20,000–₹25,000—barely enough to support his family.\n\n**The Turning Point**\nIn 2019, Babu joined a Shop for Change Fair Trade initiative aimed at linking tribal chilli farmers to premium global markets. With technical support, quality inputs, and training, he was selected as one of the farmers to cultivate export-grade green chillies.\n\n**Key Milestone**\nIn 2019–20, Babu's chillies were part of the first-ever tribal farmer export batch to London, supported by JSW Foundation and facilitated by Del Monte as the export partner. This marked a breakthrough in tribal farmer market access and profitability.\n\n**Impact and Achievements**\n• Cultivated high-grade green chillies that met export standards\n• Received post-harvest training in sorting, grading, and packaging\n• Earned over ₹1.5 lakh in a single season—a sixfold increase in his typical annual income\n• Emerged as a community role model, encouraging fellow farmers to shift from low-value crops to high-return, market-linked farming\n\n**Why It Matters**\nBabu Waghera's journey—from a struggling daily wage worker to an international exporter—is a powerful example of what is possible when grassroots talent meets global opportunity. His story reflects the core mission of Shop for Change: empowering farmers through dignified trade, not aid."
                 }
               ].map((story, index) => (
                 <motion.div
@@ -1070,16 +947,26 @@ export default function HomePage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => router.push('/success-stories')}
                 >
-                  <div className="relative h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-5xl">
-                    <span>{story.emoji}</span>
+                  <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {/* @ts-ignore */}
+                    {story.image ? (
+                      /* @ts-ignore */
+                      <Image src={story.image} alt={story.title} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      /* @ts-ignore */
+                      <span className="text-5xl relative z-10">{story.emoji}</span>
+                    )}
+
+                    {/* Gradient Overlay for better badge visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent z-0 pointer-events-none" />
 
                     {/* Category Badge */}
-                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-xs px-3 py-1 rounded-full font-semibold">
+                    <div className="absolute top-3 left-3 bg-white/95 text-gray-800 text-xs px-3 py-1 rounded-full font-semibold shadow-sm z-10">
                       {story.category}
                     </div>
 
                     {/* Impact Badge */}
-                    <div className="absolute top-3 right-3 bg-green-500/90 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold">
+                    <div className="absolute top-3 right-3 bg-green-600/95 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-sm z-10">
                       {story.impact}
                     </div>
                   </div>
@@ -1125,8 +1012,18 @@ export default function HomePage() {
                 className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="relative h-32 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-4xl">
-                  <span>{selectedSuccessStory.emoji}</span>
+                <div className="relative h-48 sm:h-56 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-5xl overflow-hidden">
+                  {/* @ts-ignore */}
+                  {selectedSuccessStory.image ? (
+                    <>
+                      {/* @ts-ignore */}
+                      <Image src={selectedSuccessStory.image} alt={selectedSuccessStory.title} layout="fill" objectFit="cover" />
+                      <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />
+                    </>
+                  ) : (
+                    <span className="relative z-10">{selectedSuccessStory.emoji}</span>
+                  )}
+
                   <button
                     onClick={() => setSelectedSuccessStory(null)}
                     className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
@@ -1149,7 +1046,11 @@ export default function HomePage() {
 
                   <div className="prose prose-gray max-w-none">
                     <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                      {selectedSuccessStory.fullStory}
+                      {selectedSuccessStory.fullStory.split(/(\*\*.*?\*\*)/).map((part, i) =>
+                        part.startsWith('**') && part.endsWith('**') ?
+                          <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong> :
+                          part
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1157,179 +1058,172 @@ export default function HomePage() {
             </motion.div>
           )}
 
-          {/* Certificates Section */}
-          <div className="mt-3">
-            {/* Single Certificate Image */}
-            <div className="flex justify-center">
-              <Image
-                src="/images/certificate.png"
-                alt="Certificate"
-                width={400}
-                height={300}
-                className="rounded-lg shadow-lg opacity-90 w-full max-w-md lg:max-w-none lg:w-3/5"
-              />
-            </div>
-          </div>
         </div>
       </main>
 
 
 
       {/* Fullscreen Demo Player */}
-      {showDemoPlayer && selectedTopicId && (
-        <FullScreenDemoPlayer
-          demoUrls={demoUrls}
-          demoTitles={demoTitles}
-          onClose={closeDemo}
-          topicId={selectedTopicId}
-        />
-      )}
+      {
+        showDemoPlayer && selectedTopicId && (
+          <FullScreenDemoPlayer
+            demoUrls={demoUrls}
+            demoTitles={demoTitles}
+            onClose={closeDemo}
+            topicId={selectedTopicId}
+          />
+        )
+      }
 
       {/* YouTube Shorts Modal */}
-      {selectedShort && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black z-50 flex items-center justify-center"
-          onClick={closeShort}
-        >
-          <div className="relative w-full h-full max-w-sm mx-auto bg-black" onClick={(e) => e.stopPropagation()}>
-            {/* Close button - Fixed touch target */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeShort();
-              }}
-              className="absolute top-4 left-4 bg-black/60 active:bg-black/80 text-white rounded-full transition-colors"
-              style={{
-                padding: '0px',
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                zIndex: 30
-              }}
-            >
-              <X className="w-8 h-8 pointer-events-none" />
-            </button>
-
-            {/* Video player */}
-            <div className="relative w-full h-full">
-              <iframe
-                src={`https://www.youtube.com/embed/${selectedShort.youtubeId}?autoplay=1&controls=1&modestbranding=1&rel=0`}
-                title={selectedShort.title}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-
-              {/* Next Video Button - Positioned on the right side */}
+      {
+        selectedShort && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+            onClick={closeShort}
+          >
+            <div className="relative w-full h-full max-w-sm mx-auto bg-black" onClick={(e) => e.stopPropagation()}>
+              {/* Close button - Fixed touch target */}
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  playNextVideo(selectedShort.id);
+                  closeShort();
                 }}
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/60 active:bg-black/80 text-white rounded-full p-3 transition-all duration-200 transform active:scale-95 hover:bg-black/70"
+                className="absolute top-4 left-4 bg-black/60 active:bg-black/80 text-white rounded-full transition-colors"
                 style={{
+                  padding: '0px',
                   WebkitTapHighlightColor: 'transparent',
                   touchAction: 'manipulation',
                   userSelect: 'none',
-                  zIndex: 20
+                  zIndex: 30
                 }}
-                title="Next Video"
               >
-                <ArrowRight className="w-6 h-6 pointer-events-none" />
+                <X className="w-8 h-8 pointer-events-none" />
               </button>
 
-              {/* Bottom info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                <div className="flex items-center mb-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-sm font-medium text-gray-700">{selectedShort.instructor.charAt(0)}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-sm">{selectedShort.instructor}</p>
-                    <p className="text-gray-300 text-xs">{selectedShort.views} views · {selectedShort.timeAgo}</p>
-                  </div>
+              {/* Video player */}
+              <div className="relative w-full h-full">
+                <iframe
+                  src={`https://www.youtube.com/embed/${selectedShort.youtubeId}?autoplay=1&controls=1&modestbranding=1&rel=0`}
+                  title={selectedShort.title}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
 
-                </div>
-                {/* <h3 className="text-white font-semibold text-sm mb-2 leading-tight">
+                {/* Next Video Button - Positioned on the right side */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    playNextVideo(selectedShort.id);
+                  }}
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/60 active:bg-black/80 text-white rounded-full p-3 transition-all duration-200 transform active:scale-95 hover:bg-black/70"
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    userSelect: 'none',
+                    zIndex: 20
+                  }}
+                  title="Next Video"
+                >
+                  <ArrowRight className="w-6 h-6 pointer-events-none" />
+                </button>
+
+                {/* Bottom info overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                  <div className="flex items-center mb-3">
+                    <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-gray-700">{selectedShort.instructor.charAt(0)}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">{selectedShort.instructor}</p>
+                      <p className="text-gray-300 text-xs">{selectedShort.views} views · {selectedShort.timeAgo}</p>
+                    </div>
+
+                  </div>
+                  {/* <h3 className="text-white font-semibold text-sm mb-2 leading-tight">
                   {selectedShort.title}
                 </h3> */}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Help Dialog */}
-      {showHelpDialog && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowHelpDialog(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">About This Page</h2>
-                <button
-                  onClick={() => setShowHelpDialog(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-gray-700">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">What is this page?</h3>
-                  <p className="text-sm leading-relaxed">
-                    This is the Gram Kushal homepage - your gateway to agricultural learning. Here you can explore topics, watch educational videos, and discover success stories from farmers who have transformed their lives through our training programs.
-                  </p>
                 </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">How to use this page</h3>
-                  <ul className="text-sm space-y-2 list-disc list-inside">
-                    <li><strong>Search Topics:</strong> Use the search bar to find specific agricultural topics you want to learn about.</li>
-                    <li><strong>Watch Videos:</strong> Scroll through the Videos section to watch short educational clips.</li>
-                    <li><strong>Explore Topics:</strong> Click on any topic card to view subtopics and courses.</li>
-                    <li><strong>Learn More:</strong> Click "View More" on any topic to access detailed courses and lessons.</li>
-                    <li><strong>Success Stories:</strong> Read inspiring stories of farmers who succeeded with our programs.</li>
-                  </ul>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Need more help? Contact our support team or visit your dashboard to start learning.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowHelpDialog(false)}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Got it!
-                </button>
               </div>
             </div>
           </motion.div>
-        </motion.div>
-      )}
-    </div>
+        )
+      }
+
+      {/* Help Dialog */}
+      {
+        showHelpDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowHelpDialog(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">About This Page</h2>
+                  <button
+                    onClick={() => setShowHelpDialog(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-gray-700">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">What is this page?</h3>
+                    <p className="text-sm leading-relaxed">
+                      This is the Gram Kushal homepage - your gateway to agricultural learning. Here you can explore topics, watch educational videos, and discover success stories from farmers who have transformed their lives through our training programs.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">How to use this page</h3>
+                    <ul className="text-sm space-y-2 list-disc list-inside">
+                      <li><strong>Search Topics:</strong> Use the search bar to find specific agricultural topics you want to learn about.</li>
+                      <li><strong>Watch Videos:</strong> Scroll through the Videos section to watch short educational clips.</li>
+                      <li><strong>Explore Topics:</strong> Click on any topic card to view subtopics and courses.</li>
+                      <li><strong>Learn More:</strong> Click "View More" on any topic to access detailed courses and lessons.</li>
+                      <li><strong>Success Stories:</strong> Read inspiring stories of farmers who succeeded with our programs.</li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      Need more help? Contact our support team or visit your dashboard to start learning.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowHelpDialog(false)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Got it!
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )
+      }
+    </div >
   );
 }
