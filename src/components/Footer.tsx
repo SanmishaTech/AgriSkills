@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home as HomeIcon, BookOpen, Mic, Send } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, Mic, Send, Volume2, VolumeX } from 'lucide-react';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,12 +37,15 @@ export default function Footer() {
   const [isRecording, setIsRecording] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+  const [ttsLoadingMsgId, setTtsLoadingMsgId] = useState<string | null>(null);
   const speakInputRef = useRef<HTMLInputElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const speakDragControls = useDragControls();
   const recognitionRef = useRef<any>(null);
   const lastSendRef = useRef<number>(0);
   const abortRef = useRef<AbortController | null>(null);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
   const SEND_COOLDOWN_MS = 2000;
   const router = useRouter();
   const pathname = usePathname();
@@ -245,7 +248,89 @@ export default function Footer() {
       }
     }
     setIsRecording(false);
+    // Stop any ongoing TTS when drawer closes
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current = null;
+    }
+    setSpeakingMsgId(null);
   }, [isSpeakOpen]);
+
+  // ── Text-to-Speech handler (uses Gemini TTS API for multilingual support) ──
+  const ttsLoadingRef = useRef(false);
+  const handleTTS = async (text: string, msgId: string) => {
+    // If already speaking this message, stop it
+    if (speakingMsgId === msgId) {
+      if (ttsAudioRef.current) {
+        ttsAudioRef.current.pause();
+        ttsAudioRef.current = null;
+      }
+      setSpeakingMsgId(null);
+      return;
+    }
+
+    // Debounce: block if a TTS request is already in-flight
+    if (ttsLoadingRef.current) return;
+    ttsLoadingRef.current = true;
+    setTtsLoadingMsgId(msgId);
+
+    // Stop any other ongoing speech
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current = null;
+    }
+
+    // Strip markdown for clean speech
+    const plainText = text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // [link text](url) → link text
+      .replace(/[*_~`#>]/g, '')                 // remove markdown chars
+      .replace(/\n+/g, '. ')                     // newlines → pauses
+      .replace(/\s+/g, ' ')                      // collapse whitespace
+      .trim();
+
+    if (!plainText) {
+      ttsLoadingRef.current = false;
+      setTtsLoadingMsgId(null);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: plainText }),
+      });
+
+      if (!res.ok) {
+        throw new Error('TTS request failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      ttsAudioRef.current = audio;
+
+      audio.onended = () => {
+        setSpeakingMsgId(null);
+        URL.revokeObjectURL(url);
+        ttsAudioRef.current = null;
+      };
+      audio.onerror = () => {
+        setSpeakingMsgId(null);
+        URL.revokeObjectURL(url);
+        ttsAudioRef.current = null;
+      };
+
+      setSpeakingMsgId(msgId);
+      await audio.play();
+    } catch (err) {
+      console.error('[TTS] Error:', err);
+      setSpeakingMsgId(null);
+    } finally {
+      ttsLoadingRef.current = false;
+      setTtsLoadingMsgId(null);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -410,7 +495,7 @@ export default function Footer() {
               className="bg-white hover:bg-gray-50 rounded-full w-14 h-14 shadow-xl flex items-center justify-center ring-4 ring-white overflow-hidden"
             >
               <div className="relative w-full h-full rounded-full overflow-hidden bg-white">
-                <Image src="/images/gramsathi.jpeg" alt="Gram Sathi" fill className="object-cover" />
+                <Image src="/images/gramsathi.jpeg" alt="Gram Sathi" fill sizes="(max-width: 768px) 56px, 56px" className="object-cover" />
               </div>
             </button>
             <span className="mt-1 text-xs font-medium text-green-700">Gram Sathi</span>
@@ -514,48 +599,73 @@ export default function Footer() {
                       key={m.id}
                       className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
                     >
-                      <div
-                        className={
-                          m.role === 'user'
-                            ? 'max-w-[82%] rounded-2xl rounded-tr-sm bg-green-600 text-white px-3 py-2 text-[13px] leading-relaxed shadow-sm'
-                            : 'max-w-[82%] rounded-2xl rounded-tl-sm bg-white text-gray-800 px-3 py-2 text-[13px] leading-relaxed shadow-sm'
-                        }
-                      >
+                      <div className="flex flex-col gap-1 max-w-[82%]">
                         <div
-                          className={`prose prose-sm max-w-none ${m.role === 'user' ? 'text-white prose-invert' : 'text-gray-800'
-                            } prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5 break-words`}
+                          className={
+                            m.role === 'user'
+                              ? 'rounded-2xl rounded-tr-sm bg-green-600 text-white px-3 py-2 text-[13px] leading-relaxed shadow-sm'
+                              : 'rounded-2xl rounded-tl-sm bg-white text-gray-800 px-3 py-2 text-[13px] leading-relaxed shadow-sm'
+                          }
                         >
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              a: ({ node, ...props }) => (
-                                <a
-                                  {...props}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold no-underline transition-colors mx-1 ${m.role === 'user'
-                                    ? 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
-                                    : 'bg-green-100 hover:bg-green-200 text-green-800 border border-green-200'
-                                    }`}
-                                >
-                                  <span>🔗</span>
-                                  {props.children}
-                                </a>
-                              ),
-                              p: ({ node, ...props }) => (
-                                <p {...props} className="m-0 leading-relaxed last:mb-0" />
-                              ),
-                              ul: ({ node, ...props }) => (
-                                <ul {...props} className="my-1 pl-4 list-disc marker:text-current" />
-                              ),
-                              ol: ({ node, ...props }) => (
-                                <ol {...props} className="my-1 pl-4 list-decimal marker:text-current" />
-                              ),
-                            }}
+                          <div
+                            className={`prose prose-sm max-w-none ${m.role === 'user' ? 'text-white prose-invert' : 'text-gray-800'
+                              } prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5 break-words`}
                           >
-                            {m.content}
-                          </ReactMarkdown>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ node, ...props }) => (
+                                  <a
+                                    {...props}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold no-underline transition-colors mx-1 ${m.role === 'user'
+                                      ? 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
+                                      : 'bg-green-100 hover:bg-green-200 text-green-800 border border-green-200'
+                                      }`}
+                                  >
+                                    <span>🔗</span>
+                                    {props.children}
+                                  </a>
+                                ),
+                                p: ({ node, ...props }) => (
+                                  <p {...props} className="m-0 leading-relaxed last:mb-0" />
+                                ),
+                                ul: ({ node, ...props }) => (
+                                  <ul {...props} className="my-1 pl-4 list-disc marker:text-current" />
+                                ),
+                                ol: ({ node, ...props }) => (
+                                  <ol {...props} className="my-1 pl-4 list-decimal marker:text-current" />
+                                ),
+                              }}
+                            >
+                              {m.content}
+                            </ReactMarkdown>
+                          </div>
                         </div>
+                        {/* TTS speaker button for assistant messages */}
+                        {m.role === 'assistant' && (
+                          <button
+                            type="button"
+                            onClick={() => handleTTS(m.content, m.id)}
+                            disabled={ttsLoadingMsgId === m.id}
+                            className={`self-start flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-colors ${ttsLoadingMsgId === m.id
+                                ? 'text-gray-400 bg-gray-50 cursor-wait'
+                                : speakingMsgId === m.id
+                                  ? 'text-green-700 bg-green-100'
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                              }`}
+                            aria-label={speakingMsgId === m.id ? 'Stop speaking' : 'Read aloud'}
+                          >
+                            {ttsLoadingMsgId === m.id ? (
+                              <><span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" /><span>Loading...</span></>
+                            ) : speakingMsgId === m.id ? (
+                              <><VolumeX className="w-3.5 h-3.5" /><span>Stop</span></>
+                            ) : (
+                              <><Volume2 className="w-3.5 h-3.5" /><span>Listen</span></>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

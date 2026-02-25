@@ -13,7 +13,7 @@ const supportSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const result = supportSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 40px;">
-            <h1 style="color: #16a34a; margin: 0; font-size: 28px;">Gram Kushal Support</h1>
+            <h1 style="color: #16a34a; margin: 0; font-size: 28px;">${process.env.NEXT_PUBLIC_APP_NAME || 'GramKushal'} Support</h1>
           </div>
           
           <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 30px;">
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           
           <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: center; margin-top: 30px;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              This email was sent from the Gram Kushal Help & Support page.<br>
+              This email was sent from the ${process.env.NEXT_PUBLIC_APP_NAME || 'GramKushal'} Help & Support page.<br>
               To reply to this user, send an email to: <a href="mailto:${email}" style="color: #16a34a;">${email}</a>
             </p>
           </div>

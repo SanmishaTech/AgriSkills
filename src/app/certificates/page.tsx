@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
+import {
   ArrowLeft,
   Award,
   Download,
@@ -47,7 +47,7 @@ export default function CertificatesPage() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
@@ -61,7 +61,7 @@ export default function CertificatesPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         router.push('/login');
         return;
@@ -86,7 +86,7 @@ export default function CertificatesPage() {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         setCertificateData(result.data);
       } else {
@@ -131,32 +131,36 @@ export default function CertificatesPage() {
 
       if (result.success) {
         const suggestedFileName = result.fileName || `${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
-        // Open PDF in new tab/window instead of downloading
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`
-            <html>
-              <head>
-                <title>${suggestedFileName}</title>
-                <style>
-                  body { margin: 0; padding: 0; background: #f0f0f0; }
-                  iframe { width: 100%; height: 100vh; border: none; }
-                  .loading { text-align: center; padding: 50px; font-family: Arial, sans-serif; }
-                </style>
-              </head>
-              <body>
-                <div class="loading">Loading certificate...</div>
-                <iframe src="${result.pdf}" type="application/pdf"></iframe>
-              </body>
-            </html>
-          `);
-          newWindow.document.close();
-        } else {
-          // Fallback if popup blocked
+
+        try {
+          // Convert Base64 data URI to Blob to avoid browser popup/iframe restrictions
+          const base64Data = result.pdf.split(',')[1];
+          const binaryString = window.atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+
+          const newWindow = window.open(blobUrl, '_blank');
+
+          if (!newWindow) {
+            // Fallback if popup blocked
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = suggestedFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+
+          // Clean up the blob URL after a short delay
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch (e) {
+          console.error("Failed to open PDF blob, falling back to download", e);
           const link = document.createElement('a');
           link.href = result.pdf;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
           link.download = suggestedFileName;
           document.body.appendChild(link);
           link.click();
@@ -174,7 +178,7 @@ export default function CertificatesPage() {
     }
   };
 
-  
+
 
   if (!user || loading) {
     return (
@@ -186,7 +190,7 @@ export default function CertificatesPage() {
 
   return (
     <div className="min-h-screen bg-amber-50">
-      
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Back Button */}

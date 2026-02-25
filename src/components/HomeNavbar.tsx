@@ -186,21 +186,17 @@ export default function HomeNavbar({
                         {/* Desktop Logo (Hidden on mobile) */}
                         <button
                             onClick={() => { router.push('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="hidden sm:flex items-center gap-2 hover:text-green-700 transition-colors"
+                            className="hidden sm:flex items-center hover:opacity-80 transition-opacity overflow-hidden h-[60px] w-[160px] flex-shrink-0"
                         >
-                            {/* <Image src="/images/logo.jpeg" alt="Logo" width={36} height={36} className="rounded-full object-cover flex-shrink-0" /> */}
-                            <span className="text-xl font-bold text-gray-900 leading-tight">
-                                {process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}
-                            </span>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/images/logo.png" alt="Logo" className="h-[60px] w-[160px] object-contain" style={{ transform: 'scale(2.2)' }} />
                         </button>
                     </div>
 
-                    {/* Mobile Centered Logo Text */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:hidden z-0 cursor-pointer flex items-center gap-2" onClick={() => { router.push('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                        <Image src="/images/logo.jpeg" alt="Logo" width={28} height={28} className="rounded-full object-cover flex-shrink-0" />
-                        <span className="text-xl font-bold text-gray-900 leading-tight block">
-                            {process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}
-                        </span>
+                    {/* Mobile Centered Logo */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:hidden z-0 cursor-pointer overflow-hidden h-[44px] w-[120px]" onClick={() => { router.push('/'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/images/logo.png" alt="Logo" className="h-[50px] w-[120px] object-contain" style={{ transform: 'scale(2.2)' }} />
                     </div>
 
                     {/* Search bar — Center & Expandable like Udemy */}

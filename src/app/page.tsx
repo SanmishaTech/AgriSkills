@@ -117,6 +117,25 @@ export default function HomePage() {
   const [showHandsOn, setShowHandsOn] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>('relevant');
 
+  // Certificate Preview State
+  const [randomCourseName, setRandomCourseName] = useState('Sustainable Farming Complete Course');
+  const [randomCertId, setRandomCertId] = useState('');
+  const [randomDate, setRandomDate] = useState('');
+
+  useEffect(() => {
+    // Generate static random values once mounted to avoid hydration differences
+    setRandomCertId(`CERT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+    setRandomDate(new Date().toLocaleDateString());
+  }, []);
+
+  useEffect(() => {
+    // Pick a random topic name once topics are loaded
+    if (topics.length > 0) {
+      const topic = topics[Math.floor(Math.random() * topics.length)];
+      setRandomCourseName(topic.title);
+    }
+  }, [topics]);
+
   // State for YouTube shorts
   const [videos, setVideos] = useState<Video[]>([]);
   const [videosLoading, setVideosLoading] = useState(true);
@@ -687,8 +706,8 @@ export default function HomePage() {
                   <Image
                     src="/images/desktopview.jpg"
                     alt="Farming Desktop"
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 1280px"
                     className="hidden sm:block object-top object-cover sm:rounded-lg lg:rounded-xl shadow-md"
                     priority
                   />
@@ -696,8 +715,8 @@ export default function HomePage() {
                   <Image
                     src="/images/Banner.jpeg"
                     alt="Farming Mobile"
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    sizes="100vw"
                     className="block sm:hidden object-top object-cover shadow-md"
                     priority
                   />
@@ -742,9 +761,24 @@ export default function HomePage() {
                           style={{ x }}
                         >
                           {videosLoading ? (
-                            <div className="flex items-center justify-center w-full py-12">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mr-3"></div>
-                              <p className="text-gray-600">Loading videos...</p>
+                            <div className="flex gap-4 w-full pb-6">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <div
+                                  key={i}
+                                  className="bg-gray-200 rounded-lg sm:rounded-xl flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-44 xl:w-48 relative border border-gray-300 overflow-hidden"
+                                  style={{ aspectRatio: '9/16', height: 'auto' }}
+                                >
+                                  <div className="w-full h-full animate-pulse bg-gray-300/50"></div>
+                                  <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col gap-2 pointer-events-none">
+                                    <div className="h-3 bg-gray-400/50 w-3/4 rounded animate-pulse"></div>
+                                    <div className="h-3 bg-gray-400/50 w-1/2 rounded animate-pulse"></div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <div className="w-5 h-5 bg-gray-400/50 rounded-full animate-pulse flex-shrink-0"></div>
+                                      <div className="h-2 bg-gray-400/50 w-1/3 rounded animate-pulse"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           ) : videos.length === 0 ? (
                             <div className="flex items-center justify-center w-full py-12 text-gray-500">
@@ -881,14 +915,40 @@ export default function HomePage() {
             </div>
 
             {/* Certificates Section */}
-            <div className="lg:w-[400px] shrink-0 flex items-center justify-center overflow-hidden">
-              <Image
-                src="/images/certificate.png"
-                alt="Get Certified"
-                width={400}
-                height={300}
-                className="rounded-xl shadow-sm object-cover w-full h-full max-h-[300px] hover:shadow-md transition-shadow"
-              />
+            <div className="lg:w-[450px] shrink-0 flex items-center justify-center overflow-hidden">
+              <div
+                className="relative w-full aspect-[297/210] shadow-sm hover:shadow-md transition-shadow rounded-xl overflow-hidden bg-white border border-gray-200"
+                style={{ containerType: 'inline-size' }}
+              >
+                <Image
+                  src="/images/preview-certificate.jpeg"
+                  alt="Get Certified"
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  className="w-full h-full"
+                  unoptimized
+                />
+
+                {/* Dynamically overlaid text to simulate PDF */}
+                <div className="absolute inset-0 flex flex-col pointer-events-none" style={{ color: '#1F2937' }}>
+                  {/* Name */}
+                  <div className="absolute font-bold tracking-wide" style={{ left: '8.0%', top: '29.3%', fontSize: '2cqw', color: '#1a365d', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    Pinak Pawar
+                  </div>
+                  {/* Course Name */}
+                  <div className="absolute" style={{ left: '8.0%', top: '40%', fontSize: '2cqw', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    {randomCourseName}
+                  </div>
+                  {/* Certificate ID */}
+                  <div className="absolute font-medium" style={{ left: '77.5%', top: '71.5%', fontSize: '1.6cqw', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    {randomCertId}
+                  </div>
+                  {/* Date */}
+                  <div className="absolute font-medium" style={{ left: '77.5%', top: '74.5%', fontSize: '1.6cqw', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+                    {randomDate}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -951,7 +1011,7 @@ export default function HomePage() {
                     {/* @ts-ignore */}
                     {story.image ? (
                       /* @ts-ignore */
-                      <Image src={story.image} alt={story.title} layout="fill" objectFit="cover" className="group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={story.image} alt={story.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" style={{ objectFit: 'cover' }} className="group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       /* @ts-ignore */
                       <span className="text-5xl relative z-10">{story.emoji}</span>

@@ -72,7 +72,7 @@ function prepareMarathiTextForPDF(text: string): string {
   if (!containsDevanagari(text)) {
     return text;
   }
-  
+
   // For now, return the original text with a note
   // jsPDF will show it as best as it can
   return text;
@@ -81,13 +81,13 @@ function prepareMarathiTextForPDF(text: string): string {
 export async function POST(request: NextRequest) {
   try {
     const { certificateData } = await request.json();
-    
+
     console.log('📋 Certificate generation request:', {
       studentName: certificateData.studentName,
       courseName: certificateData.courseName,
       hasMarathi: containsDevanagari(certificateData.courseName || '')
     });
-    
+
     // Create new PDF document
     const pdf = new jsPDF({
       orientation: 'landscape',
@@ -116,74 +116,32 @@ export async function POST(request: NextRequest) {
     const nameColor = '#1a365d'; // Dark blue
     const goldColor = '#FFD700'; // Gold
 
-    // Certificate body text
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(14);
-    pdf.setTextColor(textColor);
-    pdf.text('This Certifies That', pageWidth / 2, 80, { align: 'center' });
-    pdf.text('Has Successfully Completed Course', pageWidth / 2, 88, { align: 'center' });
-
-    // Student name - positioned on the blank line
-    pdf.setFont('times', 'bold');
+    // Student name - positioned on the first dotted line
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(28);
     pdf.setTextColor(nameColor);
-    pdf.text(certificateData.studentName || 'Student Name', pageWidth / 2, 105, { align: 'center' });
+    pdf.text(certificateData.studentName || 'Student Name', 23, 68, { align: 'left' });
 
-    // Golden line under name
-    pdf.setDrawColor(goldColor);
-    pdf.setLineWidth(1);
-    pdf.line(60, 112, pageWidth - 60, 112);
-
-    // Success message with dates and course title - under the line
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(14);
-    pdf.setTextColor(textColor);
-    
-    // Get course dates from certificate data (actual quiz attempt dates)
-    const startDate = certificateData.startDate || certificateData.date || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const endDate = certificateData.endDate || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    
+    // Determine the course name specifically so we can name the downloaded file
     const courseName = (certificateData.courseName || 'Course Title').replace(/\s*Certificate\s*$/i, '').trim();
-    
-    // Format in 2 lines with course title bold
-    const textStart = 'Successfully completed a course of ';
-    const textEndLine1 = ` from ${startDate} to ${endDate}`;
-    const textLine2 = 'and gained both theoretical and practical knowledge in this field.';
-    
-    // Calculate widths for positioning
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(14);
-    const startWidth = pdf.getTextWidth(textStart);
-    const courseWidth = pdf.getTextWidth(courseName);
-    const spaceWidth = pdf.getTextWidth(' ');
-    const endWidth = pdf.getTextWidth(textEndLine1);
-    
-    // Center the entire line
-    const totalWidth = startWidth + courseWidth + spaceWidth + endWidth;
-    const startX = (pageWidth - totalWidth) / 2;
-    
-    // Render line 1: normal + bold course + space + end text
-    pdf.text(textStart, startX, 125);
-    pdf.setFont('times', 'bold');
-    pdf.text(courseName, startX + startWidth, 125);
-    pdf.setFont('times', 'normal');
-    pdf.text(' ' + textEndLine1, startX + startWidth + courseWidth, 125);
-    
-    // Render line 2 (normal, centered)
-    pdf.text(textLine2, pageWidth / 2, 133, { align: 'center' });
 
-    // Date at bottom
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(12);
+    // Course Name - positioned on the second dotted line
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(22);
+    pdf.setTextColor(textColor);
+    pdf.text(courseName, 23, 90, { align: 'left' });
+
+    // Certificate ID - bottom right slot
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(textColor); // Match the dark color of the template text
+    const certId = `CERT-${Date.now().toString(36).toUpperCase()}`;
+    pdf.text(certId, 230, 155.1, { align: 'left' });
+
+    // Date at bottom - bottom right slot
     pdf.setTextColor(textColor);
     const dateValue = certificateData.date || new Date().toLocaleDateString();
-    pdf.text(`Date: ${dateValue}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
-
-    // Certificate ID at bottom
-    pdf.setFontSize(8);
-    pdf.setTextColor(120, 120, 120);
-    const certId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-    pdf.text(`Certificate ID: ${certId}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+    pdf.text(dateValue, 230, 161.5, { align: 'left' });
 
     // Generate PDF as base64
     const fileSafeCourseName = courseName
@@ -194,9 +152,9 @@ export async function POST(request: NextRequest) {
     const pdfFileName = `${fileSafeCourseName || 'Certificate'}.pdf`;
 
     const pdfBase64 = pdf.output('datauristring');
-    
+
     console.log('✅ Certificate generated successfully');
-    
+
     return NextResponse.json({
       success: true,
       pdf: pdfBase64,
