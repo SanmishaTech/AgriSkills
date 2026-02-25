@@ -231,13 +231,22 @@ export default function HomeNavbar({
                                                 <span className="text-[15px] font-medium">Explore Topics</span>
                                             </button>
                                             {!authLoading && isAuthenticated && (
-                                                <button
-                                                    onClick={() => { closeSidebar(); router.push(user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/user'); }}
-                                                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors text-left"
-                                                >
-                                                    <LayoutDashboard className="w-5 h-5" />
-                                                    <span className="text-[15px] font-medium">Dashboard</span>
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => { closeSidebar(); router.push(user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/user'); }}
+                                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors text-left"
+                                                    >
+                                                        <LayoutDashboard className="w-5 h-5" />
+                                                        <span className="text-[15px] font-medium">Dashboard</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { closeSidebar(); router.push('/certificates'); }}
+                                                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors text-left"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>
+                                                        <span className="text-[15px] font-medium">Certificates</span>
+                                                    </button>
+                                                </>
                                             )}
                                         </nav>
 
