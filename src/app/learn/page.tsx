@@ -59,11 +59,11 @@ export default function LearnPage() {
       const data = await res.json();
       const demoPairs = Array.isArray(data?.demoVideos)
         ? data.demoVideos
-            .map((v: any) => ({
-              youtubeId: v?.youtubeId,
-              title: typeof v?.title === 'string' ? v.title : ''
-            }))
-            .filter((p: any) => typeof p.youtubeId === 'string' && p.youtubeId.length === 11)
+          .map((v: any) => ({
+            youtubeId: v?.youtubeId,
+            title: typeof v?.title === 'string' ? v.title : ''
+          }))
+          .filter((p: any) => typeof p.youtubeId === 'string' && p.youtubeId.length === 11)
         : [];
       const urls: string[] = demoPairs.map((p: any) => `https://www.youtube.com/watch?v=${p.youtubeId}`);
       const titles: string[] = demoPairs.map((p: any) => p.title);
@@ -99,7 +99,7 @@ export default function LearnPage() {
   };
 
   return (
-    <div className="min-h-screen bg-amber-50 pb-24">
+    <div className="min-h-screen bg-white pb-24">
       <div className="max-w-3xl mx-auto px-4 pt-5">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div>

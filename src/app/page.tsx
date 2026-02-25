@@ -95,6 +95,13 @@ export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const iframeRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Read ?q= search param from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) setSearchQuery(q);
+  }, []);
   // Demo player state
   const [showDemoPlayer, setShowDemoPlayer] = useState(false);
   const [demoUrls, setDemoUrls] = useState<string[]>([]);

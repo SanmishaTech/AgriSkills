@@ -153,7 +153,7 @@ export default function SubtopicCoursesPage() {
   const getCourseProgress = (courseId: string) => courseQuizProgress?.[courseId]
 
   return (
-    <div className="min-h-screen bg-amber-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <main className="flex-1 px-4 pt-5 pb-10 max-w-5xl mx-auto w-full">
         {loading ? (
           <div className="flex items-center justify-center py-16">

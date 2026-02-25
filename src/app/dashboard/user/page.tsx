@@ -567,8 +567,8 @@ export default function UserDashboard() {
               <button
                 onClick={crumb.onClick}
                 className={`${index === navigation.breadcrumb.length - 1
-                    ? 'text-gray-900 font-medium'
-                    : 'text-blue-600 hover:text-blue-800'
+                  ? 'text-gray-900 font-medium'
+                  : 'text-blue-600 hover:text-blue-800'
                   } transition-colors`}
               >
                 {crumb.label}
@@ -789,10 +789,10 @@ export default function UserDashboard() {
                   <h3 className="text-lg font-bold text-gray-900 flex-1 pr-2">{course.title}</h3>
                   {course.level && (
                     <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${course.level === 'Beginner'
-                        ? 'bg-green-100 text-green-700'
-                        : course.level === 'Intermediate'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 text-green-700'
+                      : course.level === 'Intermediate'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
                       }`}>
                       {course.level}
                     </span>
@@ -968,14 +968,14 @@ export default function UserDashboard() {
 
   if (!user || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-amber-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-amber-50 pb-20">
+    <div className="min-h-screen bg-white pb-20">
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {navigation.level !== 'topics' && (
@@ -1071,8 +1071,8 @@ export default function UserDashboard() {
                                 <div className="flex items-center gap-3 mb-2">
                                   <h3 className="text-lg font-bold text-gray-900">{pkg.name}</h3>
                                   <span className={`text-xs px-2 py-1 rounded-full ${pkg.isActive
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-red-100 text-red-700'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
                                     }`}>
                                     {pkg.isActive ? 'Active' : 'Inactive'}
                                   </span>

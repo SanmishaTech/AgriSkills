@@ -21,6 +21,16 @@
   body {
     @apply overflow-auto;
   }
+
+  /* Hand cursor on all interactive/clickable elements */
+  button,
+  a,
+  summary,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"]),
+  [onclick] {
+    cursor: pointer;
+  }
 }
 @import "tw-animate-css";
 

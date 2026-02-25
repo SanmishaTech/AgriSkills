@@ -223,7 +223,7 @@ export default function FloatingTranslator() {
 
             {/* ── Floating Translate Icon ── */}
             {isTranslated && (
-                <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
+                <div className="fixed bottom-[100px] right-5 z-40 flex flex-col items-end">
                     {/* Popup menu */}
                     {showFloatingMenu && (
                         <div className="mb-3 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden min-w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-200">

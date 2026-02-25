@@ -97,7 +97,7 @@ export default function TopicQuestionsPage() {
         console.log('🔑 Storage key:', storageKey)
         localStorage.setItem(storageKey, JSON.stringify(selectionsArray))
         console.log('✅ Data saved successfully')
-        
+
         // Verify the save worked
         const saved = localStorage.getItem(storageKey)
         console.log('🔍 Verification - saved data:', saved)
@@ -111,7 +111,7 @@ export default function TopicQuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-amber-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Content */}
       <main className="flex-1 px-4 pt-5 pb-28 max-w-md mx-auto w-full">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Why do you want to learn?</h1>
@@ -141,7 +141,7 @@ export default function TopicQuestionsPage() {
       </main>
 
       {/* Bottom CTA */}
-      <div className="px-4 py-4 sticky bottom-0 bg-amber-50">
+      <div className="px-4 py-4 sticky bottom-0 bg-white">
         <button
           onClick={onNext}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold shadow-[0_8px_0_#0f6a2a] active:translate-y-[2px] active:shadow-[0_6px_0_#0f6a2a]"
