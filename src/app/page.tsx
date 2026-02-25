@@ -736,7 +736,7 @@ export default function HomePage() {
             {/* ── Skills / Videos Showcase Section ── */}
             <section className="bg-gray-50 py-12 md:py-16 border-b border-gray-200">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start">
+                <div className="flex flex-col-reverse lg:flex-row-reverse gap-8 lg:gap-12 items-center lg:items-start">
                   {/* Left content */}
                   <div className="lg:w-1/3 pt-4 flex flex-col justify-center font-serif">
                     <h2 className="text-[32px] sm:text-4xl lg:text-[40px] font-bold text-[#2d2f31] leading-tight mb-4 tracking-tight">
