@@ -223,7 +223,7 @@ export default function FloatingTranslator() {
 
             {/* ── Floating Translate Icon ── */}
             {isTranslated && (
-                <div className="fixed bottom-[100px] right-5 z-40 flex flex-col items-end">
+                <div className="fixed bottom-[90px] right-5 z-40 flex flex-col items-end">
                     {/* Popup menu */}
                     {showFloatingMenu && (
                         <div className="mb-3 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden min-w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -253,10 +253,10 @@ export default function FloatingTranslator() {
                     {/* Floating icon button */}
                     <button
                         onClick={() => setShowFloatingMenu(!showFloatingMenu)}
-                        className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                        className="w-12 h-12 mr-1 rounded-full bg-[#16a34a] text-white shadow-lg shadow-green-600/30 ring-2 ring-white/50 hover:shadow-xl hover:bg-[#15803d] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
                         title="Translation Options"
                     >
-                        <Globe className="w-6 h-6" />
+                        <span className="text-[13px] font-bold tracking-wide leading-none mt-0.5">भाषा</span>
                     </button>
                 </div>
             )}
