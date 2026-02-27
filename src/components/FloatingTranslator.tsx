@@ -4,18 +4,18 @@ import { useState, useEffect } from 'react';
 import { Globe, RotateCcw, X } from 'lucide-react';
 
 const languageList = [
-    { code: 'en', name: 'English', flag: '🇬🇧' },
-    { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-    { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
-    { code: 'gu', name: 'ગુજરાતી', flag: '🇮🇳' },
-    { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
-    { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
-    { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' },
-    { code: 'ml', name: 'മലയാളം', flag: '🇮🇳' },
-    { code: 'bn', name: 'বাংলা', flag: '🇮🇳' },
-    { code: 'pa', name: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
-    { code: 'ur', name: 'اردو', flag: '🇮🇳' },
-    { code: 'or', name: 'ଓଡ଼ିଆ', flag: '🇮🇳' },
+    { code: 'en', name: 'English', countryCode: 'gb' },
+    { code: 'hi', name: 'हिंदी', countryCode: 'in' },
+    { code: 'mr', name: 'मराठी', countryCode: 'in' },
+    { code: 'gu', name: 'ગુજરાતી', countryCode: 'in' },
+    { code: 'ta', name: 'தமிழ்', countryCode: 'in' },
+    { code: 'te', name: 'తెలుగు', countryCode: 'in' },
+    { code: 'kn', name: 'ಕನ್ನಡ', countryCode: 'in' },
+    { code: 'ml', name: 'മലയാളം', countryCode: 'in' },
+    { code: 'bn', name: 'বাংলা', countryCode: 'in' },
+    { code: 'pa', name: 'ਪੰਜਾਬੀ', countryCode: 'in' },
+    { code: 'ur', name: 'اردو', countryCode: 'in' },
+    { code: 'or', name: 'ଓଡ଼ିଆ', countryCode: 'in' },
 ];
 
 const setGoogTransCookie = (langCode: string) => {
@@ -211,7 +211,11 @@ export default function FloatingTranslator() {
                                         onClick={() => changeLanguage(lang.code, lang.name)}
                                         className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
                                     >
-                                        <span className="text-2xl">{lang.flag}</span>
+                                        <img 
+                                            src={`https://flagcdn.com/w40/${lang.countryCode}.png`} 
+                                            alt={`${lang.name} flag`} 
+                                            className="w-6 h-4 object-cover shrink-0 drop-shadow-sm rounded-[2px]" 
+                                        />
                                         <span className="font-medium">{lang.name}</span>
                                     </button>
                                 ))}

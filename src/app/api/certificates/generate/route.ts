@@ -95,6 +95,11 @@ export async function POST(request: NextRequest) {
       format: 'a4'
     });
 
+    // Add font for Unicode support
+    pdf.addFileToVFS(unicodeFont.file, unicodeFont.data);
+    pdf.addFont(unicodeFont.file, unicodeFont.name, 'normal');
+    pdf.addFont(unicodeFont.file, unicodeFont.name, 'bold');
+
     // PDF dimensions
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -116,17 +121,26 @@ export async function POST(request: NextRequest) {
     const nameColor = '#1a365d'; // Dark blue
     const goldColor = '#FFD700'; // Gold
 
+    // Check language of name
+    const studentName = certificateData.studentName || 'Student Name';
+    const isDevanagariName = containsDevanagari(studentName);
+
     // Student name - positioned on the first dotted line
-    pdf.setFont('helvetica', 'bold');
+    pdf.setFont(isDevanagariName ? unicodeFont.name : 'helvetica', 'bold');
     pdf.setFontSize(28);
     pdf.setTextColor(nameColor);
-    pdf.text(certificateData.studentName || 'Student Name', 23, 68, { align: 'left' });
+    pdf.text(studentName, 23, 68, { align: 'left' });
 
     // Determine the course name specifically so we can name the downloaded file
-    const courseName = (certificateData.courseName || 'Course Title').replace(/\s*Certificate\s*$/i, '').trim();
+    let courseName = (certificateData.courseName || 'Course Title').replace(/\s*Certificate\s*$/i, '').trim();
+
+    // Check if transliteration is needed for languages without explicit DB font mapping
+    // Note: JS PDF natively has an issue rendering complex ligatures, but loading the TTF solves basic character shapes.
+    // Ensure you fallback safely if it contains unsupported characters
+    const isDevanagariCourse = containsDevanagari(courseName);
 
     // Course Name - positioned on the second dotted line
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont(isDevanagariCourse ? unicodeFont.name : 'helvetica', 'normal');
     pdf.setFontSize(22);
     pdf.setTextColor(textColor);
     pdf.text(courseName, 23, 90, { align: 'left' });
