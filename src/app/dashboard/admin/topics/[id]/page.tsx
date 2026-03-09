@@ -50,6 +50,8 @@ interface Course {
   createdAt: string;
   updatedAt: string;
   subtopicId: string;
+  organizationId: string | null;
+  organization?: { id: string; name: string } | null;
   chapters: Chapter[];
   _count?: {
     chapters: number;
@@ -130,8 +132,10 @@ export default function AdminTopicDetail() {
     level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
     isActive: true,
     isPublic: true,
-    subtopicId: ''
+    subtopicId: '',
+    organizationId: null as string | null
   });
+  const [organizations, setOrganizations] = useState<{ id: string; name: string; isDefault: boolean }[]>([]);
   const [showAddChapterModal, setShowAddChapterModal] = useState(false);
   const [showEditChapterModal, setShowEditChapterModal] = useState(false);
   const [showDeleteChapterModal, setShowDeleteChapterModal] = useState(false);
@@ -178,6 +182,17 @@ export default function AdminTopicDetail() {
         thumbnail: data.topic.thumbnail || '',
         isActive: data.topic.isActive
       });
+
+      // Fetch organizations
+      const orgRes = await fetch('/api/admin/organizations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (orgRes.ok) {
+        const orgData = await orgRes.json();
+        setOrganizations(orgData.organizations || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -470,7 +485,8 @@ export default function AdminTopicDetail() {
         level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
         isActive: true,
         isPublic: true,
-        subtopicId: ''
+        subtopicId: '',
+        organizationId: null
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -647,7 +663,8 @@ export default function AdminTopicDetail() {
       level: (course.level || 'BEGINNER') as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
       isActive: course.isActive,
       isPublic: course.isPublic,
-      subtopicId: course.subtopicId
+      subtopicId: course.subtopicId,
+      organizationId: course.organizationId || null
     });
     setShowEditCourseModal(true);
   };
@@ -697,7 +714,8 @@ export default function AdminTopicDetail() {
         level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
         isActive: true,
         isPublic: true,
-        subtopicId: ''
+        subtopicId: '',
+        organizationId: null
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -1755,6 +1773,20 @@ export default function AdminTopicDetail() {
                     </select>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Organization (for certificates)</label>
+                  <select
+                    value={courseForm.organizationId || ''}
+                    onChange={(e) => setCourseForm({ ...courseForm, organizationId: e.target.value || null })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Default (SFC)</option>
+                    {organizations.map(org => (
+                      <option key={org.id} value={org.id}>{org.name}{org.isDefault ? ' (Default)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-4 mt-6">
@@ -1769,7 +1801,8 @@ export default function AdminTopicDetail() {
                       level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
                       isActive: true,
                       isPublic: true,
-                      subtopicId: ''
+                      subtopicId: '',
+                      organizationId: null
                     });
                   }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
@@ -1912,6 +1945,20 @@ export default function AdminTopicDetail() {
                     </select>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Organization (for certificates)</label>
+                  <select
+                    value={courseForm.organizationId || ''}
+                    onChange={(e) => setCourseForm({ ...courseForm, organizationId: e.target.value || null })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Default (SFC)</option>
+                    {organizations.map(org => (
+                      <option key={org.id} value={org.id}>{org.name}{org.isDefault ? ' (Default)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-4 mt-6">
@@ -1927,7 +1974,8 @@ export default function AdminTopicDetail() {
                       level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
                       isActive: true,
                       isPublic: true,
-                      subtopicId: ''
+                      subtopicId: '',
+                      organizationId: null
                     });
                   }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"

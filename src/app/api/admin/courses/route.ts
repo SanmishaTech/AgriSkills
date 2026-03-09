@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, thumbnail, duration, level, isActive, isPublic, subtopicId } = await request.json();
+    const { title, description, thumbnail, duration, level, isActive, isPublic, subtopicId, organizationId } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
         isActive: isActive !== undefined ? isActive : true,
         isPublic: isPublic !== undefined ? isPublic : true,
         subtopicId,
+        organizationId: organizationId || null,
       },
       include: {
         chapters: {

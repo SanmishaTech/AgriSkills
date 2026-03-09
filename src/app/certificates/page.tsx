@@ -1,17 +1,11 @@
 'use client';
-// @ts-nocheck
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  Award,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  TrendingUp
-} from 'lucide-react';
+import { ArrowLeft, Award, Download, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface User {
   id: string;
@@ -29,6 +23,7 @@ export default function CertificatesPage() {
     completed: [],
     inProgress: []
   });
+  const [renderHtml, setRenderHtml] = useState<string | null>(null);
   const router = useRouter();
 
   // Pick an emoji based on certificate title keywords as a friendly fallback
@@ -105,26 +100,77 @@ export default function CertificatesPage() {
     }
   };
 
-  const handleViewCertificate = async (certificate: any) => {
+  const generateCertificate = async (certificate: any, action: 'view' | 'download' = 'view') => {
     try {
       setGeneratingId(certificate.id);
-      const certificateData = {
+      const certPayload = {
         studentName: user?.name || 'Student Name',
         courseName: certificate.title,
         score: certificate.score,
         startDate: certificate.startedDate,
         endDate: certificate.completedDate,
-        issuer: certificate.issuer
+        issuer: certificate.issuer,
+        certId: `CERT-${certificate.id.substring(0, 8).toUpperCase()}`,
+        date: certificate.completedDate
       };
 
-      console.log('Generating certificate for:', certificateData);
+      if (certificate.organization?.htmlTemplate) {
+        let template = certificate.organization.htmlTemplate;
+        const placeholders = {
+          '{{studentName}}': certPayload.studentName,
+          '{{courseName}}': certPayload.courseName,
+          '{{organizationName}}': certificate.organization.name,
+          '{{score}}': certPayload.score.toString(),
+          '{{date}}': certPayload.date,
+          '{{certId}}': certPayload.certId
+        };
 
+        Object.entries(placeholders).forEach(([key, val]) => {
+          template = template.replace(new RegExp(key, 'g'), val);
+        });
+
+        setRenderHtml(template);
+
+        setTimeout(async () => {
+          const element = document.getElementById('certificate-render-area');
+          if (!element) return;
+
+          const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+          });
+
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+
+          if (action === 'view') {
+            const pdfUrl = pdf.output('bloburl');
+            window.open(pdfUrl, '_blank');
+          } else {
+            pdf.save(`${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`);
+          }
+
+          setRenderHtml(null);
+          setGeneratingId(null);
+        }, 500);
+        return;
+      }
+
+      // Fallback to existing server-side generation
       const response = await fetch('/api/certificates/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ certificateData })
+        body: JSON.stringify({ certificateData: certPayload })
       });
 
       const result = await response.json();
@@ -132,50 +178,52 @@ export default function CertificatesPage() {
       if (result.success) {
         const suggestedFileName = result.fileName || `${certificate.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
 
-        try {
-          // Convert Base64 data URI to Blob to avoid browser popup/iframe restrictions
-          const base64Data = result.pdf.split(',')[1];
-          const binaryString = window.atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(blob);
-
-          const newWindow = window.open(blobUrl, '_blank');
-
-          if (!newWindow) {
-            // Fallback if popup blocked
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = suggestedFileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }
-
-          // Clean up the blob URL after a short delay
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-        } catch (e) {
-          console.error("Failed to open PDF blob, falling back to download", e);
+        if (action === 'download') {
           const link = document.createElement('a');
           link.href = result.pdf;
           link.download = suggestedFileName;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+        } else {
+          try {
+            const base64Data = result.pdf.split(',')[1];
+            const binaryString = window.atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            window.open(blobUrl, '_blank');
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+          } catch (e) {
+            console.error("Failed to open PDF blob, falling back to download", e);
+            const link = document.createElement('a');
+            link.href = result.pdf;
+            link.download = suggestedFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
         }
       } else {
-        console.error('Failed to generate certificate:', result.error);
-        alert('Failed to generate certificate. Please try again.');
+        alert('Failed to generate certificate.');
       }
     } catch (error) {
-      console.error('Error generating certificate:', error);
-      alert('Error generating certificate. Please try again.');
+      console.error('Error:', error);
+      alert('Error generating certificate.');
     } finally {
       setGeneratingId(null);
     }
+  };
+
+  const handleViewCertificate = (certificate: any) => {
+    generateCertificate(certificate, 'view');
+  };
+
+  const handleDownloadCertificate = (certificate: any) => {
+    generateCertificate(certificate, 'download');
   };
 
 
@@ -314,35 +362,21 @@ export default function CertificatesPage() {
                       )}
                     </button>
                     <button
-                      onClick={async () => {
-                        const certificateData = {
-                          studentName: user?.name || 'Student Name',
-                          courseName: cert.title,
-                          score: cert.score,
-                          startDate: cert.startedDate,
-                          endDate: cert.completedDate,
-                          issuer: cert.issuer
-                        };
-                        const response = await fetch('/api/certificates/generate', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ certificateData })
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                          const suggestedFileName = result.fileName || `${cert.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_certificate.pdf`;
-                          const link = document.createElement('a');
-                          link.href = result.pdf;
-                          link.download = suggestedFileName;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }
-                      }}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      onClick={() => handleDownloadCertificate(cert)}
+                      disabled={generatingId === cert.id}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
                     >
-                      <Download className="w-4 h-4" />
-                      Download PDF
+                      {generatingId === cert.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Download PDF
+                        </>
+                      )}
                     </button>
                   </div>
                 </motion.div>
@@ -481,6 +515,21 @@ export default function CertificatesPage() {
           )}
         </motion.section>
       </main>
+
+      {/* Hidden Render Area for Certificates */}
+      <div
+        id="certificate-render-area"
+        style={{
+          position: 'fixed',
+          top: '-9999px',
+          left: '-9999px',
+          width: '800px',
+          height: '600px',
+          backgroundColor: 'white',
+          zIndex: -1
+        }}
+        dangerouslySetInnerHTML={{ __html: renderHtml || '' }}
+      />
     </div>
   );
 }

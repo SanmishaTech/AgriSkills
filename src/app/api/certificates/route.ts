@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
                   include: {
                     course: {
                       include: {
+                        organization: true,
                         subtopic: {
                           include: {
                             topic: true
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     // Deduplicate certificates by course - keep only the earliest one per course
     const certificatesByCourse = new Map();
     const certificates = [];
-    
+
     for (const cert of allCertificates) {
       const courseId = cert.attempt.quiz.chapter.course.id;
       if (!certificatesByCourse.has(courseId)) {
@@ -139,11 +140,11 @@ export async function GET(request: NextRequest) {
 
     for (const attempt of userQuizAttempts) {
       const course = attempt.quiz.chapter.course;
-      
+
       if (completedCourseIds.has(course.id) || processedCourses.has(course.id)) {
         continue;
       }
-      
+
       processedCourses.add(course.id);
 
       // Get all quizzes in this course
@@ -165,7 +166,7 @@ export async function GET(request: NextRequest) {
       // If not all quizzes are passed, it's in progress
       if (userPassedAttempts.length > 0 && userPassedAttempts.length < courseQuizzes.length) {
         const progressPercentage = Math.round((userPassedAttempts.length / courseQuizzes.length) * 100);
-        
+
         coursesInProgress.push({
           id: course.id,
           title: `${course.title} Certificate`,
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest) {
     const completedCertificates = certificates.map(cert => {
       const course = cert.attempt.quiz.chapter.course;
       const topic = course.subtopic?.topic;
-      
+
       return {
         id: cert.id,
         title: `${course.title}`,
@@ -207,7 +208,11 @@ export async function GET(request: NextRequest) {
           day: 'numeric'
         }), // Valid for 2 years
         thumbnail: course.thumbnail,
-        certificateUrl: cert.certificateUrl
+        certificateUrl: cert.certificateUrl,
+        organization: course.organization ? {
+          name: course.organization.name,
+          htmlTemplate: course.organization.htmlTemplate
+        } : null
       };
     });
 
@@ -225,7 +230,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const overallProgress = totalAvailableCertificates > 0 
+    const overallProgress = totalAvailableCertificates > 0
       ? Math.round((completedCertificates.length / totalAvailableCertificates) * 100)
       : 0;
 

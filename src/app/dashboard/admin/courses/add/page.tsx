@@ -48,9 +48,11 @@ function AddChapterContent() {
     thumbnail: '',
     isActive: true,
     isPublic: true,
-    subtopicId: ''
+    subtopicId: '',
+    organizationId: '' as string | null
   });
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [organizations, setOrganizations] = useState<{ id: string; name: string; isDefault: boolean }[]>([]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,6 +95,21 @@ function AddChapterContent() {
 
       const data = await response.json();
       setTopics(data.topics || []);
+
+      // Also fetch organizations
+      const orgRes = await fetch('/api/admin/organizations', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (orgRes.ok) {
+        const orgData = await orgRes.json();
+        const orgs = orgData.organizations || [];
+        setOrganizations(orgs);
+        // Pre-select default organization
+        const defaultOrg = orgs.find((o: { isDefault: boolean }) => o.isDefault);
+        if (defaultOrg) {
+          setChapterForm(prev => ({ ...prev, organizationId: defaultOrg.id }));
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -325,6 +342,26 @@ function AddChapterContent() {
                   ))}
                 </select>
               </div>
+
+              {/* Organization Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Organization <span className="text-gray-400 font-normal">(for certificate template)</span>
+                </label>
+                <select
+                  value={chapterForm.organizationId || ''}
+                  onChange={(e) => setChapterForm({ ...chapterForm, organizationId: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Default (SFC)</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}{org.isDefault ? ' (Default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>

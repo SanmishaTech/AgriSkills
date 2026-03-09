@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== 'admin') {
@@ -48,10 +48,10 @@ export default function AdminDashboard() {
 
   const fetchUsers = async (token: string, search?: string) => {
     try {
-      const url = search 
+      const url = search
         ? `/api/admin/users?search=${encodeURIComponent(search)}`
         : '/api/admin/users';
-      
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -75,19 +75,19 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-      setSearchQuery(query);
-      if (query.trim() === '') {
-        // If search is empty, fetch all users
-        fetchUsers(token);
-      } else {
-        fetchUsers(token, query.trim());
-      }
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      // If search is empty, fetch all users
+      fetchUsers(token);
+    } else {
+      fetchUsers(token, query.trim());
+    }
   };
 
   const clearSearch = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    
+
     setSearchQuery('');
     fetchUsers(token);
   };
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
               </div>
               <div className="hidden md:block">
                 <svg className="w-24 h-24 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                 </svg>
               </div>
             </div>
@@ -169,8 +169,8 @@ export default function AdminDashboard() {
               <div className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex-1 mx-4"></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-            
+
+
 
               {/* Topics Button */}
               <button
@@ -214,9 +214,30 @@ export default function AdminDashboard() {
                 </div>
               </button>
 
-           
+              {/* Organizations Button */}
+              <button
+                onClick={() => router.push('/dashboard/admin/organizations')}
+                className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="bg-white/20 rounded-lg p-2 w-fit mb-2">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-10 0H3m2 0h4M9 7h6M9 11h6M9 15h4" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-lg">Organizations</h3>
+                    <p className="text-indigo-100 text-sm">Manage certificate orgs</p>
+                  </div>
+                  <svg className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
 
-            
+
+
+
             </div>
           </div>
         </div>
@@ -324,7 +345,7 @@ export default function AdminDashboard() {
                     </button>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={() => setShowAddModal(true)}
                   className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 shadow-sm"
                 >
@@ -336,7 +357,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="p-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
@@ -389,8 +410,8 @@ export default function AdminDashboard() {
                       </tr>
                     ) : (
                       users.map((u) => (
-                        <tr 
-                          key={u.id} 
+                        <tr
+                          key={u.id}
                           className="hover:bg-gray-50 cursor-pointer transition-all duration-150 hover:shadow-md"
                           onClick={() => router.push(`/dashboard/admin/users/${u.id}`)}
                         >
@@ -419,11 +440,10 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                              u.role === 'admin' 
-                                ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300' 
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin'
+                                ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300'
                                 : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300'
-                            }`}>
+                              }`}>
                               {u.role === 'admin' && (
                                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -482,7 +502,7 @@ export default function AdminDashboard() {
                   </svg>
                 </button>
               </div>
-              
+
               {error && (
                 <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="flex items-center">
@@ -493,7 +513,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
@@ -506,7 +526,7 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                   <input
@@ -518,7 +538,7 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
                   <input
@@ -530,7 +550,7 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
                   <select
@@ -543,7 +563,7 @@ export default function AdminDashboard() {
                   </select>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={() => {

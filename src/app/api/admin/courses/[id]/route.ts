@@ -96,7 +96,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, description, thumbnail, duration, level, subtopicId, isActive, isPublic } = await request.json();
+    const { title, description, thumbnail, duration, level, subtopicId, isActive, isPublic, organizationId } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -143,6 +143,7 @@ export async function PUT(
         subtopicId: subtopicId || existingCourse.subtopicId,
         isActive: isActive !== undefined ? isActive : existingCourse.isActive,
         isPublic: isPublic !== undefined ? isPublic : existingCourse.isPublic,
+        organizationId: organizationId !== undefined ? (organizationId || null) : existingCourse.organizationId,
       },
       include: {
         chapters: {

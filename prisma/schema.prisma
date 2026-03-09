@@ -52,21 +52,34 @@ model Subtopic {
   courses     Course[]
 }
 
+model Organization {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  htmlTemplate String?  @db.Text // HTML template for certificates
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  courses      Course[]
+}
+
 model Course {
-  id          String     @id @default(uuid())
-  title       String
-  description String?
-  thumbnail   String?    // URL or path to course thumbnail
-  duration    Int?       // Total duration in minutes
-  level       String?    // Beginner, Intermediate, Advanced
-  isActive    Boolean    @default(true)
-  isPublic    Boolean    @default(true) // Visibility toggle for members/users
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  subtopicId  String
-  subtopic    Subtopic   @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
-  chapters    Chapter[]
-  completions CourseCompletion[] // Track users who completed this course
+  id             String        @id @default(uuid())
+  title          String
+  description    String?
+  thumbnail      String?       // URL or path to course thumbnail
+  duration       Int?          // Total duration in minutes
+  level          String?       // Beginner, Intermediate, Advanced
+  isActive       Boolean       @default(true)
+  isPublic       Boolean       @default(true) // Visibility toggle for members/users
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subtopicId     String
+  subtopic       Subtopic      @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  chapters       Chapter[]
+  completions    CourseCompletion[] // Track users who completed this course
 }
 
 model Chapter {
