@@ -46,6 +46,7 @@ interface Course {
   duration?: number | null;
   level?: string | null;
   isActive: boolean;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   subtopicId: string;
@@ -128,6 +129,7 @@ export default function AdminTopicDetail() {
     duration: 0,
     level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
     isActive: true,
+    isPublic: true,
     subtopicId: ''
   });
   const [showAddChapterModal, setShowAddChapterModal] = useState(false);
@@ -467,6 +469,7 @@ export default function AdminTopicDetail() {
         duration: 0,
         level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
         isActive: true,
+        isPublic: true,
         subtopicId: ''
       });
     } catch (err) {
@@ -643,6 +646,7 @@ export default function AdminTopicDetail() {
       duration: course.duration || 0,
       level: (course.level || 'BEGINNER') as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
       isActive: course.isActive,
+      isPublic: course.isPublic,
       subtopicId: course.subtopicId
     });
     setShowEditCourseModal(true);
@@ -692,6 +696,7 @@ export default function AdminTopicDetail() {
         duration: 0,
         level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
         isActive: true,
+        isPublic: true,
         subtopicId: ''
       });
     } catch (err) {
@@ -956,8 +961,8 @@ export default function AdminTopicDetail() {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{topic.title}</h3>
                   <div className="flex items-center space-x-4 mb-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${topic.isActive
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
                       }`}>
                       {topic.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -1185,8 +1190,8 @@ export default function AdminTopicDetail() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:justify-end">
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium ${subtopic.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
                               }`}>
                               {subtopic.isActive ? 'Active' : 'Inactive'}
                             </span>
@@ -1244,8 +1249,8 @@ export default function AdminTopicDetail() {
                                 <div key={course.id} className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
                                   <span
                                     className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ring-1 ${course.isActive
-                                        ? 'bg-green-100 text-green-800 ring-green-200'
-                                        : 'bg-red-100 text-red-800 ring-red-200'
+                                      ? 'bg-green-100 text-green-800 ring-green-200'
+                                      : 'bg-red-100 text-red-800 ring-red-200'
                                       }`}
                                   >
                                     {course.isActive ? 'Active' : 'Inactive'}
@@ -1648,6 +1653,18 @@ export default function AdminTopicDetail() {
                     Active course
                   </label>
                 </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="coursePublicHeader"
+                    checked={courseForm.isPublic}
+                    onChange={(e) => setCourseForm({ ...courseForm, isPublic: e.target.checked })}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="coursePublicHeader" className="ml-2 block text-sm text-gray-700">
+                    Show in Catalog
+                  </label>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -1751,6 +1768,7 @@ export default function AdminTopicDetail() {
                       duration: 0,
                       level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
                       isActive: true,
+                      isPublic: true,
                       subtopicId: ''
                     });
                   }}
@@ -1790,6 +1808,18 @@ export default function AdminTopicDetail() {
                   />
                   <label htmlFor="editCourseActiveHeader" className="ml-2 block text-sm text-gray-700">
                     Active course
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="editCoursePublicHeader"
+                    checked={courseForm.isPublic}
+                    onChange={(e) => setCourseForm({ ...courseForm, isPublic: e.target.checked })}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="editCoursePublicHeader" className="ml-2 block text-sm text-gray-700">
+                    Show in Catalog
                   </label>
                 </div>
               </div>
@@ -1896,6 +1926,7 @@ export default function AdminTopicDetail() {
                       duration: 0,
                       level: 'BEGINNER' as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
                       isActive: true,
+                      isPublic: true,
                       subtopicId: ''
                     });
                   }}

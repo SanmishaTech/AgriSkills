@@ -41,7 +41,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
           include: {
             courses: {
               where: {
-                isActive: true
+                isActive: true,
+                isPublic: true
               },
               include: {
                 chapters: {
@@ -85,13 +86,13 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // Add topic-level demo videos
     console.log('Topic demo data:', topic.demo);
     console.log('Demo URLs:', topic.demo?.demoUrls);
-    
+
     if (topic.demo?.demoUrls) {
       topic.demo.demoUrls.forEach((url: string, index: number) => {
         console.log(`Processing URL ${index}:`, url);
         const youtubeId = getYoutubeVideoId(url);
         console.log('Extracted YouTube ID:', youtubeId);
-        
+
         if (youtubeId) {
           allDemoVideos.push({
             id: `topic-demo-${index}`,
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       rating
     };
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       topic: transformedTopic,
       demoVideos: allDemoVideos,
       demoContent: topicDemoContent

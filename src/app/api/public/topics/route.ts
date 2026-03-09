@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     console.log('Fetching public topics...');
-    
+
     // Get all active topics with their subtopics and courses
     const topics = await prisma.topic.findMany({
       where: {
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
           include: {
             courses: {
               where: {
-                isActive: true
+                isActive: true,
+                isPublic: true
               },
               include: {
                 _count: {
@@ -39,7 +40,8 @@ export async function GET(request: NextRequest) {
               select: {
                 courses: {
                   where: {
-                    isActive: true
+                    isActive: true,
+                    isPublic: true
                   }
                 }
               }

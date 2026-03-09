@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, thumbnail, duration, level, isActive, subtopicId } = await request.json();
+    const { title, description, thumbnail, duration, level, isActive, isPublic, subtopicId } = await request.json();
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
         duration: duration || null,
         level: level || 'BEGINNER',
         isActive: isActive !== undefined ? isActive : true,
+        isPublic: isPublic !== undefined ? isPublic : true,
         subtopicId,
       },
       include: {

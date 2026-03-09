@@ -47,6 +47,7 @@ function AddChapterContent() {
     youtubeUrl: '',
     thumbnail: '',
     isActive: true,
+    isPublic: true,
     subtopicId: ''
   });
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -58,7 +59,7 @@ function AddChapterContent() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== 'admin') {
@@ -173,7 +174,7 @@ function AddChapterContent() {
   const handlePreview = () => {
     // Get selected subtopic and topic info for preview
     const selectedSubtopic = getAllSubtopics().find(s => s.id === chapterForm.subtopicId);
-    const selectedTopic = topics.find(topic => 
+    const selectedTopic = topics.find(topic =>
       topic.subtopics?.some(subtopic => subtopic.id === chapterForm.subtopicId)
     );
 
@@ -244,7 +245,7 @@ function AddChapterContent() {
               </div>
               <div className="hidden md:block">
                 <svg className="w-24 h-24 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
               </div>
             </div>
@@ -285,6 +286,18 @@ function AddChapterContent() {
                 />
                 <label htmlFor="chapterActiveDetails" className="ml-2 block text-sm font-medium text-gray-700">
                   Active chapter
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="coursePublicDetails"
+                  checked={chapterForm.isPublic}
+                  onChange={(e) => setChapterForm({ ...chapterForm, isPublic: e.target.checked })}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="coursePublicDetails" className="ml-2 block text-sm font-medium text-gray-700">
+                  Show in Catalog
                 </label>
               </div>
             </div>
@@ -334,7 +347,7 @@ function AddChapterContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Enter YouTube video URL"
                 />
-                
+
                 {/* YouTube Video Preview */}
                 {chapterForm.youtubeUrl && (
                   <div className="mt-4">
@@ -386,9 +399,9 @@ function AddChapterContent() {
                 <div className="space-y-2">
                   {chapterForm.thumbnail && (
                     <div className="relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                      <img 
-                        src={chapterForm.thumbnail} 
-                        alt="Course thumbnail" 
+                      <img
+                        src={chapterForm.thumbnail}
+                        alt="Course thumbnail"
                         className="w-full h-full object-cover"
                       />
                       <button
