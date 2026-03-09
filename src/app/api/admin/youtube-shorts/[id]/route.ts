@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // Helper function to extract video ID from YouTube URL
 function extractVideoId(url: string): string | null {
@@ -26,7 +24,7 @@ async function verifyAdminToken(request: NextRequest) {
 
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.sub }
     });

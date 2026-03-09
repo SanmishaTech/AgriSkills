@@ -16,11 +16,11 @@ const adminPaths = [
 
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  
+
   // Check if the path is protected
   const isProtectedPath = protectedPaths.some(pp => path.startsWith(pp));
   const isAdminPath = adminPaths.some(ap => path.startsWith(ap));
-  
+
   if (!isProtectedPath && !isAdminPath) {
     return NextResponse.next();
   }
@@ -37,9 +37,14 @@ export function middleware(request: NextRequest) {
   }
 
   // Verify the token
-  // In middleware, we need to use the JWT_SECRET directly as env vars work differently in Edge Runtime
-  const JWT_SECRET = process.env.JWT_SECRET || '83077b22cfbb2436782076383304e84a6bba45607837697f7b81c085f620eae9';
-  
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET) {
+    return NextResponse.json(
+      { error: 'Server configuration error: JWT_SECRET missing' },
+      { status: 500 }
+    );
+  }
+
   try {
     interface JWTPayload {
       userId: string;
@@ -49,7 +54,7 @@ export function middleware(request: NextRequest) {
       exp?: number;
     }
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    
+
     // Check admin role for admin paths
     if (isAdminPath && decoded.role !== 'admin') {
       return NextResponse.json(
@@ -57,7 +62,7 @@ export function middleware(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     return NextResponse.next();
   } catch {
     return NextResponse.json(

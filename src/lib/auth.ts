@@ -1,11 +1,9 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Debug logging
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  JWT_SECRET not found in environment variables, using default');
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is missing.');
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -22,7 +20,7 @@ export function generateToken(
   role: string
 ): string {
   return jwt.sign(
-    { 
+    {
       sub: userId,  // Standard JWT claim for subject (user ID)
       userId,       // Keep both for backward compatibility
       email: identifier.email ?? undefined,

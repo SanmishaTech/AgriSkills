@@ -13,7 +13,7 @@ export async function GET(
     // Optional authentication - users can view courses without being logged in
     const authHeader = request.headers.get('authorization');
     let userId: string | null = null;
-    
+
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       const decoded = verifyToken(token) as { id: string } | null;
@@ -24,7 +24,7 @@ export async function GET(
 
     // Fetch course with all related data
     const course = await prisma.course.findUnique({
-      where: { 
+      where: {
         id: courseId,
         isActive: true
       },
@@ -86,7 +86,7 @@ export async function GET(
     // Calculate total duration from chapters
     const totalDuration = course.chapters.reduce((total, chapter) => {
       // Estimate 10 minutes per chapter if no specific duration
-      return total + (chapter.duration || 10);
+      return total + 10;
     }, 0);
 
     // Format response

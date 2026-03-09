@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // GET - Fetch demo data for a topic
 export async function GET(
@@ -11,7 +9,7 @@ export async function GET(
 ) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Authorization token required' },
@@ -21,7 +19,7 @@ export async function GET(
 
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    
+
     // Check if user is admin
     const user = await prisma.user.findUnique({
       where: { id: decoded.sub },
@@ -77,7 +75,7 @@ export async function PUT(
 ) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Authorization token required' },
@@ -87,7 +85,7 @@ export async function PUT(
 
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    
+
     // Check if user is admin
     const user = await prisma.user.findUnique({
       where: { id: decoded.sub },

@@ -38,11 +38,14 @@ export async function GET(request: NextRequest) {
             isActive: true
           },
           include: {
-            _count: {
-              select: {
-                chapters: {
-                  where: {
-                    isActive: true
+            courses: {
+              where: { isActive: true },
+              include: {
+                _count: {
+                  select: {
+                    chapters: {
+                      where: { isActive: true }
+                    }
                   }
                 }
               }
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
           }
         },
         _count: {
-          select: { 
+          select: {
             subtopics: {
               where: {
                 isActive: true
@@ -66,15 +69,28 @@ export async function GET(request: NextRequest) {
 
     // Filter out topics with no active chapters and calculate total chapters
     const topicsWithChapters = topics.filter(topic => {
-      const totalChapters = topic.subtopics.reduce((sum, subtopic) => sum + subtopic._count.chapters, 0);
+      const totalChapters = topic.subtopics.reduce((sum, subtopic) => {
+        return sum + subtopic.courses.reduce((cSum, course) => cSum + course._count.chapters, 0);
+      }, 0);
       return totalChapters > 0;
-    }).map(topic => ({
-      ...topic,
-      _count: {
-        ...topic._count,
-        chapters: topic.subtopics.reduce((sum, subtopic) => sum + subtopic._count.chapters, 0)
-      }
-    }));
+    }).map(topic => {
+      const { subtopics, ...topicData } = topic;
+      // Option to remove the raw courses data if we just wanted the aggregate count
+      const cleanSubtopics = subtopics.map(st => {
+        const { courses, ...restSt } = st;
+        return restSt;
+      });
+      return {
+        ...topicData,
+        subtopics: cleanSubtopics,
+        _count: {
+          ...topicData._count,
+          chapters: topic.subtopics.reduce((sum, subtopic) => {
+            return sum + subtopic.courses.reduce((cSum, course) => cSum + course._count.chapters, 0);
+          }, 0)
+        }
+      };
+    });
 
     return NextResponse.json({ topics: topicsWithChapters });
   } catch (error) {
