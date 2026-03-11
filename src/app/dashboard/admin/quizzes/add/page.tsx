@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  Save, 
-  Plus, 
-  X, 
+import {
+  ArrowLeft,
+  Save,
+  Plus,
+  X,
   Check,
   Clock,
   HelpCircle,
@@ -92,7 +92,7 @@ export default function AddQuizPage() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (userData && token) {
       const parsedUser = JSON.parse(userData);
       if (parsedUser.role !== 'admin') {
@@ -109,7 +109,7 @@ export default function AddQuizPage() {
   const fetchChapters = async (token: string) => {
     try {
       setLoading(true);
-      
+
       // First get all courses to get chapters from
       const coursesResponse = await fetch('/api/admin/courses', {
         headers: {
@@ -167,56 +167,56 @@ export default function AddQuizPage() {
   };
 
   const updateQuestion = (questionId: string, field: string, value: any) => {
-    setQuestions(questions.map(q => 
+    setQuestions(questions.map(q =>
       q.id === questionId ? { ...q, [field]: value } : q
     ));
   };
 
   const updateAnswer = (questionId: string, answerId: string, field: string, value: any) => {
-    setQuestions(questions.map(q => 
-      q.id === questionId 
+    setQuestions(questions.map(q =>
+      q.id === questionId
         ? {
-            ...q,
-            answers: q.answers.map(a => 
-              a.id === answerId ? { ...a, [field]: value } : a
-            )
-          }
+          ...q,
+          answers: q.answers.map(a =>
+            a.id === answerId ? { ...a, [field]: value } : a
+          )
+        }
         : q
     ));
   };
 
   const setCorrectAnswer = (questionId: string, answerId: string) => {
-    setQuestions(questions.map(q => 
-      q.id === questionId 
+    setQuestions(questions.map(q =>
+      q.id === questionId
         ? {
-            ...q,
-            answers: q.answers.map(a => ({ ...a, isCorrect: a.id === answerId }))
-          }
+          ...q,
+          answers: q.answers.map(a => ({ ...a, isCorrect: a.id === answerId }))
+        }
         : q
     ));
   };
 
   const addAnswer = (questionId: string) => {
-    setQuestions(questions.map(q => 
-      q.id === questionId 
+    setQuestions(questions.map(q =>
+      q.id === questionId
         ? {
-            ...q,
-            answers: [
-              ...q.answers,
-              { id: Math.random().toString(36).substr(2, 9), text: '', isCorrect: false }
-            ]
-          }
+          ...q,
+          answers: [
+            ...q.answers,
+            { id: Math.random().toString(36).substr(2, 9), text: '', isCorrect: false }
+          ]
+        }
         : q
     ));
   };
 
   const removeAnswer = (questionId: string, answerId: string) => {
-    setQuestions(questions.map(q => 
-      q.id === questionId 
+    setQuestions(questions.map(q =>
+      q.id === questionId
         ? {
-            ...q,
-            answers: q.answers.filter(a => a.id !== answerId)
-          }
+          ...q,
+          answers: q.answers.filter(a => a.id !== answerId)
+        }
         : q
     ));
   };
@@ -224,9 +224,9 @@ export default function AddQuizPage() {
   const changeQuestionType = (questionId: string, type: 'multiple_choice' | 'true_false' | 'fill_in_blank') => {
     setQuestions(questions.map(q => {
       if (q.id !== questionId) return q;
-      
+
       let newAnswers = q.answers;
-      
+
       if (type === 'true_false') {
         newAnswers = [
           { id: Math.random().toString(36).substr(2, 9), text: 'True', isCorrect: true },
@@ -244,42 +244,42 @@ export default function AddQuizPage() {
           { id: Math.random().toString(36).substr(2, 9), text: '', isCorrect: false }
         ];
       }
-      
+
       return { ...q, type, answers: newAnswers };
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.title.trim()) {
       setError('Quiz title is required');
       return;
     }
-    
+
     if (!formData.chapterId) {
       setError('Please select a chapter');
       return;
     }
-    
+
     if (questions.length === 0) {
       setError('Please add at least one question');
       return;
     }
-    
+
     // Validate questions
     for (const question of questions) {
       if (!question.text.trim()) {
         setError('All questions must have text');
         return;
       }
-      
+
       if (question.answers.length === 0) {
         setError('All questions must have at least one answer');
         return;
       }
-      
+
       if (question.type === 'multiple_choice' || question.type === 'true_false') {
         const hasCorrectAnswer = question.answers.some(a => a.isCorrect);
         if (!hasCorrectAnswer) {
@@ -287,7 +287,7 @@ export default function AddQuizPage() {
           return;
         }
       }
-      
+
       for (const answer of question.answers) {
         if (!answer.text.trim()) {
           setError('All answers must have text');
@@ -295,11 +295,11 @@ export default function AddQuizPage() {
         }
       }
     }
-    
+
     try {
       setSaving(true);
       setError(null);
-      
+
       const token = localStorage.getItem('token');
       const safePassingScore = clamp(formData.passingScore, 1, 100);
       const response = await fetch('/api/admin/quizzes', {
@@ -325,11 +325,11 @@ export default function AddQuizPage() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create quiz');
       }
-      
+
       router.push('/dashboard/admin/quizzes');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -389,7 +389,7 @@ export default function AddQuizPage() {
           {/* Basic Info */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Basic Information</h2>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -442,7 +442,7 @@ export default function AddQuizPage() {
           {/* Quiz Settings */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Quiz Settings</h2>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -630,7 +630,7 @@ export default function AddQuizPage() {
                             {question.type === 'fill_in_blank' && (
                               <Check className="w-4 h-4 text-green-600" />
                             )}
-                            
+
                             <input
                               type="text"
                               value={answer.text}

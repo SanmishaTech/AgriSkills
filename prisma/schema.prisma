@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 model User {
@@ -25,6 +25,8 @@ model User {
   certificates             Certificate[]       // User's earned certificates
   courseCompletions        CourseCompletion[]  // User's completed courses
   questionSelections       TopicQuestionSelection[] // User's topic question selections
+
+  @@map("user")
 }
 
 model Topic {
@@ -38,6 +40,8 @@ model Topic {
   subtopics   Subtopic[]
   demo        TopicDemo?
   questions   TopicQuestion[] // Topic questions for user selection
+
+  @@map("topic")
 }
 
 model Subtopic {
@@ -50,17 +54,21 @@ model Subtopic {
   topicId     String
   topic       Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
   courses     Course[]
+
+  @@map("subtopic")
 }
 
 model Organization {
   id           String   @id @default(uuid())
   name         String
   description  String?
-  htmlTemplate String?  @db.Text // HTML template for certificates
+  htmlTemplate String?  @db.LongText
   isDefault    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   courses      Course[]
+
+  @@map("organization")
 }
 
 model Course {
@@ -80,13 +88,15 @@ model Course {
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   chapters       Chapter[]
   completions    CourseCompletion[] // Track users who completed this course
+
+  @@map("course")
 }
 
 model Chapter {
   id          String      @id @default(uuid())
   title       String
   description String?
-  content     String      // Rich text content for the chapter
+  content     String   @db.LongText  // Rich text content
   youtubeUrl  String?     // Optional YouTube video URL
   orderIndex  Int         @default(0) // To maintain chapter order within a course
   isActive    Boolean     @default(true)
@@ -97,6 +107,8 @@ model Chapter {
   demoVideos  DemoVideo[]
   sections    Section[]
   quiz        Quiz?       // Each chapter can have one quiz
+
+  @@map("chapter")
 }
 
 model DemoVideo {
@@ -110,27 +122,33 @@ model DemoVideo {
   updatedAt   DateTime @updatedAt
   chapterId   String
   chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@map("demovideo")
 }
 
 model Section {
   id          String   @id @default(uuid())
   title       String
-  content     String   // Rich text content
+  content     String   @db.LongText  // Rich text content
   orderIndex  Int      // To maintain section order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   chapterId   String
   chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@map("section")
 }
 
 model TopicDemo {
   id          String   @id @default(uuid())
   topicId     String   @unique
   topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  demoUrls    String[] // Array of YouTube URLs
-  content     String   // Rich text content describing the topic
+  demoUrls    Json     // Array of YouTube URLs (stored as JSON array for MySQL)
+  content     String   @db.LongText  // Rich text content
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("topicdemo")
 }
 
 // Topic Questions for user selection
@@ -144,6 +162,8 @@ model TopicQuestion {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   selections  TopicQuestionSelection[] // User selections
+
+  @@map("topicquestion")
 }
 
 // User selections of topic questions
@@ -160,6 +180,8 @@ model TopicQuestionSelection {
   @@unique([userId, questionId]) // A user can select a question only once per topic
   @@index([userId])
   @@index([topicId])
+
+  @@map("topicquestionselection")
 }
 
 model YouTubeShort {
@@ -172,6 +194,8 @@ model YouTubeShort {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@map("youtubeshort")
 }
 
 // Quiz System Models
@@ -188,6 +212,8 @@ model Quiz {
   chapter     Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   questions   Question[]    // Quiz questions
   attempts    QuizAttempt[] // User attempts
+
+  @@map("quiz")
 }
 
 model Question {
@@ -202,6 +228,8 @@ model Question {
   quiz       Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
   answers    Answer[]       // Possible answers
   responses  QuizResponse[] // Quiz responses for this question
+
+  @@map("question")
 }
 
 model Answer {
@@ -213,6 +241,8 @@ model Answer {
   updatedAt  DateTime @updatedAt
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("answer")
 }
 
 model QuizAttempt {
@@ -233,6 +263,8 @@ model QuizAttempt {
   responses    QuizResponse[]        // User's answers
   certificate  Certificate?          // Generated certificate if passed
   courseCompletion CourseCompletion? // Course completion if this attempt passed
+
+  @@map("quizattempt")
 }
 
 model QuizResponse {
@@ -246,12 +278,14 @@ model QuizResponse {
   questionId    String
   question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerId      String?     // Selected answer ID (for multiple choice)
+
+  @@map("quizresponse")
 }
 
 model Certificate {
   id              String      @id @default(uuid())
   certificateUrl  String?     // URL to the generated PDF certificate
-  certificateData String?     // Base64 or JSON data of certificate
+  certificateData String?  @db.LongText  // Base64 data can be huge
   issuedAt        DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -259,6 +293,8 @@ model Certificate {
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   attemptId       String      @unique
   attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("certificate")
 }
 
 // Track course completions
@@ -280,6 +316,8 @@ model CourseCompletion {
   @@index([userId])
   @@index([courseId])
   @@index([completedAt])
+
+  @@map("coursecompletion")
 }
 
 // Support tickets from help/contact form
@@ -288,7 +326,7 @@ model SupportTicket {
   name      String
   email     String
   subject   String
-  message   String
+  message   String   @db.LongText  // User messages can be long
   status    String   @default("pending") // pending, in-progress, resolved, closed
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -296,4 +334,6 @@ model SupportTicket {
   @@index([email])
   @@index([status])
   @@index([createdAt])
+
+  @@map("supportticket")
 }

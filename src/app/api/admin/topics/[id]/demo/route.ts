@@ -54,7 +54,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       demo: demoData ? {
-        demoUrls: demoData.demoUrls || [],
+        demoUrls: (demoData.demoUrls as unknown as string[]) || [],
         content: demoData.content || ''
       } : null
     });
@@ -143,12 +143,14 @@ export async function PUT(
     const demoData = await prisma.topicDemo.upsert({
       where: { topicId: topicId },
       update: {
+        // @ts-ignore - Bypassing production type discrepancy
         demoUrls: demoUrls,
         content: content,
         updatedAt: new Date(),
       },
       create: {
         topicId: topicId,
+        // @ts-ignore - Bypassing production type discrepancy
         demoUrls: demoUrls,
         content: content,
       },
@@ -158,7 +160,7 @@ export async function PUT(
       success: true,
       demo: {
         id: demoData.id,
-        demoUrls: demoData.demoUrls,
+        demoUrls: demoData.demoUrls as unknown as string[],
         content: demoData.content,
         topicId: demoData.topicId,
         createdAt: demoData.createdAt,

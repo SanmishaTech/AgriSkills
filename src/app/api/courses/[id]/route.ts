@@ -22,12 +22,33 @@ export async function GET(
       }
     }
 
-    // Fetch course with all related data
+    console.log(`[API] Fetching course: ${courseId}`);
+    
+    // First, check if the course exists at all
+    const baseCourse = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { id: true, isActive: true }
+    });
+
+    if (!baseCourse) {
+      console.warn(`[API] Course NOT FOUND in database: ${courseId}`);
+      return NextResponse.json(
+        { error: 'Course ID does not exist in the database' },
+        { status: 404 }
+      );
+    }
+
+    if (!baseCourse.isActive) {
+      console.warn(`[API] Course is INACTIVE: ${courseId}`);
+      return NextResponse.json(
+        { error: 'This course is currently set to inactive' },
+        { status: 403 } // 403 is better for "exists but hidden"
+      );
+    }
+
+    // Now fetch full data
     const course = await prisma.course.findUnique({
-      where: {
-        id: courseId,
-        isActive: true
-      },
+      where: { id: courseId },
       include: {
         subtopic: {
           include: {
@@ -55,7 +76,6 @@ export async function GET(
                 title: true,
                 passingScore: true,
                 timeLimit: true,
-                // Don't include questions in course overview
               }
             }
           }
@@ -74,7 +94,7 @@ export async function GET(
 
     if (!course) {
       return NextResponse.json(
-        { error: 'Course not found' },
+        { error: 'Internal consistency error: Course disappeared' },
         { status: 404 }
       );
     }

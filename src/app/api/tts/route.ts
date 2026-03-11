@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         // Convert raw PCM → WAV so browsers can play it
         const wavBuffer = pcmToWav(pcmBuffer, sampleRate, 1, 16);
 
-        return new NextResponse(wavBuffer, {
+        return new NextResponse(wavBuffer as any, {
             headers: {
                 'Content-Type': 'audio/wav',
                 'Content-Length': wavBuffer.length.toString(),

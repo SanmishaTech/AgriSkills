@@ -106,8 +106,11 @@ async function getProjectContext(): Promise<string> {
         topics.forEach((topic, i) => {
             context += `${i + 1}. Topic: "${topic.title}"\n`;
 
-            if (topic.demo && topic.demo.demoUrls && topic.demo.demoUrls.length > 0) {
-                context += `   * Topic Demo Video: ${topic.demo.demoUrls[0]}\n`;
+            if (topic.demo && topic.demo.demoUrls) {
+                const urls = topic.demo.demoUrls as unknown as string[];
+                if (urls.length > 0) {
+                    context += `   * Topic Demo Video: ${urls[0]}\n`;
+                }
             }
 
             if (topic.subtopics && topic.subtopics.length > 0) {

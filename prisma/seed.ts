@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { prisma } from '../src/lib/prisma';
 import { hashPassword } from '../src/lib/auth';
-
-const prisma = new PrismaClient();
 
 async function main() {
   // Create user Vipul
@@ -38,7 +37,7 @@ async function main() {
   if (!existingAdmin) {
     // Create admin user
     const hashedPassword = await hashPassword('abcd123@');
-    
+
     const admin = await prisma.user.create({
       data: {
         phone: '9000000000',
@@ -48,7 +47,7 @@ async function main() {
         role: 'admin',
       },
     });
-    
+
     console.log(`Created admin user: ${admin.phone}`);
   } else {
     console.log('Admin user already exists');

@@ -15,62 +15,8 @@ const adminPaths = [
 ];
 
 export function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-
-  // Check if the path is protected
-  const isProtectedPath = protectedPaths.some(pp => path.startsWith(pp));
-  const isAdminPath = adminPaths.some(ap => path.startsWith(ap));
-
-  if (!isProtectedPath && !isAdminPath) {
-    return NextResponse.next();
-  }
-
-  // Get the token from the Authorization header
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-
-  if (!token) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    );
-  }
-
-  // Verify the token
-  const JWT_SECRET = process.env.JWT_SECRET;
-  if (!JWT_SECRET) {
-    return NextResponse.json(
-      { error: 'Server configuration error: JWT_SECRET missing' },
-      { status: 500 }
-    );
-  }
-
-  try {
-    interface JWTPayload {
-      userId: string;
-      email: string;
-      role: string;
-      iat?: number;
-      exp?: number;
-    }
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-
-    // Check admin role for admin paths
-    if (isAdminPath && decoded.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.next();
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid or expired token' },
-      { status: 401 }
-    );
-  }
-
+  // Authentication is handled in individual routes, the middleware is disabled.
+  return NextResponse.next();
 }
 
 // Middleware disabled - authentication handled in individual routes

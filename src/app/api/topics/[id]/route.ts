@@ -88,7 +88,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     console.log('Demo URLs:', topic.demo?.demoUrls);
 
     if (topic.demo?.demoUrls) {
-      topic.demo.demoUrls.forEach((url: string, index: number) => {
+      const urls = topic.demo.demoUrls as unknown as string[];
+      urls.forEach((url: string, index: number) => {
         console.log(`Processing URL ${index}:`, url);
         const youtubeId = getYoutubeVideoId(url);
         console.log('Extracted YouTube ID:', youtubeId);

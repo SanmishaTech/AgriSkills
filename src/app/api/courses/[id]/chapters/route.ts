@@ -9,7 +9,7 @@ export async function GET(
     const { id } = await params;
 
     // Get the course with its chapters
-    const course = await prisma.course.findUnique({
+    const course = await prisma.course.findFirst({
       where: {
         id,
         isActive: true
