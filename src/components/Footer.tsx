@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home as HomeIcon, BookOpen, Mic, Send, Volume2, VolumeX, X, Menu } from 'lucide-react';
+import { Home as HomeIcon, BookOpen, Mic, Send, Volume2, VolumeX, X, Menu, Headphones, Plus, PhoneOff, MicOff } from 'lucide-react';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,19 @@ export default function Footer() {
   const SEND_COOLDOWN_MS = 2000;
   const router = useRouter();
   const pathname = usePathname();
+
+  // ── Unified Voice Mode State ──
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [voiceModeStatus, setVoiceModeStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  
+  const voiceRecognitionRef = useRef<any>(null);
+  const voiceSilenceTimerRef = useRef<any>(null);
+  const voiceTranscriptRef = useRef(''); // Acculumated text across auto-restarts
+  const latestCombinedVoiceRef = useRef(''); // Accurate state bypass reference
+  const isUserStoppedVoiceRef = useRef(false);
+  const isVoiceModeMountedRef = useRef(false);
+  const voiceTalkStatusRef = useRef<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
 
   const smoothScrollTo = (top: number) => {
     if (typeof window === 'undefined') return;
@@ -170,6 +183,262 @@ export default function Footer() {
       setIsRecording(false);
     }
   };
+
+  // ── Unified Voice Mode Logic ──
+
+  const resetVoiceSilenceTimer = () => {
+    if (voiceSilenceTimerRef.current) clearTimeout(voiceSilenceTimerRef.current);
+    voiceSilenceTimerRef.current = setTimeout(() => {
+      // 3 seconds of silence detected! Auto-send.
+      if (voiceTalkStatusRef.current === 'listening') {
+        stopVoiceListeningAndSend();
+      }
+    }, 3000); // 3-second auto-send
+  };
+
+  const startVoiceListening = async (skipMicPermission = false, isAutoRestart = false) => {
+    if (!isVoiceModeMountedRef.current) return;
+    if (typeof window === 'undefined') return;
+    setSpeechError(null);
+
+    if (!isAutoRestart) {
+      voiceTranscriptRef.current = '';
+      setVoiceTranscript('');
+      isUserStoppedVoiceRef.current = false;
+    }
+
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setSpeechError('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (!skipMicPermission) {
+      try {
+        if (navigator.mediaDevices?.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(t => t.stop());
+        }
+      } catch (micErr: any) {
+        setSpeechError('Microphone permission denied.');
+        setVoiceModeStatus('idle');
+        return;
+      }
+      if (!isVoiceModeMountedRef.current) return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      let sessionFinal = '';
+
+      recognition.onresult = (event: any) => {
+        if (voiceTalkStatusRef.current !== 'listening') return;
+
+        let interim = '';
+        sessionFinal = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          const t = res?.[0]?.transcript ?? '';
+          if (res.isFinal) sessionFinal += t;
+          else interim += t;
+        }
+        const currentTotal = (voiceTranscriptRef.current + ' ' + sessionFinal).trim();
+        const combined = (currentTotal + ' ' + interim).trim();
+        
+        if (combined) {
+          latestCombinedVoiceRef.current = combined;
+          setVoiceTranscript(combined);
+        }
+
+        // Reset the 3-second silence timer because user is talking
+        resetVoiceSilenceTimer();
+      };
+
+      recognition.onerror = (event: any) => {
+        const err = typeof event?.error === 'string' ? event.error : 'unknown';
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          setSpeechError('Microphone permission denied.');
+          setVoiceModeStatus('idle');
+        }
+      };
+
+      recognition.onend = () => {
+        if (sessionFinal) {
+          voiceTranscriptRef.current = (voiceTranscriptRef.current + ' ' + sessionFinal).trim();
+        }
+        // If Chrome timed out the session but user is still in listening mode, auto-restart silently
+        if (!isUserStoppedVoiceRef.current && voiceTalkStatusRef.current === 'listening') {
+          setTimeout(() => {
+            if (isVoiceModeMountedRef.current) startVoiceListening(true, true);
+          }, 50);
+        } else if (voiceTalkStatusRef.current === 'listening') {
+          setVoiceModeStatus('idle');
+          voiceRecognitionRef.current = null;
+        }
+      };
+
+      voiceRecognitionRef.current = recognition;
+      recognition.start();
+      setVoiceModeStatus('listening');
+      resetVoiceSilenceTimer(); // start the initial countdown
+    } catch (e) {
+      console.error('[VoiceMode] Failed to start:', e);
+      setSpeechError('Voice input failed to start.');
+    }
+  };
+
+  const stopVoiceListeningAndSend = () => {
+    if (voiceSilenceTimerRef.current) clearTimeout(voiceSilenceTimerRef.current);
+    
+    // Read the finalized text, but DO NOT stop the actual hardware mic to avoid conflicts!
+    const text = latestCombinedVoiceRef.current.trim();
+    latestCombinedVoiceRef.current = ''; // reset
+
+    // Append to the main input box for standard send logic
+    if (text) {
+      handleVoiceSend(text);
+    } else {
+      setVoiceModeStatus('listening');
+      resetVoiceSilenceTimer();
+    }
+  };
+
+  const handleVoiceSend = async (transcript: string) => {
+    const text = transcript.trim();
+    if (!text || !isVoiceModeMountedRef.current) return;
+
+    // Add to chat immediately
+    setVoiceTranscript('');
+    setVoiceModeStatus('thinking');
+
+    const userMsg: ChatMessage = { id: `voice-${Date.now()}`, role: 'user', content: text };
+    
+    // We get the absolutely freshest chat history without stale closure bugs!
+    let latestHistoryForApi: ChatMessage[] = [];
+    setChatMessages(prev => {
+      latestHistoryForApi = [...prev];
+      return [...prev, userMsg];
+    });
+
+    try {
+      const history = [...latestHistoryForApi, userMsg].slice(-10).map(m => ({ role: m.role, content: m.content }));
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+      const data = await res.json();
+      const replyText = res.ok ? data.reply : 'Sorry, something went wrong.';
+
+      if (!isVoiceModeMountedRef.current) return;
+
+      setChatMessages(prev => [...prev, { id: `voice-${Date.now()}-a`, role: 'assistant', content: replyText }]);
+      setVoiceModeStatus('speaking');
+
+      const plainText = replyText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`#>]/g, '').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+
+      // Play audio 
+      let ttsPlayed = false;
+      try {
+        const ttsRes = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: plainText }),
+        });
+        const ttsContentType = ttsRes.headers.get('content-type') || '';
+        if (ttsRes.ok && ttsContentType.includes('audio')) {
+          const blob = await ttsRes.blob();
+          if (blob.size > 100) {
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            ttsAudioRef.current = audio;
+            ttsPlayed = await new Promise<boolean>((resolve) => {
+              audio.onended = () => resolve(true);
+              audio.onerror = () => resolve(false);
+              audio.play().catch(() => resolve(false));
+            });
+            URL.revokeObjectURL(url);
+            ttsAudioRef.current = null;
+          }
+        }
+      } catch (e) { /* fallback kicks in */ }
+
+      if (!ttsPlayed && isVoiceModeMountedRef.current) {
+        await new Promise<void>((resolve) => {
+          if (typeof window === 'undefined' || !window.speechSynthesis) return resolve();
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(plainText);
+          const englishVoice = window.speechSynthesis.getVoices().find(v => v.lang.toLowerCase().startsWith('en'));
+          if (englishVoice) utterance.voice = englishVoice;
+          utterance.onend = () => resolve();
+          utterance.onerror = () => resolve();
+          window.speechSynthesis.speak(utterance);
+        });
+      }
+
+      // Loop back to seamlessly listening without killing the hardware mic
+      if (isVoiceModeMountedRef.current) {
+        setVoiceModeStatus('listening');
+        resetVoiceSilenceTimer();
+      }
+
+    } catch (error) {
+      setSpeechError('Failed to send message.');
+      setVoiceModeStatus('idle');
+    }
+  };
+
+  const toggleVoiceMode = () => {
+    // Unlock strictly on mobile
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const unlockVoice = new SpeechSynthesisUtterance('');
+      unlockVoice.volume = 0;
+      window.speechSynthesis.speak(unlockVoice);
+    }
+    
+    if (isVoiceMode) {
+      // Turn off
+      setIsVoiceMode(false);
+      isVoiceModeMountedRef.current = false;
+      isUserStoppedVoiceRef.current = true;
+      if (voiceSilenceTimerRef.current) clearTimeout(voiceSilenceTimerRef.current);
+      if (voiceRecognitionRef.current) {
+        try { voiceRecognitionRef.current.stop(); } catch (e) { /* ignore */ }
+      }
+      if (ttsAudioRef.current) {
+        ttsAudioRef.current.pause();
+      }
+      window.speechSynthesis?.cancel();
+    } else {
+      // Turn on
+      setIsSpeakOpen(true); // ensure drawer is up
+      setIsVoiceMode(true);
+      isVoiceModeMountedRef.current = true;
+      startVoiceListening(false, false);
+    }
+  };
+
+  useEffect(() => {
+    voiceTalkStatusRef.current = voiceModeStatus;
+  }, [voiceModeStatus]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isVoiceModeMountedRef.current = false;
+      if (voiceSilenceTimerRef.current) clearTimeout(voiceSilenceTimerRef.current);
+      if (voiceRecognitionRef.current) {
+        try { voiceRecognitionRef.current.stop(); } catch (e) { /* ignore */ }
+      }
+      if (ttsAudioRef.current) ttsAudioRef.current.pause();
+    };
+  }, []);
+  
+  // ── End Unified Voice Mode Logic ──
 
   // Don't show footer on auth pages, topic pages, and learning pages
   const hideOnPages = ['/register', '/login'];
@@ -600,46 +869,117 @@ export default function Footer() {
             </div>
 
             {/* Input Bar */}
-            <div className="flex-shrink-0 border-t border-gray-200 px-3 py-2 bg-white" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+            <div className={`flex-shrink-0 border-t border-gray-200 px-3 py-2 ${isVoiceMode ? 'bg-gray-50' : 'bg-white'}`} style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
               {speechError && (
-                <div className="mb-1.5 text-xs text-red-600 px-1">{speechError}</div>
+                <div className="mb-1.5 text-xs text-red-600 px-1 text-center font-medium">{speechError}</div>
               )}
-              <div className="flex items-center gap-2">
-                <Input
-                  ref={speakInputRef}
-                  value={speakText}
-                  onChange={(e) => setSpeakText(e.target.value)}
-                  placeholder={`Message ${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}...`}
-                  className="h-10 rounded-full text-sm"
-                  disabled={isAiLoading}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendSpeakMessage();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className={`h-10 w-10 rounded-full flex-shrink-0 ${isRecording ? 'border-green-600 text-green-700 bg-green-50' : ''}`}
-                  onClick={toggleRecording}
-                  aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                >
-                  <Mic className="w-4 h-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  className={`h-10 w-10 rounded-full flex-shrink-0 ${isAiLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-                  disabled={isAiLoading}
-                  onClick={sendSpeakMessage}
-                  aria-label="Send"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+              
+              {/* Voice Mode Layout */}
+              {isVoiceMode ? (
+                <div className="flex flex-col gap-2">
+                  {/* Status Indicator inside Voice Mode */}
+                  <div className="flex items-center justify-center gap-2 py-1">
+                    {voiceModeStatus === 'listening' && (
+                      <><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span><span className="text-green-700 text-xs font-semibold">Listening (auto-sends on pause)...</span></>
+                    )}
+                    {voiceModeStatus === 'thinking' && (
+                      <><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span><span className="text-amber-700 text-xs font-semibold">Understanding...</span></>
+                    )}
+                    {voiceModeStatus === 'speaking' && (
+                      <><span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span><span className="text-blue-700 text-xs font-semibold">Speaking...</span></>
+                    )}
+                    {voiceModeStatus === 'idle' && (
+                      <span className="text-gray-500 text-xs font-medium">Auto-paused. Tap End to exit or Mic to resume.</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full">
+                    {/* Plus Icon */}
+                    <button type="button" className="w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                      <Plus className="w-6 h-6" />
+                    </button>
+                    
+                    {/* Transcript / Input display */}
+                    <div className="flex-1 bg-white border border-gray-200 rounded-full h-12 px-4 flex items-center overflow-hidden shadow-inner">
+                      <span className="text-sm font-medium text-gray-700 truncate w-full">
+                        {voiceTranscript || 'Talking...'}
+                      </span>
+                    </div>
+
+                    {/* End Call Button */}
+                    <button 
+                      type="button" 
+                      onClick={toggleVoiceMode}
+                      className="w-20 h-12 flex-shrink-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 shadow-md transition-transform active:scale-95"
+                    >
+                      {voiceModeStatus === 'listening' ? (
+                        <div className="flex gap-0.5 items-center justify-center w-4 h-4">
+                          <span className="w-1 bg-white rounded-full h-3 animate-pulse"></span>
+                          <span className="w-1 bg-white rounded-full h-4 animate-pulse delay-75"></span>
+                          <span className="w-1 bg-white rounded-full h-2 animate-pulse delay-150"></span>
+                        </div>
+                      ) : (
+                        <PhoneOff className="w-4 h-4" />
+                      )}
+                      <span className="text-sm font-bold pr-1">End</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Text Mode Layout */
+                <div className="flex items-center gap-2">
+                  <button type="button" className="w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
+                    <Plus className="w-6 h-6" />
+                  </button>
+
+                  <Input
+                    ref={speakInputRef}
+                    value={speakText}
+                    onChange={(e) => setSpeakText(e.target.value)}
+                    placeholder={`Message ${process.env.NEXT_PUBLIC_APP_NAME || 'Gram Kushal'}...`}
+                    className="h-10 rounded-full text-sm flex-1 bg-gray-50 border-gray-200 focus-visible:ring-1 focus-visible:ring-green-500"
+                    disabled={isAiLoading}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendSpeakMessage();
+                      }
+                    }}
+                  />
+
+                  {/* Dictation Mic inside Input logic */}
+                  {speakText.length === 0 ? (
+                    <button
+                      type="button"
+                      className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${isRecording ? 'bg-red-100 text-red-600 animate-pulse' : 'text-gray-500 hover:bg-gray-100'}`}
+                      onClick={toggleRecording}
+                      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                    >
+                      <Mic className="w-5 h-5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${isAiLoading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-green-600 hover:bg-green-700 text-white shadow-sm'}`}
+                      disabled={isAiLoading}
+                      onClick={sendSpeakMessage}
+                      aria-label="Send"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {/* Voice Mode Call Button */}
+                  <button
+                    type="button"
+                    onClick={toggleVoiceMode}
+                    className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-gray-600 hover:bg-green-100 hover:text-green-700 transition-colors"
+                    title="Enter Voice Mode"
+                  >
+                    <Headphones className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
