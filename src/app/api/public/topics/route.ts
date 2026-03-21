@@ -64,9 +64,16 @@ export async function GET(request: NextRequest) {
     });
 
     console.log(`Found ${topics.length} topics`);
-    console.log('Topics:', topics.map(t => ({ id: t.id, title: t.title, subtopics: t.subtopics.length })));
+    
+    // Shuffle the topics array randomly
+    const randomizedTopics = [...topics].sort(() => Math.random() - 0.5);
+    
+    // Limit to 20 topics
+    const limitedTopics = randomizedTopics.slice(0, 20);
 
-    return NextResponse.json({ topics });
+    console.log(`Returning ${limitedTopics.length} randomized topics`);
+
+    return NextResponse.json({ topics: limitedTopics });
   } catch (error) {
     console.error('Public topics error:', error);
     return NextResponse.json(
