@@ -107,6 +107,7 @@ export default function HomePage() {
   const [demoUrls, setDemoUrls] = useState<string[]>([]);
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [selectedFirstCourseId, setSelectedFirstCourseId] = useState<string | null>(null);
   const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const seeByScrollRef = useRef<HTMLDivElement>(null);
@@ -300,8 +301,18 @@ export default function HomePage() {
       const urls: string[] = demoPairs.map((p: any) => `https://www.youtube.com/watch?v=${p.youtubeId}`);
       const titles: string[] = demoPairs.map((p: any) => p.title);
 
+      // Extract first course ID if available
+      let firstCourseId = null;
+      if (data.topic?.subtopics && data.topic.subtopics.length > 0) {
+        const firstSubtopic = data.topic.subtopics[0];
+        if (firstSubtopic.courses && firstSubtopic.courses.length > 0) {
+          firstCourseId = firstSubtopic.courses[0].id;
+        }
+      }
+
       if (urls.length > 0) {
         setSelectedTopicId(topicId);
+        setSelectedFirstCourseId(firstCourseId);
         setDemoUrls(urls);
         setDemoTitles(titles);
         setShowDemoPlayer(true);
@@ -318,6 +329,7 @@ export default function HomePage() {
     setDemoUrls([]);
     setDemoTitles([]);
     setSelectedTopicId(null);
+    setSelectedFirstCourseId(null);
   };
 
   // Video player state management
@@ -1138,6 +1150,7 @@ export default function HomePage() {
             demoTitles={demoTitles}
             onClose={closeDemo}
             topicId={selectedTopicId}
+            firstCourseId={selectedFirstCourseId || undefined}
           />
         )
       }

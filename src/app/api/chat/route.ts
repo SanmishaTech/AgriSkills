@@ -107,7 +107,15 @@ async function getProjectContext(): Promise<string> {
             context += `${i + 1}. Topic: "${topic.title}"\n`;
 
             if (topic.demo && topic.demo.demoUrls) {
-                const urls = topic.demo.demoUrls as unknown as string[];
+                let urls: string[] = [];
+                try {
+                    urls = typeof topic.demo.demoUrls === 'string'
+                        ? JSON.parse(topic.demo.demoUrls)
+                        : topic.demo.demoUrls;
+                } catch (e) {
+                    console.error('Failed to parse demoUrls:', e);
+                }
+
                 if (urls.length > 0) {
                     context += `   * Topic Demo Video: ${urls[0]}\n`;
                 }

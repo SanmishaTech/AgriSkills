@@ -51,10 +51,21 @@ export async function GET(
       where: { topicId: topicId },
     });
 
+    let parsedUrls: string[] = [];
+    if (demoData?.demoUrls) {
+      try {
+        parsedUrls = typeof demoData.demoUrls === 'string'
+          ? JSON.parse(demoData.demoUrls)
+          : demoData.demoUrls;
+      } catch (e) {
+        console.error('Failed to parse demoUrls:', e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       demo: demoData ? {
-        demoUrls: (demoData.demoUrls as unknown as string[]) || [],
+        demoUrls: parsedUrls,
         content: demoData.content || ''
       } : null
     });

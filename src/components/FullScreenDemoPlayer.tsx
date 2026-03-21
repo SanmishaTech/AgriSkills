@@ -8,6 +8,7 @@ interface FullScreenDemoPlayerProps {
   demoUrls: string[];
   onClose: () => void;
   topicId: string;
+  firstCourseId?: string;
   demoTitles?: string[];
 }
 
@@ -18,7 +19,7 @@ declare global {
   }
 }
 
-const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId, demoTitles }: FullScreenDemoPlayerProps) => {
+const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId, firstCourseId, demoTitles }: FullScreenDemoPlayerProps) => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const router = useRouter();
   const playerRef = useRef<any>(null);
@@ -93,10 +94,12 @@ const FullScreenDemoPlayer = ({ demoUrls, onClose, topicId, demoTitles }: FullSc
 
   const handleSkip = () => {
     onClose();
-    router.push(`/learn-free/1f8c0c20-c51e-43a8-adbd-50654d21e760`);
+    const destinationId = firstCourseId || topicId;
+    router.push(`/learn-free/${destinationId}`);
   };
 
   if (!demoUrls || demoUrls.length === 0) {
+
     return null;
   }
 

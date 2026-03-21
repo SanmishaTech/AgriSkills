@@ -32,6 +32,7 @@ export default function LearnPage() {
   const [demoUrls, setDemoUrls] = useState<string[]>([]);
   const [demoTitles, setDemoTitles] = useState<string[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [selectedFirstCourseId, setSelectedFirstCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -68,8 +69,18 @@ export default function LearnPage() {
       const urls: string[] = demoPairs.map((p: any) => `https://www.youtube.com/watch?v=${p.youtubeId}`);
       const titles: string[] = demoPairs.map((p: any) => p.title);
 
+      // Extract first course ID if available
+      let firstCourseId = null;
+      if (data.topic?.subtopics && data.topic.subtopics.length > 0) {
+        const firstSubtopic = data.topic.subtopics[0];
+        if (firstSubtopic.courses && firstSubtopic.courses.length > 0) {
+          firstCourseId = firstSubtopic.courses[0].id;
+        }
+      }
+
       if (urls.length > 0) {
         setSelectedTopicId(topicId);
+        setSelectedFirstCourseId(firstCourseId);
         setDemoUrls(urls);
         setDemoTitles(titles);
         setShowDemoPlayer(true);
@@ -86,6 +97,7 @@ export default function LearnPage() {
     setDemoUrls([]);
     setDemoTitles([]);
     setSelectedTopicId(null);
+    setSelectedFirstCourseId(null);
   };
 
   // Helpers for placeholder look & feel
@@ -163,6 +175,7 @@ export default function LearnPage() {
           demoTitles={demoTitles}
           onClose={closeDemo}
           topicId={selectedTopicId || ''}
+          firstCourseId={selectedFirstCourseId || undefined}
         />
       )}
     </div>

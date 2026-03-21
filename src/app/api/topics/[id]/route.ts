@@ -88,7 +88,15 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     console.log('Demo URLs:', topic.demo?.demoUrls);
 
     if (topic.demo?.demoUrls) {
-      const urls = topic.demo.demoUrls as unknown as string[];
+      let urls: string[] = [];
+      try {
+        urls = typeof topic.demo.demoUrls === 'string'
+          ? JSON.parse(topic.demo.demoUrls)
+          : topic.demo.demoUrls;
+      } catch (e) {
+        console.error('Failed to parse demoUrls:', e);
+      }
+
       urls.forEach((url: string, index: number) => {
         console.log(`Processing URL ${index}:`, url);
         const youtubeId = getYoutubeVideoId(url);
