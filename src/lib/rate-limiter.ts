@@ -69,12 +69,11 @@ export class RateLimiter {
 }
 
 /**
- * Singleton rate limiter: 1 request per 4 seconds.
- * The Gemini free tier has a tight ContentInputTokensPerMinute limit (~32K).
- * With a system prompt + DB context of ~2000 tokens each request,
- * 15 req/min × 2000 tokens = 30K tokens/min — safely under the limit.
+ * Singleton rate limiter: Optimized for Paid Tier 1 (1,000 RPM for chat).
+ * With 1,000 RPM available, no artificial delay is needed — 10ms buffer
+ * is kept just to maintain the token-bucket structure.
  */
 export const geminiRateLimiter = new RateLimiter({
   tokensPerInterval: 1,
-  intervalMs: 4000,
+  intervalMs: 10,
 });

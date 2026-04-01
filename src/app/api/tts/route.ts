@@ -5,33 +5,36 @@ export const runtime = 'nodejs';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
+// ── Server-side timeout for Gemini TTS (ms) ──
+// If Gemini doesn't respond within this, we return 504 so the client
+// can immediately fall back to browser speechSynthesis instead of hanging.
+const GEMINI_TTS_TIMEOUT_MS = 6000;
+
 // ── Build a valid WAV file from raw PCM data ──
-function pcmToWav(pcmBuffer: Buffer, sampleRate: number, numChannels: number, bitsPerSample: number): Buffer {
+function pcmToWav(
+    pcmBuffer: Buffer,
+    sampleRate: number,
+    numChannels: number,
+    bitsPerSample: number,
+): Buffer {
     const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
     const blockAlign = numChannels * (bitsPerSample / 8);
     const dataSize = pcmBuffer.length;
 
-    // WAV header is 44 bytes
     const header = Buffer.alloc(44);
-
-    // RIFF chunk descriptor
     header.write('RIFF', 0);
-    header.writeUInt32LE(36 + dataSize, 4);     // ChunkSize
+    header.writeUInt32LE(36 + dataSize, 4);
     header.write('WAVE', 8);
-
-    // "fmt " sub-chunk
     header.write('fmt ', 12);
-    header.writeUInt32LE(16, 16);               // Subchunk1Size (PCM = 16)
-    header.writeUInt16LE(1, 20);                // AudioFormat (PCM = 1)
-    header.writeUInt16LE(numChannels, 22);      // NumChannels
-    header.writeUInt32LE(sampleRate, 24);       // SampleRate
-    header.writeUInt32LE(byteRate, 28);         // ByteRate
-    header.writeUInt16LE(blockAlign, 32);       // BlockAlign
-    header.writeUInt16LE(bitsPerSample, 34);    // BitsPerSample
-
-    // "data" sub-chunk
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(numChannels, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(byteRate, 28);
+    header.writeUInt16LE(blockAlign, 32);
+    header.writeUInt16LE(bitsPerSample, 34);
     header.write('data', 36);
-    header.writeUInt32LE(dataSize, 40);         // Subchunk2Size
+    header.writeUInt32LE(dataSize, 40);
 
     return Buffer.concat([header, pcmBuffer]);
 }
@@ -50,26 +53,50 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No text provided.' }, { status: 400 });
         }
 
-        // Call Gemini 2.5 Flash TTS via REST API
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text }] }],
-                generationConfig: {
-                    responseModalities: ['AUDIO'],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: {
-                                voiceName: 'Kore',
+        // ── PERF FIX: Hard server-side timeout so we never hang longer than 6s ──
+        // The client also has its own 4s timeout, but this is a second layer of
+        // protection that ensures the server itself doesn't keep a long-lived
+        // connection open if Gemini is degraded.
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(
+            () => abortController.abort(),
+            GEMINI_TTS_TIMEOUT_MS,
+        );
+
+        let response: Response;
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: abortController.signal,
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text }] }],
+                    generationConfig: {
+                        responseModalities: ['AUDIO'],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: {
+                                    voiceName: 'Kore',
+                                },
                             },
                         },
                     },
-                },
-            }),
-        });
+                }),
+            });
+        } catch (fetchErr: any) {
+            clearTimeout(timeoutId);
+            if (fetchErr?.name === 'AbortError') {
+                // Tell the client to use browser TTS immediately
+                return NextResponse.json(
+                    { error: 'TTS generation timed out.' },
+                    { status: 504 },
+                );
+            }
+            throw fetchErr;
+        }
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
@@ -81,27 +108,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Extract the inline audio data from the response
-        const audioData =
-            data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
 
         if (!audioData?.data) {
             console.error('[TTS API] No audio in response:', JSON.stringify(data));
-            return NextResponse.json(
-                { error: 'No audio generated.' },
-                { status: 500 },
-            );
+            return NextResponse.json({ error: 'No audio generated.' }, { status: 500 });
         }
 
-        // Decode the base64 PCM data
         const pcmBuffer = Buffer.from(audioData.data, 'base64');
 
-        // Parse sample rate from mimeType (e.g. "audio/L16;codec=pcm;rate=24000")
         const mimeType: string = audioData.mimeType || '';
         const rateMatch = mimeType.match(/rate=(\d+)/);
         const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
 
-        // Convert raw PCM → WAV so browsers can play it
         const wavBuffer = pcmToWav(pcmBuffer, sampleRate, 1, 16);
 
         return new NextResponse(wavBuffer as any, {
