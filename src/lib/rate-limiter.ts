@@ -1,17 +1,18 @@
 /**
- * Token-bucket rate limiter for server-side API call throttling.
- *
- * Usage:
- *   const limiter = new RateLimiter({ tokensPerInterval: 1, intervalMs: 1000 });
- *   await limiter.waitForToken();  // resolves when a token is available
+ * LOW LEVEL EXPLANATION ("The Token Bucket"):
+ * Imagine a bucket that slowly fills up with water drops (tokens) over time.
+ * Every time someone wants to make an API call, they must scoop one drop out of the bucket.
+ * If the bucket is empty, they must wait in a line (queue) until a new drop drips in.
+ * 
+ * This prevents our server from slamming the Gemini API with a million requests at once.
  */
 
 export class RateLimiter {
-  private tokens: number;
-  private readonly maxTokens: number;
-  private readonly intervalMs: number;
-  private lastRefill: number;
-  private waitQueue: Array<() => void> = [];
+  private tokens: number;               // How many drops are currently in the bucket
+  private readonly maxTokens: number;    // The absolute maximum drops the bucket can hold
+  private readonly intervalMs: number;   // How many milliseconds it takes for a new drop to fall in
+  private lastRefill: number;            // A timestamp of the exact moment the last drop fell
+  private waitQueue: Array<() => void> = []; // The waiting line of API calls
 
   constructor(opts: { tokensPerInterval: number; intervalMs: number }) {
     this.maxTokens = opts.tokensPerInterval;
@@ -20,48 +21,60 @@ export class RateLimiter {
     this.lastRefill = Date.now();
   }
 
-  /** Refill tokens based on elapsed time since last refill */
+  /** Checks how much time has passed and adds drops (tokens) to the bucket accordingly */
   private refill() {
     const now = Date.now();
-    const elapsed = now - this.lastRefill;
+    const elapsed = now - this.lastRefill; // Time passed since we last checked
+    
+    // Calculate how many full intervals have passed
     const newTokens = Math.floor(elapsed / this.intervalMs) * this.maxTokens;
+    
     if (newTokens > 0) {
+      // Add the new drops, but never let it overflow past maxTokens
       this.tokens = Math.min(this.maxTokens, this.tokens + newTokens);
       this.lastRefill = now;
     }
   }
 
   /**
-   * Returns a promise that resolves when a token is available.
-   * If a token is already available, resolves immediately.
+   * Anyone wanting to make an API call runs this function.
+   * If there is a drop in the bucket, they get it instantly.
+   * If not, they are frozen (via Promise) and pushed into the waiting line.
    */
   waitForToken(): Promise<void> {
     this.refill();
 
+    // Yay! We have a drop ready.
     if (this.tokens > 0) {
-      this.tokens -= 1;
-      return Promise.resolve();
+      this.tokens -= 1; // Take it
+      return Promise.resolve(); // Let the API call proceed instantly
     }
 
-    // No token available — queue the request and resolve when a token is refilled
+    // No drops available. Freeze the caller in a Promise and put them in the queue.
     return new Promise<void>((resolve) => {
       this.waitQueue.push(resolve);
 
-      // Schedule a check for when the next token should be available
+      // Set an alarm to check the bucket as soon as the next drop is supposed to arrive
       const waitMs = this.intervalMs - (Date.now() - this.lastRefill);
       setTimeout(() => this.processQueue(), Math.max(waitMs, 50));
     });
   }
 
+  /**
+   * This function gets called when the alarm rings.
+   * It checks if any new drops have arrived, and starts unfreezing people in line.
+   */
   private processQueue() {
     this.refill();
+    
+    // As long as we have drops AND people are waiting in line...
     while (this.tokens > 0 && this.waitQueue.length > 0) {
-      this.tokens -= 1;
-      const next = this.waitQueue.shift();
-      next?.();
+      this.tokens -= 1; // Take a drop
+      const unlockNextPerson = this.waitQueue.shift(); // Remove the first person from the line
+      unlockNextPerson?.(); // Unfreeze their code so they can make their API call
     }
 
-    // If there are still waiters, schedule another check
+    // If there is still a line but we ran out of drops again, set another alarm
     if (this.waitQueue.length > 0) {
       setTimeout(() => this.processQueue(), this.intervalMs);
     }
@@ -69,9 +82,9 @@ export class RateLimiter {
 }
 
 /**
- * Singleton rate limiter: Optimized for Paid Tier 1 (1,000 RPM for chat).
- * With 1,000 RPM available, no artificial delay is needed — 10ms buffer
- * is kept just to maintain the token-bucket structure.
+ * Our specific configuration:
+ * We allow 1 API call every 10 milliseconds. 
+ * This keeps a steady stream without causing pileups.
  */
 export const geminiRateLimiter = new RateLimiter({
   tokensPerInterval: 1,

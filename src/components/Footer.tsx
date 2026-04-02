@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home as HomeIcon, BookOpen } from 'lucide-react';
-import GramKushalAI from '@/components/GramKushalAI';
+import GramKushalAI from '@/components/AI';
 
 interface User {
   id: string;

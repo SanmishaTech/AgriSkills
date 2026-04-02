@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
 
 export const runtime = 'nodejs';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+const MAX_TTS_RETRIES = 2;
 
-// ── Server-side timeout for Gemini TTS (ms) ──
-// If Gemini doesn't respond within this, we return 504 so the client
-// can immediately fall back to browser speechSynthesis instead of hanging.
-const GEMINI_TTS_TIMEOUT_MS = 6000;
-
-// ── Build a valid WAV file from raw PCM data ──
+// ── PCM → WAV conversion (44-byte RIFF header) ──
 function pcmToWav(
     pcmBuffer: Buffer,
     sampleRate: number,
@@ -26,8 +23,8 @@ function pcmToWav(
     header.writeUInt32LE(36 + dataSize, 4);
     header.write('WAVE', 8);
     header.write('fmt ', 12);
-    header.writeUInt32LE(16, 16);
-    header.writeUInt16LE(1, 20);
+    header.writeUInt32LE(16, 16);       // PCM sub-chunk size
+    header.writeUInt16LE(1, 20);        // Audio format = PCM
     header.writeUInt16LE(numChannels, 22);
     header.writeUInt32LE(sampleRate, 24);
     header.writeUInt32LE(byteRate, 28);
@@ -39,8 +36,10 @@ function pcmToWav(
     return Buffer.concat([header, pcmBuffer]);
 }
 
+const genAI = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+
 export async function POST(request: NextRequest) {
-    if (!GEMINI_API_KEY) {
+    if (!genAI) {
         return NextResponse.json(
             { error: 'TTS not configured. Add GEMINI_API_KEY to your environment.' },
             { status: 500 },
@@ -53,27 +52,18 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No text provided.' }, { status: 400 });
         }
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+        // Truncate very long text to avoid token limits on TTS model
+        const trimmedText = text.length > 800 ? text.slice(0, 800) + '...' : text;
 
-        // ── PERF FIX: Hard server-side timeout so we never hang longer than 6s ──
-        // The client also has its own 4s timeout, but this is a second layer of
-        // protection that ensures the server itself doesn't keep a long-lived
-        // connection open if Gemini is degraded.
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(
-            () => abortController.abort(),
-            GEMINI_TTS_TIMEOUT_MS,
-        );
+        let audioData: any = null;
 
-        let response: Response;
-        try {
-            response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: abortController.signal,
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text }] }],
-                    generationConfig: {
+        // Retry loop – the TTS model sometimes returns finishReason: "OTHER" with no audio
+        for (let attempt = 0; attempt <= MAX_TTS_RETRIES; attempt++) {
+            try {
+                const result = await genAI.models.generateContent({
+                    model: TTS_MODEL,
+                    contents: [{ parts: [{ text: trimmedText }] }],
+                    config: {
                         responseModalities: ['AUDIO'],
                         speechConfig: {
                             voiceConfig: {
@@ -83,57 +73,49 @@ export async function POST(request: NextRequest) {
                             },
                         },
                     },
-                }),
-            });
-        } catch (fetchErr: any) {
-            clearTimeout(timeoutId);
-            if (fetchErr?.name === 'AbortError') {
-                // Tell the client to use browser TTS immediately
-                return NextResponse.json(
-                    { error: 'TTS generation timed out.' },
-                    { status: 504 },
-                );
+                });
+
+                audioData = result.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+                if (audioData?.data) {
+                    console.log(`[TTS API] Success on attempt ${attempt + 1}`);
+                    break;
+                }
+
+                const reason = result.candidates?.[0]?.finishReason || 'unknown';
+                console.warn(`[TTS API] Attempt ${attempt + 1} got no audio (finishReason: ${reason}). Retrying...`);
+            } catch (retryErr: any) {
+                console.warn(`[TTS API] Attempt ${attempt + 1} threw:`, retryErr.message);
             }
-            throw fetchErr;
         }
-        clearTimeout(timeoutId);
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('[TTS API] Gemini error:', JSON.stringify(data));
-            return NextResponse.json(
-                { error: 'TTS generation failed.' },
-                { status: 502 },
-            );
-        }
-
-        const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
 
         if (!audioData?.data) {
-            console.error('[TTS API] No audio in response:', JSON.stringify(data));
-            return NextResponse.json({ error: 'No audio generated.' }, { status: 500 });
+            console.error('[TTS API] All retries exhausted, no audio generated.');
+            return NextResponse.json({ error: 'No audio generated after retries.' }, { status: 500 });
         }
 
         const pcmBuffer = Buffer.from(audioData.data, 'base64');
-
         const mimeType: string = audioData.mimeType || '';
         const rateMatch = mimeType.match(/rate=(\d+)/);
         const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
 
         const wavBuffer = pcmToWav(pcmBuffer, sampleRate, 1, 16);
+        console.log(`[TTS API] WAV: ${wavBuffer.length} bytes, rate=${sampleRate}, mime=${mimeType}`);
 
-        return new NextResponse(wavBuffer as any, {
+        // Convert Node Buffer to Uint8Array for proper NextResponse binary handling
+        const responseBytes = new Uint8Array(wavBuffer.buffer, wavBuffer.byteOffset, wavBuffer.byteLength);
+
+        return new NextResponse(responseBytes, {
             headers: {
                 'Content-Type': 'audio/wav',
-                'Content-Length': wavBuffer.length.toString(),
+                'Content-Length': responseBytes.byteLength.toString(),
                 'Cache-Control': 'no-cache',
             },
         });
     } catch (err: any) {
         console.error('[TTS API] Unexpected error:', err);
         return NextResponse.json(
-            { error: 'Failed to generate speech.' },
+            { error: 'Failed to generate speech: ' + (err.message || 'Unknown error') },
             { status: 500 },
         );
     }
