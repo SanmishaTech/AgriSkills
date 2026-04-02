@@ -42,6 +42,8 @@ export function useVoiceEngine(
   const voiceGenRef = useRef(0);
   const skipTtsRef = useRef(false);
   const ttsLoadingRef = useRef(false);
+  const ttsAbortControllerRef = useRef<AbortController | null>(null);
+
 
   // Preheat the browser's built-in hidden voices immediately
   useEffect(() => {
@@ -69,9 +71,14 @@ export function useVoiceEngine(
   }
 
   // Raw HTTP request to fetch audio WAV bytes
-  async function fetchTTSBuffer(text: string): Promise<ArrayBuffer | null> {
+  async function fetchTTSBuffer(text: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TTS_API_TIMEOUT_MS);
+
+    // If an external signal is provided, abort our internal controller if it aborts
+    if (signal) {
+      signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
 
     try {
       const res = await fetch('/api/tts', {
@@ -82,18 +89,18 @@ export function useVoiceEngine(
       });
       clearTimeout(timeoutId);
 
-      console.log('[TTS Client] status:', res.status, 'content-type:', res.headers.get('content-type'));
-      if (!res.ok) { console.warn('[TTS Client] Non-OK status'); return null; }
+      if (!res.ok) return null;
       const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('audio')) { console.warn('[TTS Client] Non-audio content-type:', contentType); return null; }
+      if (!contentType.includes('audio')) return null;
 
       const buffer = await res.arrayBuffer();
-      console.log('[TTS Client] ArrayBuffer size:', buffer.byteLength);
       if (buffer.byteLength < 100) return null;
       return buffer;
-    } catch (err) {
+    } catch (err: any) {
       clearTimeout(timeoutId);
-      console.warn('[TTS Client] Fetch error:', err);
+      if (err.name !== 'AbortError') {
+        console.warn('[TTS Client] Fetch error:', err);
+      }
       return null;
     }
   }
@@ -152,6 +159,7 @@ export function useVoiceEngine(
 
   // Triggered when user wants to speak a single chat bubble
   const handleTTS = async (text: string, msgId: string) => {
+    // If clicking the same message that is already speaking, just stop it.
     if (speakingMsgId === msgId) {
       stopAudioPlayback();
       window.speechSynthesis?.cancel();
@@ -159,33 +167,57 @@ export function useVoiceEngine(
       return;
     }
 
-    if (ttsLoadingRef.current) return;
-    ttsLoadingRef.current = true;
-    setTtsLoadingMsgId(msgId);
+    // INTERRUPT: Cancel any previous pending request
+    if (ttsAbortControllerRef.current) {
+      ttsAbortControllerRef.current.abort();
+    }
+    
+    // Create new controller for this request
+    const controller = new AbortController();
+    ttsAbortControllerRef.current = controller;
 
+    setSpeechError(null);
+    setTtsLoadingMsgId(msgId);
+    ttsLoadingRef.current = true;
+
+    // Stop current audio/speech immediately
     stopAudioPlayback();
+    window.speechSynthesis?.cancel();
 
     const plainText = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`#>]/g, '').replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
 
     if (!plainText) {
-      ttsLoadingRef.current = false;
       setTtsLoadingMsgId(null);
+      ttsLoadingRef.current = false;
       return;
     }
 
-    const wavBuffer = await fetchTTSBuffer(plainText);
+    try {
+      const wavBuffer = await fetchTTSBuffer(plainText, controller.signal);
+      
+      // Safety check: only proceed if this specific request is still the active one
+      if (controller.signal.aborted || ttsAbortControllerRef.current !== controller) return;
 
-    ttsLoadingRef.current = false;
-    setTtsLoadingMsgId(null);
+      setTtsLoadingMsgId(null);
+      ttsLoadingRef.current = false;
+      ttsAbortControllerRef.current = null;
 
-    if (wavBuffer) {
-      setSpeakingMsgId(msgId);
-      await playAudioBuffer(wavBuffer);
-      setSpeakingMsgId(null);
-    } else {
-      setSpeakingMsgId(msgId);
-      await speakViaBrowser(plainText);
-      setSpeakingMsgId(null);
+      if (wavBuffer) {
+        setSpeakingMsgId(msgId);
+        await playAudioBuffer(wavBuffer);
+        // Important: Only clear the global ID if it's still us
+        setSpeakingMsgId(prev => prev === msgId ? null : prev);
+      } else {
+        setSpeakingMsgId(msgId);
+        await speakViaBrowser(plainText);
+        setSpeakingMsgId(prev => prev === msgId ? null : prev);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError' && ttsAbortControllerRef.current === controller) {
+        setTtsLoadingMsgId(null);
+        ttsLoadingRef.current = false;
+        ttsAbortControllerRef.current = null;
+      }
     }
   };
 
@@ -436,8 +468,10 @@ export function useVoiceEngine(
     safeStopRecognition(recognitionRef);
     setIsRecording(false);
     stopAudioPlayback();
+    window.speechSynthesis?.cancel();
     setSpeakingMsgId(null);
   };
+
 
   return {
     isRecording,
