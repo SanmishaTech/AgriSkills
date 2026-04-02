@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         // Convert Node Buffer to Uint8Array for proper NextResponse binary handling
         const responseBytes = new Uint8Array(wavBuffer.buffer, wavBuffer.byteOffset, wavBuffer.byteLength);
 
-        return new NextResponse(responseBytes, {
+        return new Response(responseBytes as any, {
             headers: {
                 'Content-Type': 'audio/wav',
                 'Content-Length': responseBytes.byteLength.toString(),
