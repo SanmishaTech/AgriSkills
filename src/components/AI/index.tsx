@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 
 import { useChatEngine } from './useChatEngine';
 import { useVoiceEngine } from './useVoiceEngine';
+import { useLiveVoiceEngine } from './useLiveVoiceEngine';
 
 export default function GramKushalAI() {
   const CARD_BG_COLOR = '#cff0cbff'; // Lighter, cleaner mint-white
@@ -28,36 +29,45 @@ export default function GramKushalAI() {
     sendSpeakMessage,
   } = useChatEngine();
 
-  // Custom Audio Hardware Hook
+  // Text chat audio features (dictation mic, TTS playback for chat bubbles)
   const {
     isRecording,
     toggleRecording,
-    isVoiceMode,
-    toggleVoiceMode,
-    voiceModeStatus,
-    voiceTranscript,
-    stopSpeakingAndListen,
     handleTTS,
     speakingMsgId,
     ttsLoadingMsgId,
-    emergencyStopAudio,
+    emergencyStopAudio: chatEmergencyStop,
   } = useVoiceEngine(
-    // Inject chat function into voice engine for continuous conversational mode
     async (text) => {
-      // Very basic manual injection
       const newUserMsg = { id: Date.now().toString(), role: 'user' as const, content: text };
       const history = [...chatMessages, newUserMsg].slice(-10).map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history, language: selectedLanguage }) });
       const data = await res.json();
       return data.reply || null;
     },
-    // Inject append function
     (role, text) => {
       setChatMessages(prev => [...prev, { id: Date.now().toString() + role, role, content: text }]);
     },
     setSpeechError,
     selectedLanguage
   );
+
+  // 🚀 Gemini Live API Voice Engine (WebSocket-based, sub-second latency)
+  const {
+    isVoiceMode,
+    toggleVoiceMode,
+    voiceModeStatus,
+    voiceTranscript,
+    aiTranscript,
+    stopSpeakingAndListen,
+    emergencyStopAudio: liveEmergencyStop,
+  } = useLiveVoiceEngine(selectedLanguage, setSpeechError);
+
+  // Combined emergency stop
+  const emergencyStopAudio = () => {
+    chatEmergencyStop();
+    liveEmergencyStop();
+  };
 
   const handleNewChat = () => {
     setChatMessages([]);
@@ -108,10 +118,10 @@ export default function GramKushalAI() {
 
   // Futuristic SoundWave Sub-component
   const SoundWave = ({ status }: { status: string }) => {
-    const isThinking = status === 'thinking';
+    const isConnecting = status === 'connecting';
     const isSpeaking = status === 'speaking';
     const isListening = status === 'listening';
-    const isActive = isSpeaking || isListening || isThinking;
+    const isActive = isSpeaking || isListening || isConnecting;
 
     return (
       <div className="relative w-full h-32 flex items-center justify-center overflow-hidden">
@@ -166,7 +176,7 @@ export default function GramKushalAI() {
                   ]
               }}
               transition={{
-                duration: isSpeaking ? wave.dur : isThinking ? 4 : 3,
+                duration: isSpeaking ? wave.dur : isConnecting ? 4 : 3,
                 repeat: Infinity,
                 ease: "easeInOut",
                 delay: i * 0.15
@@ -222,14 +232,14 @@ export default function GramKushalAI() {
                   </p>
                 </motion.div>
               )}
-              {status === 'thinking' && (
+              {status === 'connecting' && (
                 <motion.div
-                  key="thinking-text"
+                  key="connecting-text"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <p className="text-green-600 font-extrabold text-[11px] uppercase tracking-[0.3em] animate-pulse">Assistant is Thinking...</p>
+                  <p className="text-green-600 font-extrabold text-[11px] uppercase tracking-[0.3em] animate-pulse">Connecting to AI...</p>
                 </motion.div>
               )}
               {status === 'speaking' && (
@@ -241,11 +251,13 @@ export default function GramKushalAI() {
                   className="space-y-4"
                 >
                   <p className="text-emerald-700 font-extrabold text-[11px] uppercase tracking-[0.3em] opacity-80">AI Responding</p>
-                  <div className="px-2">
-                    <p className="text-emerald-800 text-[16px] leading-relaxed font-semibold italic opacity-95 line-clamp-4">
-                      &ldquo;{chatMessages[chatMessages.length - 1]?.content}&rdquo;
-                    </p>
-                  </div>
+                  {aiTranscript && (
+                    <div className="px-2">
+                      <p className="text-emerald-800 text-[16px] leading-relaxed font-semibold italic opacity-95 line-clamp-4">
+                        &ldquo;{aiTranscript}&rdquo;
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
               {status === 'idle' && (
@@ -551,7 +563,7 @@ export default function GramKushalAI() {
               {isVoiceMode ? (
                 <div className="flex flex-col gap-3 py-2">
                   <AnimatePresence>
-                    {(voiceModeStatus === 'speaking' || voiceModeStatus === 'thinking') && (
+                    {(voiceModeStatus === 'speaking' || voiceModeStatus === 'connecting') && (
                       <motion.button
                         initial={{ opacity: 0, y: 10, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
