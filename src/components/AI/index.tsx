@@ -162,6 +162,7 @@ export default function GramKushalAI() {
               strokeWidth={isActive ? wave.sw : 1}
               strokeLinecap="round"
               opacity={wave.opacity}
+              initial={{ d: `M0 30 Q25 30, 50 30 T100 30 T150 30 T200 30` }}
               animate={{
                 d: isSpeaking
                   ? [
@@ -170,9 +171,9 @@ export default function GramKushalAI() {
                     `M0 30 Q25 ${30 - (i + 1) * 5}, 50 30 T100 30 T150 30 T200 30`
                   ]
                   : [
-                    `M0 30 Q50 ${30 - (isActive ? i * 3 : 0)}, 100 30 T200 30`,
-                    `M0 30 Q50 ${30 + (isActive ? i * 3 : 0)}, 100 30 T200 30`,
-                    `M0 30 Q50 ${30 - (isActive ? i * 3 : 0)}, 100 30 T200 30`
+                    `M0 30 Q25 ${30 - (isActive ? i * 2 : 0)}, 50 30 T100 30 T150 30 T200 30`,
+                    `M0 30 Q25 ${30 + (isActive ? i * 2 : 0)}, 50 30 T100 30 T150 30 T200 30`,
+                    `M0 30 Q25 ${30 - (isActive ? i * 2 : 0)}, 50 30 T100 30 T150 30 T200 30`
                   ]
               }}
               transition={{
