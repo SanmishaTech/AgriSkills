@@ -412,6 +412,22 @@ export function useLiveVoiceEngine(
     disconnect();
   }, [disconnect]);
 
+  // Restart connection and start a fresh session if language changes while voice mode is active
+  const prevLangRef = useRef(language);
+  useEffect(() => {
+    if (prevLangRef.current !== language) {
+      prevLangRef.current = language;
+      if (isVoiceMode) {
+        console.log('[Live] Language changed, restarting session...');
+        disconnect();
+        // A slight delay ensures the socket and audio contexts are fully closed before reopening
+        setTimeout(() => {
+          connect();
+        }, 200);
+      }
+    }
+  }, [language, isVoiceMode, disconnect, connect]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {

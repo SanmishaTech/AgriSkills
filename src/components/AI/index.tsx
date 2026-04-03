@@ -227,9 +227,6 @@ export default function GramKushalAI() {
                   className="space-y-3"
                 >
                   <p className="text-emerald-600 font-extrabold text-[11px] uppercase tracking-[0.3em] opacity-80">Listening Mode Active</p>
-                  <p className="text-gray-800 text-lg font-medium leading-relaxed px-4 line-clamp-3">
-                    &ldquo;{voiceTranscript || "How can I help you?"}&rdquo;
-                  </p>
                 </motion.div>
               )}
               {status === 'connecting' && (
@@ -251,13 +248,6 @@ export default function GramKushalAI() {
                   className="space-y-4"
                 >
                   <p className="text-emerald-700 font-extrabold text-[11px] uppercase tracking-[0.3em] opacity-80">AI Responding</p>
-                  {aiTranscript && (
-                    <div className="px-2">
-                      <p className="text-emerald-800 text-[16px] leading-relaxed font-semibold italic opacity-95 line-clamp-4">
-                        &ldquo;{aiTranscript}&rdquo;
-                      </p>
-                    </div>
-                  )}
                 </motion.div>
               )}
               {status === 'idle' && (
