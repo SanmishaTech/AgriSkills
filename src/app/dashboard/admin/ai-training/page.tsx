@@ -7,8 +7,17 @@ export default function AiTrainingPage() {
     const [knowledgeBase, setKnowledgeBase] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsFullscreen(false);
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -96,10 +105,21 @@ export default function AiTrainingPage() {
                 {/* Main Content */}
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                     <div className="p-6 sm:p-8">
-                        <div className="mb-6">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Knowledge Base / LLM Context
-                            </label>
+                        <div className="mb-6 text-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm font-semibold">
+                                    Knowledge Base / LLM Context
+                                </label>
+                                <button 
+                                    onClick={() => setIsFullscreen(true)}
+                                    className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center transition-colors group"
+                                >
+                                    <svg className="w-4 h-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    Go Full Screen
+                                </button>
+                            </div>
                             <p className="text-xs text-gray-500 mb-4">
                                 Paste all the facts, descriptions, and instructions you want the AI to remember. 
                                 This will be given to the AI as context for every conversation.
@@ -177,6 +197,56 @@ export default function AiTrainingPage() {
                     </ul>
                 </div>
             </div>
+
+            {/* Full Screen Editor Overlay */}
+            {isFullscreen && (
+                <div className="fixed inset-0 z-[100] bg-white p-4 sm:p-8 flex flex-col animate-in fade-in zoom-in duration-200">
+                    <div className="max-w-6xl mx-auto w-full h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                                    <span className="bg-indigo-100 p-1.5 rounded-lg mr-3">
+                                        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </span>
+                                    Knowledge Base Editor
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">Press ESC to exit full screen mode</p>
+                            </div>
+                            <button 
+                                onClick={() => setIsFullscreen(false)}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2.5 rounded-xl transition-all hover:rotate-90"
+                                title="Exit Full Screen"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <textarea
+                            value={knowledgeBase}
+                            onChange={(e) => setKnowledgeBase(e.target.value)}
+                            className="flex-1 w-full p-8 text-lg border-2 border-indigo-50 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all resize-none text-gray-800 shadow-inner scrollbar-thin font-mono leading-relaxed"
+                            placeholder="Type or paste your knowledge base here..."
+                            autoFocus
+                        />
+                        
+                        <div className="mt-6 flex items-center justify-between bg-gray-50 p-4 rounded-2xl">
+                            <span className="text-sm text-gray-500 font-medium">
+                                Character Count: {knowledgeBase.length}
+                            </span>
+                            <button
+                                onClick={() => setIsFullscreen(false)}
+                                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Finish Editing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
