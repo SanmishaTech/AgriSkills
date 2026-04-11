@@ -14,6 +14,7 @@ const BASE_SYSTEM_PROMPT = `You are ${APP_NAME} AI — a friendly, knowledgeable
 You provide expert advice on modern farming techniques, agriculture, and help users navigate the ${APP_NAME} platform.
 
 IMPORTANT: 
+- If the user asks for anything NOT related to agriculture or the ${APP_NAME} platform, politely tell them that you are an agricultural assistant and advise them to contact the SFC website for other inquiries.
 - When sharing any video link (Shorts, Demos, Chapters), you MUST format it as a clickable Markdown link: [Video Title](URL). 
 - Be helpful, concise, and encourage users to explore the platform's courses.
 - Respond in the same language the user writes in.`;
@@ -125,12 +126,25 @@ export async function POST(request: NextRequest) {
         const aiDbAccess = process.env.AI_DB_ACCESS?.toLowerCase() === 'on';
         const projectContext = aiDbAccess ? await getProjectContext() : '';
         
+        // --- Fetch Custom Knowledge Base ---
+        let customKnowledgeBase = '';
+        try {
+            const kbConfig = await prisma.appConfig.findUnique({
+                where: { key: 'llm_knowledge_base' }
+            });
+            if (kbConfig?.value) {
+                customKnowledgeBase = `\n\nCUSTOM KNOWLEDGE BASE:\n${kbConfig.value}\n`;
+            }
+        } catch (kbErr) {
+            console.error('[Chat API] KB fetch failed:', kbErr);
+        }
+
         let languageInstruction = '';
         if (reqLanguage === 'hi-IN') languageInstruction = '\nCRITICAL: You MUST respond ONLY in Hindi (हिंदी).';
         else if (reqLanguage === 'mr-IN') languageInstruction = '\nCRITICAL: You MUST respond ONLY in Marathi (मराठी).';
         else languageInstruction = '\nCRITICAL: You MUST respond ONLY in English.';
 
-        const systemInstruction = BASE_SYSTEM_PROMPT + languageInstruction + projectContext;
+        const systemInstruction = BASE_SYSTEM_PROMPT + languageInstruction + projectContext + customKnowledgeBase;
 
         // Convert messages to Google Gen AI format
         const contents = userMessages.map(m => ({

@@ -339,3 +339,13 @@ model SupportTicket {
   @@index([createdAt])
   @@map("supportticket")
 }
+
+model AppConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("app_config")
+}

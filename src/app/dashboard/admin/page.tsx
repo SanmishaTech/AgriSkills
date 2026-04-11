@@ -235,6 +235,27 @@ export default function AdminDashboard() {
                 </div>
               </button>
 
+              {/* AI Training Button */}
+              <button
+                onClick={() => router.push('/dashboard/admin/ai-training')}
+                className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white p-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="bg-white/20 rounded-lg p-2 w-fit mb-2">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-lg">AI Training</h3>
+                    <p className="text-indigo-100 text-sm">Update LLM Brain</p>
+                  </div>
+                  <svg className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+
 
 
 
